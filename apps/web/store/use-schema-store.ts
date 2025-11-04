@@ -286,6 +286,9 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
           label: table.name,
           columns: table.columns,
         },
+        draggable: true,
+        resizable: true,
+        selectable: true,
       }));
 
       // Extract relationships (foreign keys) as edges

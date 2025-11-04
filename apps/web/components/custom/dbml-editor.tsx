@@ -69,12 +69,11 @@ export default function DBMLEditor() {
 
     const handler = setTimeout(async () => {
       try {
-        console.log("Updating from DBML", localDBML);
         updateFromDBML(localDBML);
       } catch (err) {
         console.error("Failed to apply DBML:", err);
       }
-    }, 5000); // debounce: 5 seconds after last change
+    }, 1000); // debounce: 1 seconds after last change
 
     // Clear timeout if localDBML changes again within 5s
     return () => clearTimeout(handler);
