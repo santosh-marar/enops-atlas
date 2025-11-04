@@ -39,7 +39,7 @@
   --font-sans: Space Grotesk, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist Mono, monospace;
   --font-mono: Geist Mono, monospace;
-  --radius: 0rem;
+  --radius: 0.25rem;
   --shadow-x: 0px;
   --shadow-y: 1px;
   --shadow-blur: 0px;
@@ -65,9 +65,9 @@
   --card-foreground: oklch(0.9850 0 0);
   --popover: oklch(0.2264 0 0);
   --popover-foreground: oklch(0.9850 0 0);
-  --primary: oklch(0.5382 0.1107 166.7142);
+  --primary: oklch(0.596 0.145 163.225);
   --primary-foreground: oklch(0.9850 0 0);
-  --secondary: oklch(0.4345 0.0876 168.4066);
+  --secondary: oklch(0.696 0.17 162.48);
   --secondary-foreground: oklch(0.9850 0 0);
   --muted: oklch(0.4750 0.0959 168.2778);
   --muted-foreground: oklch(0.9970 0 0);
@@ -78,7 +78,7 @@
   --border: oklch(0.3710 0 0);
   --input: oklch(0.6334 0 0);
   --ring: oklch(0.4997 0 0);
-  --chart-1: oklch(0.5382 0.1107 166.7142);
+  --chart-1: oklch(0.596 0.145 163.225);
   --chart-2: oklch(0.5459 0.0956 186.3436);
   --chart-3: oklch(0.4345 0.0876 168.4066);
   --chart-4: oklch(0.4724 0.0822 187.9952);
@@ -94,7 +94,7 @@
   --font-sans: Space Grotesk, ui-sans-serif, sans-serif, system-ui;
   --font-serif: Geist Mono, monospace;
   --font-mono: Geist Mono, monospace;
-  --radius: 0rem;
+  --radius: 0.25rem;
   --shadow-x: 0px;
   --shadow-y: 1px;
   --shadow-blur: 0px;

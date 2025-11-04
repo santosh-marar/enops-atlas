@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { SAMPLE_DBML } from "@/data/sample-dbml";
 import { ValidationError } from "next/dist/compiled/amphtml-validator";
 import { validateDBML } from "@/validation/dbml-editor";
+import { useSchemaStore } from "@/store/use-schema-store";
 
 export default function DBMLEditor() {
   const { theme } = useTheme();
@@ -18,6 +19,8 @@ export default function DBMLEditor() {
   );
   const [isValid, setIsValid] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
+
+  const { updateFromDBML } = useSchemaStore();
 
   // If any errors, show them in editor after 1 second
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function DBMLEditor() {
           }
         }
       } catch (err) {
-        console.error("Validation error:", err);
+        // console.error("Validation error:", err);
       } finally {
         setIsValidating(false);
       }
@@ -59,6 +62,24 @@ export default function DBMLEditor() {
 
     return () => clearTimeout(timer);
   }, [localDBML]);
+
+  useEffect(() => {
+    if (!isValid) return;
+    if (!localDBML) return;
+
+    const handler = setTimeout(async () => {
+      try {
+        console.log("Updating from DBML", localDBML);
+        updateFromDBML(localDBML);
+      } catch (err) {
+        console.error("Failed to apply DBML:", err);
+      }
+    }, 5000); // debounce: 5 seconds after last change
+
+    // Clear timeout if localDBML changes again within 5s
+    return () => clearTimeout(handler);
+  }, [localDBML, isValid]);
+
 
 
   // Monaco editor setup with DBML language support
