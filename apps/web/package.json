@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsc -p tsconfig.test.json && node .test-dist/tests/schema-transformer.test.js && node -e \"require('fs').rmSync('.test-dist', { recursive: true, force: true });\""
   },
   "dependencies": {
     "@dbml/core": "^4.0.0",
@@ -15,6 +16,9 @@
     "@xyflow/react": "^12.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dexie": "^4.2.1",
+    "dexie-react-hooks": "^4.2.0",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.546.0",
     "monaco-editor": "^0.54.0",
     "next": "16.0.0",

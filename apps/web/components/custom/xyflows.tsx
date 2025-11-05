@@ -3,64 +3,109 @@
 import {
   ReactFlow,
   Background,
-  Controls,
   MiniMap,
   Panel,
+  MarkerType,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useSchemaStore } from "@/store/use-schema-store";
-import {TableNode} from "./table-node";
+import { TableNode } from "./table-node";
+import { FlowToolbar } from "./flow-toolbar";
 import { useTheme } from "next-themes";
+import { ErrorBoundary } from "./error-boundary";
 
 const nodeTypes = {
-  table: TableNode,
+  table: TableNode as any,
+};
+
+const defaultEdgeOptions = {
+  type: "smoothstep" as const,
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    color: "var(--muted-foreground)",
+    width: 16,
+    height: 16,
+  },
+  style: {
+    stroke: "var(--muted-foreground)",
+    strokeWidth: 1.2,
+  },
 };
 
 export default function XYFlows() {
-
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark");
-  };
-
-  const { nodes, edges } = useSchemaStore();
+  const { nodes, edges, onNodesChange, onEdgesChange, setEdgeAnimated, isLoading, isLocked } =
+    useSchemaStore();
 
   return (
-    <div className="h-full w-full bg-neutral-800">
-      <div className="bg-background text-primary px-4 py-3 font-semibold">
-        Visual ERD
-      </div>
-      <div className="h-[calc(100%-40px)] bg-background font-mono text-sm">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          fitView
-          attributionPosition="bottom-right"
-          minZoom={0.2}
-          maxZoom={2}
-          className="dark:bg-background bg-background"
-        >
-          <Background color={isDark ? "#000" : "#fff"} gap={16} />
-          <Controls
-            style={{
-              backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#fff",
-              color: isDark ? "#000" : "#000",
-            }}
-          />
-          {/* <MiniMap nodeColor={"#fff"} nodeBorderRadius={2} /> */}
-          <Panel
-            position="top-left"
-            className="border-transparent bg-neutral-800 rounded shadow-lg"
-          >
-            <div className=" text-sm font-medium">
-              📊 {nodes.length} Tables • 🔗 {edges.length} Relations
+    <ErrorBoundary>
+      <div className="relative h-full w-full bg-gradient-to-br from-background via-background to-background/80">
+        <div className="border-b border-border/50 bg-card/80 px-4 py-3 font-semibold text-primary backdrop-blur-sm">
+          Visual ERD
+          {isLoading && (
+            <span className="ml-2 text-xs text-muted-foreground">
+              Loading...
+            </span>
+          )}
+        </div>
+        <div className="h-[calc(100%-40px)] bg-background/60 font-mono text-sm backdrop-blur-sm">
+          {nodes.length === 0 && !isLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-muted-foreground">
+                No tables to display. Add DBML schema to visualize.
+              </p>
             </div>
-          </Panel>
-        </ReactFlow>
+          ) : (
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              defaultEdgeOptions={defaultEdgeOptions}
+              fitView
+              attributionPosition="bottom-right"
+              minZoom={0.2}
+              maxZoom={2}
+              nodesDraggable={!isLocked}
+              nodesConnectable={!isLocked}
+              nodesFocusable={!isLocked}
+              edgesFocusable={!isLocked}
+              elementsSelectable={!isLocked}
+              panOnDrag={!isLocked ? [1, 2] : true}
+              selectNodesOnDrag={!isLocked}
+              onNodesChange={isLocked ? undefined : onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onEdgeMouseEnter={isLocked ? undefined : (_, edge) => setEdgeAnimated(edge.id, true)}
+              onEdgeMouseLeave={isLocked ? undefined : (_, edge) => setEdgeAnimated(edge.id, false)}
+              onEdgeClick={isLocked ? undefined : (_, edge) => setEdgeAnimated(edge.id, true)}
+              className={`bg-transparent dark:bg-transparent ${isLocked ? '[&_.react-flow__node]:pointer-events-none [&_.react-flow__edge]:pointer-events-none' : ''}`}
+            >
+              <Background
+                color={
+                  isDark ? "rgba(226,232,240,0.12)" : "rgba(15,23,42,0.12)"
+                }
+                gap={18}
+              />
+              <MiniMap
+                className="!border !border-border/60 !bg-card/75 !shadow-lg !backdrop-blur"
+                nodeBorderRadius={3}
+              />
+              <Panel
+                position="top-left"
+                className="rounded-lg border border-border/60 bg-card/75 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-lg backdrop-blur-sm"
+              >
+                <div className="flex items-center gap-4 text-foreground/80">
+                  <span className="text-foreground">📊 {nodes.length} Tables</span>
+                  <span>🔗 {edges.length} Relations</span>
+                </div>
+              </Panel>
+              <FlowToolbar />
+            </ReactFlow>
+          )}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }

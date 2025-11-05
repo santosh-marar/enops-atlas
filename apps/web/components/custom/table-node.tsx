@@ -1,133 +1,152 @@
-import { useState } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
-
-export interface Column {
-  name: string;
-  type: string;
-  primaryKey?: boolean;
-  nullable?: boolean;
-  foreignKey?: boolean;
-}
+import { memo, useMemo } from "react";
+import { Handle, NodeProps, Position } from "@xyflow/react";
+import { Column, ForeignKeyMeta } from "@/lib/schema-transformer";
 
 export interface TableNodeData {
   label: string;
+  schema: string;
+  alias?: string;
   columns: Column[];
 }
 
-export function TableNode({ data, id }: NodeProps) {
-  const [hoveredField, setHoveredField] = useState<string | null>(null);
-
-  return (
-    <div className="bg-card border border-border rounded  min-w-[200px] shadow-lg">
-      <div className="bg-primary text-foreground px-4 py-2 text-sm font-semibold border-b border-border rounded-t-md">
-        {data.label as string}
-      </div>
-
-      <div className="">
-        {/*@ts-ignore*/}
-        {data.columns?.map((col: any, idx: number) => (
-          <div
-            key={idx}
-            className="relative px-2 py-1 text-sm border-b last:border-b-0 flex items-center hover:bg-accent transition-colors group"
-            onMouseEnter={() => setHoveredField(col.name)}
-            onMouseLeave={() => setHoveredField(null)}
-          >
-            {col.foreignKey && (
-              <Handle
-                type="target"
-                position={Position.Left}
-                id={`${id}-${col.name}-target`}
-                style={{
-                  left: -4,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 8,
-                  height: 8,
-                  background: col.isForeignKey ? "#f59e0b" : "#22c55e",
-                  border: "1px solid rgba(15,23,42,0.9)",
-                  borderRadius: "50%",
-                  cursor: "crosshair",
-                  boxShadow: col.isForeignKey
-                    ? "0 0 0 4px rgba(245,158,11,0.2)"
-                    : "0 0 0 4px rgba(34,197,94,0.2)",
-                }}
-                className="!opacity-50 group-hover:!opacity-100 group-hover:!scale-110 transition-all duration-200"
-                title={`Connect to ${col.name}`}
-              />
-            )}
-
-            <div className="flex items-center gap-2 flex-1">
-              {col.primaryKey && (
-                <span className="text-yellow-600 font-bold">🔑</span>
-              )}
-              {col.foreignKey && !col.primaryKey && (
-                <span className="text-orange-500 font-bold">🔗</span>
-              )}
-              <span className="font-semibold text-foreground">{col.name}</span>
-              <span className="text-muted-foreground text-xs font-mono">
-                {col.type}
-              </span>
-            </div>
-
-            {col.primaryKey && (
-              <Handle
-                type="source"
-                position={Position.Right}
-                id={`${id}-${col.name}-source`}
-                style={{
-                  right: -4,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 8,
-                  height: 8,
-                  background: col.isPrimaryKey ? "#3b82f6" : "#22d3ee",
-                  border: "2px solid rgba(15,23,42,0.9)",
-                  borderRadius: "50%",
-                  cursor: "crosshair",
-                  boxShadow: col.isPrimaryKey
-                    ? "0 0 0 4px rgba(59,130,246,0.2)"
-                    : "0 0 0 4px rgba(34,211,238,0.2)",
-                }}
-                className="!opacity-50 group-hover:!opacity-100 group-hover:!scale-110 transition-all duration-200"
-                title={`Connect from $ col.name}`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      <Handle type="target" position={Position.Top} style={{ opacity: 0.3 }} />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ opacity: 0.3 }}
-      />
-    </div>
-  );
-}
-
-// USAGE IN PARENT:
-/*
-import { Node } from "@xyflow/react";
-import { TableNode, TableNodeData } from "./TableNode";
-
-const nodeTypes = {
-  table: TableNode,
+const formatForeignKeyTarget = (fk: ForeignKeyMeta) => {
+  const schemaPrefix = fk.schema && fk.schema !== "public" ? `${fk.schema}.` : "";
+  return `${schemaPrefix}${fk.table}.${fk.column}`;
 };
 
-const nodes: Node<TableNodeData>[] = tables.map((table) => ({
-  id: table.id,
-  type: "table",
-  position: table.position || { x: 0, y: 0 },
-  data: {
-    label: table.name,
-    columns: table.columns,
-  },
-}));
+export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
+  const nodeData = data as unknown as TableNodeData;
 
-<ReactFlow
-  nodes={nodes}
-  edges={edges}
-  nodeTypes={nodeTypes}
-/>
-*/
+  const schemaTag = useMemo(
+    () =>
+      nodeData.schema && nodeData.schema !== "public"
+        ? nodeData.schema.toUpperCase()
+        : "PUBLIC",
+    [nodeData.schema]
+  );
+
+  const aliasTag = useMemo(
+    () =>
+      nodeData.alias && nodeData.alias !== nodeData.label
+        ? nodeData.alias.toUpperCase()
+        : null,
+    [nodeData.alias, nodeData.label]
+  );
+
+  const columns = useMemo(() => nodeData.columns ?? [], [nodeData.columns]);
+
+  return (
+    <div className="relative min-w-[260px] overflow-hidden rounded-xl border border-border/60 bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] backdrop-blur-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r from-primary to-primary/70 px-4 py-3 text-sm font-semibold text-primary-foreground">
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-foreground/70">
+              {schemaTag}
+            </span>
+            <span className="text-[15px] font-semibold tracking-[0.04em]">
+              {nodeData.label}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {aliasTag ? (
+            <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
+              AS {aliasTag}
+            </span>
+          ) : null}
+          <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
+            TABLE
+          </span>
+        </div>
+      </div>
+
+      <div className="divide-y divide-border/60">
+        {columns.map((column, index) => {
+          const isPrimaryKey = Boolean(column.primaryKey);
+          const foreignKeys = column.foreignKeys ?? [];
+          const isForeignKey = foreignKeys.length > 0;
+
+          const badges: string[] = [];
+          if (isPrimaryKey) {
+            badges.push("PK");
+          }
+          if (isForeignKey) {
+            badges.push("FK");
+          }
+          if (column.unique && !isPrimaryKey) {
+            badges.push("UQ");
+          }
+          if (column.autoIncrement) {
+            badges.push("AI");
+          }
+          if (column.nullable === false) {
+            badges.push("NN");
+          }
+
+          const fkTargets = foreignKeys.map((fk) => formatForeignKeyTarget(fk));
+
+          return (
+            <div
+              key={`${column.name}-${index}`}
+              className="group relative flex items-start gap-3 px-4 py-2 text-sm transition-colors hover:bg-muted/40"
+            >
+              {isForeignKey ? (
+                <Handle
+                  type="target"
+                  position={Position.Left}
+                  id={`${id}-${column.name}-target`}
+                  className="!h-2 !w-2 !-left-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
+                />
+              ) : null}
+
+              <div className="flex flex-1 flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium tracking-wide text-foreground">
+                    {column.name}
+                  </span>
+                  <span className="rounded bg-primary/10 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.18em] text-primary">
+                    {column.type}
+                  </span>
+                  {column.typeDetail ? (
+                    <span className="rounded bg-muted/60 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                      {column.typeDetail}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {badges.length > 0
+                    ? badges.map((badge) => (
+                        <span
+                          key={`${column.name}-${badge}`}
+                          className="inline-flex items-center rounded bg-muted/60 px-1.5 py-[1px]"
+                        >
+                          {badge}
+                        </span>
+                      ))
+                    : null}
+                  {fkTargets.length > 0 ? (
+                    <span className="ml-1 text-[10px] font-medium normal-case tracking-tight text-muted-foreground">
+                      FK → {fkTargets.join(", ")}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              {isPrimaryKey ? (
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={`${id}-${column.name}-source`}
+                  className="!h-2 !w-2 !-right-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
+                />
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+    </div>
+  );
+});

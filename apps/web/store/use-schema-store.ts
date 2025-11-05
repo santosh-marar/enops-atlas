@@ -1,151 +1,62 @@
 import { create } from "zustand";
-import { Parser, ModelExporter } from "@dbml/core";
-import { Node, Edge } from "@xyflow/react";
+import {
+  Node,
+  Edge,
+  NodeChange,
+  EdgeChange,
+  MarkerType,
+  applyNodeChanges,
+  applyEdgeChanges,
+} from "@xyflow/react";
+import {
+  transformDbml,
+  Column,
+  Table as ParsedTable,
+  TransformWarning,
+} from "@/lib/schema-transformer";
 
-interface Column {
-  // Basic properties
-  name: string;
-  type: string;
-
-  // Constraints
-  nullable?: boolean;
-  primaryKey?: boolean;
-  unique?: boolean;
-  autoIncrement?: boolean;
-
-  // Default values - STORE BOTH RAW VALUE AND TYPE INFO
-  defaultValue?: string | number | boolean | null;
-  defaultValueType?: "expression" | "string" | "number" | "boolean" | "null";
-
-  // Foreign key
-  foreignKey?: {
-    table: string;
-    column: string;
-    onDelete?:
-      | "CASCADE"
-      | "SET NULL"
-      | "RESTRICT"
-      | "NO ACTION"
-      | "SET DEFAULT";
-    onUpdate?:
-      | "CASCADE"
-      | "SET NULL"
-      | "RESTRICT"
-      | "NO ACTION"
-      | "SET DEFAULT";
-  };
-
-  // Indexes
-  indexed?: boolean;
-  indexType?: "btree" | "hash" | "gist" | "gin" | "brin";
-
-  // String/Text specific
-  length?: number;
-
-  // Numeric specific
-  precision?: number;
-  scale?: number;
-  unsigned?: boolean;
-
-  // Additional metadata
-  comment?: string;
-  note?: string;
-
-  // Validation/Check constraints
-  check?: string;
-
-  // Enum values (for ENUM types)
-  enumValues?: string[];
+interface FlowTable extends ParsedTable {
+  id: string;
+  position: { x: number; y: number };
 }
 
-interface Table {
-  id: string;
-  name: string;
-  columns: Column[];
-  position?: { x: number; y: number };
+interface HistoryState {
+  nodes: Node[];
+  timestamp: number;
 }
 
 interface SchemaState {
   dbml: string;
   sql: string;
-  tables: Table[];
+  tables: FlowTable[];
   nodes: Node[];
   edges: Edge[];
+  warnings: TransformWarning[];
+  error: string | null;
   isUpdating: boolean;
-  updateFromDBML: (dbml: string) => void;
+  isLoading: boolean;
+  history: HistoryState[];
+  historyIndex: number;
+  canUndo: boolean;
+  canRedo: boolean;
+  isLocked: boolean;
+  setNodes: (nodes: Node[]) => void;
+  setEdges: (edges: Edge[]) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  setEdgeAnimated: (id: string, animated: boolean) => void;
+  updateFromDBML: (dbml: string) => Promise<void>;
+  undo: () => void;
+  redo: () => void;
+  addToHistory: (nodes: Node[]) => void;
+  toggleLock: () => void;
 }
 
-/**
- * Parses default value from DBML parser output
- * Handles multiple formats:
- * - {type: 'number', value: 18}
- * - {type: 'string', value: 'active'}
- * - {type: 'boolean', value: true}
- * - {type: 'expression', value: 'now()'}
- * - null
- * - Raw primitives (fallback)
- */
-function parseDefaultValue(dbdefault: any): {
-  value: string | number | boolean | null;
-  type: "expression" | "string" | "number" | "boolean" | "null";
-} {
-  // Handle null/undefined
-  if (dbdefault === null || dbdefault === undefined) {
-    return { value: null, type: "null" };
-  }
+const DEFAULT_STROKE = "var(--muted-foreground)";
+const PRIMARY_STROKE = "var(--primary)";
 
-  // Handle object format: {type: 'number', value: 18}
-  if (
-    typeof dbdefault === "object" &&
-    "type" in dbdefault &&
-    "value" in dbdefault
-  ) {
-    const { type, value } = dbdefault;
-
-    switch (type) {
-      case "number":
-        return { value: Number(value), type: "number" };
-
-      case "string":
-        // Remove surrounding quotes if present
-        const cleanString =
-          typeof value === "string"
-            ? value.replace(/^['"]|['"]$/g, "")
-            : String(value);
-        return { value: cleanString, type: "string" };
-
-      case "boolean":
-        return { value: Boolean(value), type: "boolean" };
-
-      case "expression":
-        return { value: String(value), type: "expression" };
-
-      default:
-        // Unknown type - treat as string
-        // console.warn(`Unknown default value type: ${type}`, dbdefault);
-        return { value: String(value), type: "string" };
-    }
-  }
-
-  // Handle raw primitives
-  if (typeof dbdefault === "number") {
-    return { value: dbdefault, type: "number" };
-  }
-  if (typeof dbdefault === "boolean") {
-    return { value: dbdefault, type: "boolean" };
-  }
-  if (typeof dbdefault === "string") {
-    const isExpression = /\(|\)|now|current|uuid|gen_random/i.test(dbdefault);
-    return {
-      value: dbdefault,
-      type: isExpression ? "expression" : "string",
-    };
-  }
-
-  // Fallback
-  // console.warn("Unexpected default value format:", dbdefault);
-  return { value: String(dbdefault), type: "string" };
-}
+const makeTableLookupKey = (schema: string, tableName: string) =>
+  `${schema}.${tableName}`;
 
 /**
  * Formats default value for display in UI
@@ -157,24 +68,21 @@ export function formatDefaultValue(column: Column): string {
 
   switch (column.defaultValueType) {
     case "expression":
-      return String(column.defaultValue); // now(), CURRENT_TIMESTAMP, etc.
-
+      return String(column.defaultValue);
     case "string":
-      return `'${column.defaultValue}'`; // 'active'
-
+      return `'${column.defaultValue}'`;
     case "number":
-      return String(column.defaultValue); // 18
-
+      return String(column.defaultValue);
     case "boolean":
       return column.defaultValue ? "TRUE" : "FALSE";
-
     case "null":
       return "NULL";
-
     default:
       return String(column.defaultValue);
   }
 }
+
+const MAX_HISTORY = 50;
 
 export const useSchemaStore = create<SchemaState>((set, get) => ({
   dbml: "",
@@ -182,200 +90,280 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
   tables: [],
   nodes: [],
   edges: [],
+  warnings: [],
+  error: null,
   isUpdating: false,
+  isLoading: false,
+  history: [],
+  historyIndex: -1,
+  canUndo: false,
+  canRedo: false,
+  isLocked: false,
 
-  updateFromDBML: (dbml: string) => {
-    // Prevent concurrent updates
+  setNodes: (nodes) => {
+    set({ nodes });
+    get().addToHistory(nodes);
+  },
+
+  setEdges: (edges) => set({ edges }),
+  onNodesChange: (changes) => {
+    const state = get();
+    const newNodes = applyNodeChanges(changes, state.nodes);
+
+    // Only add to history for position changes (drag)
+    const hasPositionChange = changes.some(
+      (change) => change.type === "position" && change.dragging === false
+    );
+
+    set({ nodes: newNodes });
+
+    if (hasPositionChange) {
+      state.addToHistory(newNodes);
+    }
+  },
+  onEdgesChange: (changes) =>
+    set((state) => ({
+      edges: applyEdgeChanges(changes, state.edges),
+    })),
+  setEdgeAnimated: (id, isHovered) =>
+    set((state) => {
+      // Optimized: only update edges that need updating
+      const updatedEdges = state.edges.map((edge) => {
+        if (edge.id === id) {
+          // Target edge being hovered
+          if (edge.animated === isHovered) return edge; // No change needed
+
+          return {
+            ...edge,
+            animated: isHovered,
+            style: {
+              ...edge.style,
+              stroke: isHovered ? PRIMARY_STROKE : DEFAULT_STROKE,
+              strokeWidth: isHovered ? 2 : 1.2,
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 16,
+              height: 16,
+              color: isHovered ? PRIMARY_STROKE : DEFAULT_STROKE,
+            },
+          };
+        }
+
+        // Reset other animated edges when hovering a new edge
+        if (isHovered && edge.animated) {
+          return {
+            ...edge,
+            animated: false,
+            style: {
+              ...edge.style,
+              stroke: DEFAULT_STROKE,
+              strokeWidth: 1.2,
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 16,
+              height: 16,
+              color: DEFAULT_STROKE,
+            },
+          };
+        }
+
+        return edge;
+      });
+
+      return { edges: updatedEdges };
+    }),
+
+  updateFromDBML: async (dbml: string) => {
     if (get().isUpdating) {
       console.warn("Schema update already in progress");
       return;
     }
 
-    // Validate input
     if (!dbml || dbml.trim() === "") {
       throw new Error("DBML string cannot be empty");
     }
 
-    set({ isUpdating: true });
+    set({ isUpdating: true, isLoading: true, error: null });
 
     try {
-      // Parse DBML string
-      const parser = new Parser();
-      const model = parser.parse(dbml, "dbml");
+      const result = transformDbml(dbml);
+      const derivedWarnings: TransformWarning[] = [];
 
-      // Export to PostgreSQL
-      const sql = ModelExporter.export(model, "postgres", false);
+      const flowTables: FlowTable[] = result.tables.map(
+        (table: ParsedTable, index: number) => {
+          const nodeId = `${table.schema}.${table.referenceName}`;
+          return {
+            ...table,
+            id: nodeId,
+            position: {
+              x: 120 + (index % 4) * 320,
+              y: 120 + Math.floor(index / 4) * 220,
+            },
+          };
+        }
+      );
 
-      // Extract first schema (most DBML files have one schema)
-      const schema = model.schemas?.[0];
+      const tableRegistry = new Map<string, FlowTable>();
+      flowTables.forEach((table) => {
+        tableRegistry.set(
+          makeTableLookupKey(table.schema, table.name),
+          table
+        );
+      });
 
-      if (!schema) {
-        throw new Error("No schema found in DBML");
-      }
+      const edges: Edge[] = [];
 
-      // Convert DBML tables to our internal format
-      const tables: Table[] = schema.tables
-        ? schema.tables.map((table: any, index: number) => {
-            // Parse columns
-            const columns: Column[] = table.fields.map((field: any) => {
-              const column: Column = {
-                name: field.name,
-                type: field.type.type_name,
-                nullable: !field.not_null,
-                primaryKey: field.pk || false,
-                unique: field.unique || false,
-              };
+      result.relationships.forEach((relationship) => {
+        const parentTable = tableRegistry.get(
+          makeTableLookupKey(relationship.parent.schema, relationship.parent.table)
+        );
+        const childTable = tableRegistry.get(
+          makeTableLookupKey(relationship.child.schema, relationship.child.table)
+        );
 
-              // Auto increment
-              if (field.increment) {
-                column.autoIncrement = true;
-              }
+        if (!parentTable || !childTable) {
+          derivedWarnings.push({
+            message: "Relationship references unknown table",
+            context: `${relationship.parent.schema}.${relationship.parent.table} -> ${relationship.child.schema}.${relationship.child.table}`,
+          });
+          return;
+        }
 
-              // Default value - PROPERLY HANDLED
-              if (field.dbdefault !== undefined && field.dbdefault !== null) {
-                const parsed = parseDefaultValue(field.dbdefault);
-                column.defaultValue = parsed.value;
-                column.defaultValueType = parsed.type;
-              }
+        const parentColumn = parentTable.columns.find(
+          (column) => column.name === relationship.parent.column
+        );
+        const childColumn = childTable.columns.find(
+          (column) => column.name === relationship.child.column
+        );
 
-              // String length (e.g., VARCHAR(255))
-              if (field.type.args && field.type.args.length > 0) {
-                column.length = field.type.args[0];
-              }
+        if (!parentColumn || !childColumn) {
+          derivedWarnings.push({
+            message: "Relationship references unknown column",
+            context: `${parentTable.displayLabel}.${relationship.parent.column} -> ${childTable.displayLabel}.${relationship.child.column}`,
+          });
+          return;
+        }
 
-              // Precision and scale for numeric types (e.g., DECIMAL(10,2))
-              if (field.type.args && field.type.args.length === 2) {
-                column.precision = field.type.args[0];
-                column.scale = field.type.args[1];
-              }
+        edges.push({
+          id: relationship.id,
+          source: parentTable.id,
+          sourceHandle: `${parentTable.id}-${relationship.parent.column}-source`,
+          target: childTable.id,
+          targetHandle: `${childTable.id}-${relationship.child.column}-target`,
+          type: "smoothstep",
+          animated: false,
+          label: `${parentTable.displayLabel}.${relationship.parent.column} → ${childTable.displayLabel}.${relationship.child.column}`,
+          style: {
+            strokeWidth: 1.2,
+            stroke: DEFAULT_STROKE,
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 16,
+            height: 16,
+            color: DEFAULT_STROKE,
+          },
+        });
+      });
 
-              // Note/Comment
-              if (field.note) {
-                column.note =
-                  typeof field.note === "string"
-                    ? field.note
-                    : field.note.value || "";
-              }
-
-              // Enum values
-              if (field.type.values && Array.isArray(field.type.values)) {
-                column.enumValues = field.type.values;
-              }
-
-              return column;
-            });
-
-            return {
-              id: table.name,
-              name: table.name,
-              columns,
-              position: {
-                x: 100 + (index % 3) * 350,
-                y: 100 + Math.floor(index / 3) * 250,
-              },
-            };
-          })
-        : [];
-
-      // Convert tables to XYFlow nodes
-      const nodes: Node[] = tables.map((table) => ({
+      let nodes: Node[] = flowTables.map((table) => ({
         id: table.id,
         type: "table",
-        position: table.position || { x: 0, y: 0 },
+        position: table.position,
         data: {
           label: table.name,
+          schema: table.schema,
+          alias: table.alias,
           columns: table.columns,
         },
-        draggable: true,
-        resizable: true,
-        selectable: true,
       }));
 
-      // Extract relationships (foreign keys) as edges
-      const edges: Edge[] = schema.refs
-        ? (schema.refs
-            .map((ref: any, index: number) => {
-              // Validate reference structure
-              if (!ref.endpoints || ref.endpoints.length !== 2) {
-                // console.warn("Invalid reference structure:", ref);
-                return null;
-              }
-
-              const sourceEndpoint = ref.endpoints[0];
-              const targetEndpoint = ref.endpoints[1];
-
-              if (!sourceEndpoint.tableName || !targetEndpoint.tableName) {
-                // console.warn("Missing table names in reference:", ref);
-                return null;
-              }
-
-              const edge: Edge = {
-                id: `edge-${index}`,
-                source: sourceEndpoint.tableName,
-                target: targetEndpoint.tableName,
-                label: `${sourceEndpoint.fieldNames?.[0] || "?"} → ${
-                  targetEndpoint.fieldNames?.[0] || "?"
-                }`,
-                type: "smoothstep",
-                animated: true,
-              };
-
-              // Add foreign key constraint info to source column
-              const sourceTable = tables.find(
-                (t) => t.id === sourceEndpoint.tableName
-              );
-
-              if (sourceTable && sourceEndpoint.fieldNames?.[0]) {
-                const sourceColumn = sourceTable.columns.find(
-                  (c) => c.name === sourceEndpoint.fieldNames[0]
-                );
-
-                if (sourceColumn && targetEndpoint.fieldNames?.[0]) {
-                  sourceColumn.foreignKey = {
-                    table: targetEndpoint.tableName,
-                    column: targetEndpoint.fieldNames[0],
-                    onDelete: ref.onDelete || undefined,
-                    onUpdate: ref.onUpdate || undefined,
-                  };
-                }
-              }
-
-              return edge;
-            })
-            .filter(Boolean) as Edge[])
-        : [];
-
-      // Update state
+  
       set({
         dbml,
-        sql,
-        tables,
+        sql: result.sql,
+        tables: flowTables,
         nodes,
         edges,
+        warnings: [...result.warnings, ...derivedWarnings],
+        error: null,
         isUpdating: false,
+        isLoading: false,
       });
-    } catch (error: unknown) {
-      let errorMessage = "Failed to parse DBML";
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to parse DBML";
 
-      // Extract error message from DBML parser
-      if (
-        error &&
-        typeof error === "object" &&
-        "diags" in error &&
-        Array.isArray((error as { diags: unknown[] }).diags) &&
-        (error as { diags: unknown[] }).diags.length > 0
-      ) {
-        const firstDiag = (error as { diags: Array<{ message?: string }> })
-          .diags[0];
-        errorMessage = firstDiag.message || errorMessage;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
+      set({
+        isUpdating: false,
+        isLoading: false,
+        error: errorMessage,
+      });
 
-      // console.error("DBML Parse Error:", errorMessage, error);
-
-      set({ isUpdating: false });
       throw new Error(errorMessage);
     }
+  },
+
+  addToHistory: (nodes: Node[]) => {
+    const { history, historyIndex } = get();
+
+    // Remove any future history if we're not at the end
+    const newHistory = history.slice(0, historyIndex + 1);
+
+    // Add new state
+    newHistory.push({
+      nodes: JSON.parse(JSON.stringify(nodes)), // Deep clone
+      timestamp: Date.now(),
+    });
+
+    // Limit history size
+    if (newHistory.length > MAX_HISTORY) {
+      newHistory.shift();
+    }
+
+    set({
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+      canUndo: newHistory.length > 1,
+      canRedo: false,
+    });
+  },
+
+  undo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      const previousState = history[newIndex];
+
+      set({
+        nodes: previousState.nodes,
+        historyIndex: newIndex,
+        canUndo: newIndex > 0,
+        canRedo: true,
+      });
+    }
+  },
+
+  redo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      const nextState = history[newIndex];
+
+      set({
+        nodes: nextState.nodes,
+        historyIndex: newIndex,
+        canUndo: true,
+        canRedo: newIndex < history.length - 1,
+      });
+    }
+  },
+
+  toggleLock: () => {
+    set((state) => ({ isLocked: !state.isLocked }));
   },
 }));
