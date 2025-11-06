@@ -45,7 +45,7 @@ interface SchemaState {
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   setEdgeAnimated: (id: string, animated: boolean) => void;
-  updateFromDBML: (dbml: string) => Promise<void>;
+  updateFromDBML: (dbml: string, preservePositions?: boolean) => Promise<void>;
   undo: () => void;
   redo: () => void;
   addToHistory: (nodes: Node[]) => void;
@@ -175,14 +175,26 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       return { edges: updatedEdges };
     }),
 
-  updateFromDBML: async (dbml: string) => {
+  updateFromDBML: async (dbml: string, preservePositions: boolean = false) => {
     if (get().isUpdating) {
       console.warn("Schema update already in progress");
       return;
     }
 
+    // Handle empty DBML - clear everything
     if (!dbml || dbml.trim() === "") {
-      throw new Error("DBML string cannot be empty");
+      set({
+        dbml: "",
+        sql: "",
+        tables: [],
+        nodes: [],
+        edges: [],
+        warnings: [],
+        error: null,
+        isUpdating: false,
+        isLoading: false,
+      });
+      return;
     }
 
     set({ isUpdating: true, isLoading: true, error: null });
@@ -191,13 +203,20 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       const result = transformDbml(dbml);
       const derivedWarnings: TransformWarning[] = [];
 
+      // Get existing node positions if preserving
+      const existingNodes = preservePositions ? get().nodes : [];
+      const existingPositions = new Map(
+        existingNodes.map(node => [node.id, node.position])
+      );
+
       const flowTables: FlowTable[] = result.tables.map(
         (table: ParsedTable, index: number) => {
           const nodeId = `${table.schema}.${table.referenceName}`;
+          const existingPosition = existingPositions.get(nodeId);
           return {
             ...table,
             id: nodeId,
-            position: {
+            position: existingPosition || {
               x: 120 + (index % 4) * 320,
               y: 120 + Math.floor(index / 4) * 220,
             },
@@ -211,6 +230,16 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
           makeTableLookupKey(table.schema, table.name),
           table
         );
+      });
+
+      // Track which columns are sources for relationships
+      const sourceColumns = new Map<string, Set<string>>(); // tableId -> Set of column names
+      result.relationships.forEach((rel) => {
+        const tableId = `${rel.parent.schema}.${rel.parent.table}`;
+        if (!sourceColumns.has(tableId)) {
+          sourceColumns.set(tableId, new Set());
+        }
+        sourceColumns.get(tableId)!.add(rel.parent.column);
       });
 
       const edges: Edge[] = [];
@@ -254,7 +283,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
           targetHandle: `${childTable.id}-${relationship.child.column}-target`,
           type: "smoothstep",
           animated: false,
-          label: `${parentTable.displayLabel}.${relationship.parent.column} → ${childTable.displayLabel}.${relationship.child.column}`,
+          // label: `${parentTable.displayLabel}.${relationship.parent.column} → ${childTable.displayLabel}.${relationship.child.column}`,
           style: {
             strokeWidth: 1.2,
             stroke: DEFAULT_STROKE,
@@ -268,17 +297,23 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
         });
       });
 
-      let nodes: Node[] = flowTables.map((table) => ({
-        id: table.id,
-        type: "table",
-        position: table.position,
-        data: {
-          label: table.name,
-          schema: table.schema,
-          alias: table.alias,
-          columns: table.columns,
-        },
-      }));
+      let nodes: Node[] = flowTables.map((table) => {
+        const tableKey = `${table.schema}.${table.name}`;
+        const sourceColumnSet = sourceColumns.get(tableKey) || new Set();
+
+        return {
+          id: table.id,
+          type: "table",
+          position: table.position,
+          data: {
+            label: table.name,
+            schema: table.schema,
+            alias: table.alias,
+            columns: table.columns,
+            sourceColumns: Array.from(sourceColumnSet), // columns that are sources for relationships
+          },
+        };
+      });
 
   
       set({
