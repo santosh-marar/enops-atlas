@@ -262,10 +262,16 @@ interface DbmlRef {
   onUpdate?: string;
 }
 
+interface DbmlEnum {
+  name?: string;
+  values?: Array<{ name?: string } | string>;
+}
+
 interface DbmlSchema {
   name?: string;
   tables?: DbmlTable[];
   refs?: DbmlRef[];
+  enums?: DbmlEnum[];
 }
 
 interface DbmlModel {
@@ -360,6 +366,24 @@ export function transformDbml(dbml: string): TransformResult {
   const columnRegistry = new Map<string, Column>();
   const warnings: TransformWarning[] = [];
 
+  // enum registry for lookup
+  const enumRegistry = new Map<string, string[]>();
+  schemas.forEach((schema) => {
+    const schemaName = normalizeSchemaName(schema.name);
+    (schema.enums || []).forEach((enumDef) => {
+      if (enumDef.name && enumDef.values) {
+        const enumKey = `${schemaName}.${enumDef.name}`;
+        const enumValues = enumDef.values.map((v) =>
+          typeof v === 'object' && v.name ? v.name : String(v)
+        );
+        enumRegistry.set(enumKey, enumValues);
+        if (schemaName === "public") {
+          enumRegistry.set(enumDef.name, enumValues);
+        }
+      }
+    });
+  });
+
   schemas.forEach((schema) => {
     const schemaName = normalizeSchemaName(schema.name);
     schema.tables?.forEach((table) => {
@@ -433,8 +457,25 @@ export function transformDbml(dbml: string): TransformResult {
               : field.note.value || "";
         }
 
+        // Check for inline enum values
         if (field.type?.values && Array.isArray(field.type.values)) {
           column.enumValues = field.type.values;
+        }
+        // Check for enum type reference (e.g., "ecommerce.products_status")
+        else if (field.type?.type_name) {
+          const enumTypeName = field.type.type_name;
+          // Try with current schema prefix first
+          const fullEnumName = `${schemaName}.${enumTypeName}`;
+          let enumValues = enumRegistry.get(fullEnumName);
+
+          // If not found, try without schema (for cross-schema references)
+          if (!enumValues) {
+            enumValues = enumRegistry.get(enumTypeName);
+          }
+
+          if (enumValues) {
+            column.enumValues = enumValues;
+          }
         }
 
         return column;
