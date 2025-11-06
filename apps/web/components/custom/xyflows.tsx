@@ -6,15 +6,18 @@ import {
   MiniMap,
   Panel,
   MarkerType,
-  useReactFlow,
   BackgroundVariant,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { TableNode } from "./table-node";
 import { FlowToolbar } from "./flow-toolbar";
+import { TableSearch } from "./table-search";
 import { useTheme } from "next-themes";
 import { ErrorBoundary } from "./error-boundary";
+import { useState } from "react";
+import { useTableFilter } from "@/hooks/use-table-filter";
+import { useDebounce } from "@/hooks/use-debounce";
 
 const nodeTypes = {
   table: TableNode as any,
@@ -37,6 +40,8 @@ const defaultEdgeOptions = {
 export default function XYFlows() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const {
     nodes,
@@ -47,6 +52,8 @@ export default function XYFlows() {
     isLoading,
     isLocked,
   } = useSchemaStore();
+
+  const { filteredNodes, filteredEdges } = useTableFilter(nodes, edges, debouncedSearchQuery);
 
   return (
     <ErrorBoundary>
@@ -60,8 +67,8 @@ export default function XYFlows() {
             </div>
           ) : (
             <ReactFlow
-              nodes={nodes}
-              edges={edges}
+              nodes={filteredNodes}
+              edges={filteredEdges}
               nodeTypes={nodeTypes}
               defaultEdgeOptions={defaultEdgeOptions}
               fitView
@@ -113,11 +120,20 @@ export default function XYFlows() {
               >
                 <div className="flex items-center gap-4 text-foreground/80">
                   <span className="text-foreground">
-                    📊 {nodes.length} Tables
+                    📊 {filteredNodes.length}/{nodes.length} Tables
                   </span>
-                  <span>🔗 {edges.length} Relations</span>
+                  <span>🔗 {filteredEdges.length} Relations</span>
                 </div>
               </Panel>
+
+              {/* Search Panel */}
+              <TableSearch
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                resultCount={debouncedSearchQuery ? filteredNodes.length : nodes.length}
+                totalCount={nodes.length}
+              />
+
               <FlowToolbar />
             </ReactFlow>
           )}
