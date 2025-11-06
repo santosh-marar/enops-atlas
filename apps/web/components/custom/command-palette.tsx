@@ -105,7 +105,7 @@ export function CommandPalette({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-2xl p-0 gap-0 top-[20vh] translate-y-0"
+        className="min-w-xl max-w-2xl p-0 gap-0 top-[20vh] translate-y-0"
         showCloseButton={false}
       >
         {/* Search Input */}
@@ -116,7 +116,7 @@ export function CommandPalette({
             placeholder="Search commands..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto"
+            className="flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 p-1 h-auto "
             autoFocus
           />
         </div>
@@ -192,7 +192,7 @@ export function CommandPalette({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border px-4 py-4 text-xs text-muted-foreground">
           <div className="flex gap-4">
             <span>
               <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono">

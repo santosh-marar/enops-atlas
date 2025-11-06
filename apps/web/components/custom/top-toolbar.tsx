@@ -77,6 +77,7 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -338,20 +339,30 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
     setShowActionMenu(false);
   };
 
-  const handleDelete = async () => {
-    if (currentProject?.id && confirm(`Delete project "${projectName}"?`)) {
-      try {
-        const { db } = await loadDB();
-        await db.projects.delete(currentProject.id);
-        setCurrentProject(null);
-        setProjectName("Untitled Project");
-        setLastSaved(null);
-        await updateFromDBML("");
-      } catch (error) {
-        console.error("Failed to delete project:", error);
-      }
+  const handleDelete = () => {
+    if (currentProject?.id) {
+      setShowDeleteDialog(true);
     }
     setShowActionMenu(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!currentProject?.id) return;
+
+    try {
+      const { db } = await loadDB();
+      await db.projects.delete(currentProject.id);
+      setCurrentProject(null);
+      setProjectName("Untitled Project");
+      setLastSaved(null);
+      await updateFromDBML("");
+      toast.success("Project deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      toast.error("Failed to delete project. Please try again.");
+    } finally {
+      setShowDeleteDialog(false);
+    }
   };
 
   const handleBrowse = async () => {
@@ -802,6 +813,33 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
               }}
             >
               Create New
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Project Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete Project</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{projectName}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+            >
+              Delete Project
             </Button>
           </DialogFooter>
         </DialogContent>

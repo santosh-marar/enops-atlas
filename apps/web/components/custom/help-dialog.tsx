@@ -42,7 +42,7 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="min-w-xl max-w-2xl max-h-[87vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <Keyboard className="h-6 w-6 text-primary" />
