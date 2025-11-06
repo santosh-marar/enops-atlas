@@ -15,10 +15,29 @@ import {
   Image as ImageIcon,
   Loader2,
   X,
+  Undo,
+  Redo,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+  Lock,
+  Unlock,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Button } from "../ui/button";
+import { CommandPalette } from "./command-palette";
+import { HelpDialog } from "./help-dialog";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Lazy load heavy dependencies
 const loadDB = () => import("@/lib/db").then((mod) => ({ db: mod.db }));
@@ -56,10 +75,154 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const exportCancelRef = useRef(false);
+
+  // Define all keyboard shortcuts and commands
+  const shortcuts = [
+    {
+      key: "k",
+      ctrl: true,
+      description: "Open command palette",
+      category: "General",
+      action: () => setShowCommandPalette(true),
+    },
+    {
+      key: "/",
+      ctrl: true,
+      description: "Show keyboard shortcuts",
+      category: "General",
+      action: () => setShowHelpDialog(true),
+    },
+    {
+      key: "s",
+      ctrl: true,
+      description: "Save project",
+      category: "Project",
+      action: () => handleSave(),
+    },
+    {
+      key: "n",
+      ctrl: true,
+      shift: true,
+      description: "New project",
+      category: "Project",
+      action: () => handleNew(),
+    },
+    {
+      key: "o",
+      ctrl: true,
+      description: "Browse projects",
+      category: "Project",
+      action: () => handleBrowse(),
+    },
+    {
+      key: "e",
+      ctrl: true,
+      shift: true,
+      description: "Export as PNG",
+      category: "Export",
+      action: () => handleExportImage("png"),
+    },
+  ];
+
+  // Setup keyboard shortcuts
+  useKeyboardShortcuts({
+    shortcuts: shortcuts.map((s) => ({
+      ...s,
+      action: () => {
+        // Don't trigger shortcuts when modals are open (except for closing them)
+        if (showCommandPalette || showHelpDialog || showProjectBrowser) return;
+        s.action();
+      },
+    })),
+    enabled: !isEditingName, // Disable when editing project name
+  });
+
+  // Commands for command palette
+  const commands = [
+    {
+      id: "new-project",
+      label: "New Project",
+      description: "Create a new project",
+      icon: Plus,
+      category: "Project",
+      shortcut: shortcuts.find((s) => s.key === "n" && s.ctrl && s.shift),
+      action: () => handleNew(),
+    },
+    {
+      id: "save-project",
+      label: "Save Project",
+      description: "Save current project",
+      icon: Save,
+      category: "Project",
+      shortcut: shortcuts.find((s) => s.key === "s" && s.ctrl),
+      action: () => handleSave(),
+    },
+    {
+      id: "browse-projects",
+      label: "Browse Projects",
+      description: "Open project browser",
+      icon: FolderOpen,
+      category: "Project",
+      shortcut: shortcuts.find((s) => s.key === "o" && s.ctrl),
+      action: () => handleBrowse(),
+    },
+    {
+      id: "delete-project",
+      label: "Delete Project",
+      description: "Delete current project",
+      icon: Trash2,
+      category: "Project",
+      action: () => handleDelete(),
+    },
+    {
+      id: "export-png",
+      label: "Export as PNG",
+      description: "Export diagram as PNG image",
+      icon: ImageIcon,
+      category: "Export",
+      shortcut: shortcuts.find((s) => s.key === "e" && s.ctrl && s.shift),
+      action: () => handleExportImage("png"),
+    },
+    {
+      id: "export-jpeg",
+      label: "Export as JPEG",
+      description: "Export diagram as JPEG image",
+      icon: ImageIcon,
+      category: "Export",
+      action: () => handleExportImage("jpeg"),
+    },
+    {
+      id: "export-svg",
+      label: "Export as SVG",
+      description: "Export diagram as SVG vector",
+      icon: ImageIcon,
+      category: "Export",
+      action: () => handleExportImage("svg"),
+    },
+    {
+      id: "help",
+      label: "Keyboard Shortcuts",
+      description: "View all keyboard shortcuts",
+      icon: HelpCircle,
+      category: "Help",
+      shortcut: shortcuts.find((s) => s.key === "/" && s.ctrl),
+      action: () => setShowHelpDialog(true),
+    },
+    {
+      id: "github",
+      label: "Open GitHub",
+      description: "Visit the GitHub repository",
+      icon: Github,
+      category: "Help",
+      action: () => window.open("https://github.com/santosh-marar/enops.dev", "_blank"),
+    },
+  ];
 
   // Load projects (lazy)
   const loadProjects = useCallback(async () => {
@@ -499,15 +662,13 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
             )}
           </div>
 
-          <a
-            href="https://github.com/santosh-marar/enops.dev"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => setShowHelpDialog(true)}
             className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
           >
             <HelpCircle className="h-4 w-4" />
             Help
-          </a>
+          </button>
         </div>
 
         {/* Middle Section - Project Name */}
@@ -568,90 +729,97 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
       </div>
 
       {/* Project Browser Modal */}
-      {showProjectBrowser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-6 shadow-lg">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Browse Projects</h2>
-              <button
-                onClick={() => setShowProjectBrowser(false)}
-                className="rounded-md p-1 transition-colors hover:bg-muted"
-              >
-                ✕
-              </button>
-            </div>
+      <Dialog open={showProjectBrowser} onOpenChange={setShowProjectBrowser}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Browse Projects</DialogTitle>
+            <DialogDescription>
+              Select a project to open
+            </DialogDescription>
+          </DialogHeader>
 
-            <div className="max-h-96 space-y-2 overflow-y-auto">
-              {projects.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  No projects found. Create your first project!
-                </p>
-              ) : (
-                projects.map((project) => (
-                  <button
-                    key={project.id}
-                    onClick={() => handleOpenProject(project)}
-                    className="flex w-full items-center justify-between rounded-md border border-border p-3 text-left transition-colors hover:bg-muted"
-                  >
-                    <div>
-                      <div className="font-medium">{project.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Updated: {new Date(project.updatedAt).toLocaleString()}
-                      </div>
+          <div className="max-h-96 space-y-2 overflow-y-auto">
+            {projects.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                No projects found. Create your first project!
+              </p>
+            ) : (
+              projects.map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => handleOpenProject(project)}
+                  className="flex w-full items-center justify-between rounded-md border border-border p-3 text-left transition-colors hover:bg-muted"
+                >
+                  <div>
+                    <div className="font-medium">{project.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Updated: {new Date(project.updatedAt).toLocaleString()}
                     </div>
-                    <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                ))
-              )}
-            </div>
+                  </div>
+                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))
+            )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
-      {showNewProjectDialog && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl">
-            <h2 className="text-lg font-semibold text-emerald-700">
-              Unsaved Changes
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+      {/* New Project Confirmation Dialog */}
+      <Dialog open={showNewProjectDialog} onOpenChange={setShowNewProjectDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-emerald-700">Unsaved Changes</DialogTitle>
+            <DialogDescription>
               You have unsaved changes. Are you sure you want to create a new
               project? Your current progress will be lost.
-            </p>
+            </DialogDescription>
+          </DialogHeader>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  toast.info("Canceled creating new project");
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                toast.info("Canceled creating new project");
+                setShowNewProjectDialog(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  setCurrentProject(null);
+                  setProjectName("Untitled Project");
+                  setLastSaved(null);
+                  await updateFromDBML("");
+                  toast.success("New project created successfully!");
+                } catch {
+                  toast.error("Failed to create new project.");
+                } finally {
                   setShowNewProjectDialog(false);
-                }}
-                className="rounded-md border border-primary px-3 py-1.5 text-sm font-medium text-primary hover:bg-secondary hover:text-neutral-50 "
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    setCurrentProject(null);
-                    setProjectName("Untitled Project");
-                    setLastSaved(null);
-                    await updateFromDBML("");
-                    toast.success("New project created successfully!");
-                  } catch {
-                    toast.error("Failed to create new project.");
-                  } finally {
-                    setShowNewProjectDialog(false);
-                    setShowActionMenu(false);
-                  }
-                }}
-                className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium hover:bg-secondary"
-              >
-                Create New
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  setShowActionMenu(false);
+                }
+              }}
+            >
+              Create New
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        commands={commands}
+      />
+
+      {/* Help Dialog */}
+      <HelpDialog
+        isOpen={showHelpDialog}
+        onClose={() => setShowHelpDialog(false)}
+        shortcuts={shortcuts}
+      />
     </>
   );
 }
