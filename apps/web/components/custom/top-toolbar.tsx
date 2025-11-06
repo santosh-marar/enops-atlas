@@ -256,23 +256,6 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
     restoreLastProject();
   }, [handleOpenProject]); // Run once on mount
 
-  const handleExportSQL = () => {
-    const { sql } = useSchemaStore.getState();
-    if (!sql) {
-      toast.error("No SQL to export. Please add DBML schema first.");
-      return;
-    }
-
-    const blob = new Blob([sql], { type: "text/sql" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${projectName.replace(/\s+/g, "_")}_postgres.sql`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setShowExportMenu(false);
-  };
-
   const handleExportImage = async (format: "png" | "jpeg" | "svg") => {
     if (!flowContainerRef?.current) {
       toast.error("Flow diagram not found");
@@ -485,14 +468,6 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
                       className="absolute left-full top-0 ml-1 w-48 rounded-md border border-border bg-card shadow-lg"
                       ref={exportMenuRef}
                     >
-                      <button
-                        onClick={handleExportSQL}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Export SQL (PostgreSQL)
-                      </button>
-                      <div className="h-px bg-border" />
                       <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
                         Export Diagram
                       </div>
