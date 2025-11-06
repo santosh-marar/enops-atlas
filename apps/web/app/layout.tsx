@@ -3,6 +3,7 @@ import { Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { ThemeProviders } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -36,6 +37,7 @@ export default function RootLayout({
           <Toaster richColors position="top-right" />
           {children}
         </ThemeProviders>
+        <Analytics />
       </body>
     </html>
   );
