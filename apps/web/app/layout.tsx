@@ -33,7 +33,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProviders>
-          <Toaster richColors position="top-left" />
+          <Toaster richColors position="top-right" />
           {children}
         </ThemeProviders>
       </body>

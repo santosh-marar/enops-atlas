@@ -14,9 +14,11 @@ import {
   ChevronDown,
   Image as ImageIcon,
   Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { Button } from "../ui/button";
 
 // Lazy load heavy dependencies
 const loadDB = () => import("@/lib/db").then((mod) => ({ db: mod.db }));
@@ -53,9 +55,11 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const exportCancelRef = useRef(false);
 
   // Load projects (lazy)
   const loadProjects = useCallback(async () => {
@@ -277,50 +281,93 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
 
     if (isExporting) return;
 
+    exportCancelRef.current = false;
     setIsExporting(true);
+    setIsCancelling(false);
     setShowExportMenu(false);
+    setShowActionMenu(false); // Close action menu when export starts
 
-    // Use requestAnimationFrame twice to ensure the UI fully updates
-    requestAnimationFrame(() => {
-      requestAnimationFrame(async () => {
-        try {
-          const imageLib = await loadImageExport();
-          const { toPng, toJpeg, toSvg } = imageLib;
-          const element = flowContainerRef.current;
-          if (!element) {
-            setIsExporting(false);
-            return;
-          }
-
-          let dataUrl: string;
-
-          if (format === "png") {
-            dataUrl = await toPng(element, {
-              quality: 1.0,
-              pixelRatio: 2,
-              cacheBust: true,
-            });
-          } else if (format === "jpeg") {
-            dataUrl = await toJpeg(element, {
-              quality: 0.95,
-              pixelRatio: 2,
-              cacheBust: true,
-            });
-          } else {
-            dataUrl = await toSvg(element, { cacheBust: true });
-          }
-
-          const a = document.createElement("a");
-          a.href = dataUrl;
-          a.download = `${projectName.replace(/\s+/g, "_")}_diagram.${format}`;
-          a.click();
-        } catch (error) {
-          toast.error("Failed to export image. Please try again.");
-        } finally {
+    // Use setTimeout with minimal delay to allow UI to update before blocking operation
+    setTimeout(async () => {
+      try {
+        // Check if cancelled before starting
+        if (exportCancelRef.current) {
+          toast.info("Export cancelled");
           setIsExporting(false);
+          setIsCancelling(false);
+          return;
         }
-      });
-    });
+
+        const imageLib = await loadImageExport();
+
+        // Check if cancelled after loading library
+        if (exportCancelRef.current) {
+          toast.info("Export cancelled");
+          setIsExporting(false);
+          setIsCancelling(false);
+          return;
+        }
+
+        const { toPng, toJpeg, toSvg } = imageLib;
+        const element = flowContainerRef.current;
+        if (!element) {
+          setIsExporting(false);
+          setIsCancelling(false);
+          return;
+        }
+
+        let dataUrl: string;
+
+        if (format === "png") {
+          dataUrl = await toPng(element, {
+            quality: 0.95,
+            pixelRatio: 1.5,
+            cacheBust: false,
+          });
+        } else if (format === "jpeg") {
+          dataUrl = await toJpeg(element, {
+            quality: 0.9,
+            pixelRatio: 1.5,
+            cacheBust: false,
+          });
+        } else {
+          dataUrl = await toSvg(element, { cacheBust: false });
+        }
+
+        // Check if cancelled before downloading
+        if (exportCancelRef.current) {
+          toast.info("Export cancelled");
+          setIsExporting(false);
+          setIsCancelling(false);
+          return;
+        }
+
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `${projectName.replace(/\s+/g, "_")}_diagram.${format}`;
+        a.click();
+        toast.success("Diagram exported successfully!");
+      } catch (error) {
+        if (!exportCancelRef.current) {
+          toast.error("Failed to export image. Please try again.");
+        }
+      } finally {
+        setIsExporting(false);
+        setIsCancelling(false);
+        exportCancelRef.current = false;
+      }
+    }, 50); // Small delay to ensure UI updates
+  };
+
+  const handleCancelExport = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (isCancelling) return;
+
+    // Show cancelling state immediately
+    setIsCancelling(true);
+    exportCancelRef.current = true;
   };
 
   const formatLastSaved = () => {
@@ -341,13 +388,32 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="rounded-lg border border-border bg-card p-6 shadow-lg">
             <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              {isCancelling ? null : (
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              )}
               <div className="text-center">
                 <div className="font-semibold">Exporting Diagram...</div>
                 <div className="text-sm text-muted-foreground">
                   This may take a few seconds
                 </div>
               </div>
+              <Button
+                onClick={handleCancelExport}
+                disabled={isCancelling}
+                variant={"destructive"}
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
