@@ -7,6 +7,8 @@ import {
   Panel,
   MarkerType,
   BackgroundVariant,
+  useReactFlow,
+  ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useSchemaStore } from "@/store/use-schema-store";
@@ -18,6 +20,7 @@ import { ErrorBoundary } from "./error-boundary";
 import { useState } from "react";
 import { useTableFilter } from "@/hooks/use-table-filter";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useNodeZoom } from "@/hooks/use-node-zoom";
 
 const nodeTypes = {
   table: TableNode as any,
@@ -37,7 +40,7 @@ const defaultEdgeOptions = {
   },
 };
 
-export default function XYFlows() {
+function XYFlowsInner() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,6 +57,13 @@ export default function XYFlows() {
   } = useSchemaStore();
 
   const { filteredNodes, filteredEdges } = useTableFilter(nodes, edges, debouncedSearchQuery);
+
+  const { handleNodeDoubleClick, isZoomed } = useNodeZoom({
+    duration: 500,
+    padding: 0.5,
+    minZoom: 0.5,
+    maxZoom: 1.5,
+  });
 
   return (
     <ErrorBoundary>
@@ -84,6 +94,7 @@ export default function XYFlows() {
               selectNodesOnDrag={!isLocked}
               onNodesChange={isLocked ? undefined : onNodesChange}
               onEdgesChange={onEdgesChange}
+              onNodeDoubleClick={isLocked ? undefined : handleNodeDoubleClick}
               onEdgeMouseEnter={
                 isLocked
                   ? undefined
@@ -140,5 +151,13 @@ export default function XYFlows() {
         </div>
       </div>
     </ErrorBoundary>
+  );
+}
+
+export default function XYFlows() {
+  return (
+    <ReactFlowProvider>
+      <XYFlowsInner />
+    </ReactFlowProvider>
   );
 }

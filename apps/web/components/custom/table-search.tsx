@@ -2,6 +2,8 @@
 
 import { Panel } from "@xyflow/react";
 import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface TableSearchProps {
   searchQuery: string;
@@ -22,21 +24,23 @@ export function TableSearch({
       className="rounded-lg border border-border/60 bg-card/95 shadow-lg backdrop-blur-sm"
     >
       <div className="relative flex items-center">
-        <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-        <input
+        <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+        <Input
           type="text"
           placeholder="Search tables, schemas, columns..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-[320px] rounded-lg border-0 bg-transparent py-2 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="w-[320px] border-0 bg-transparent pl-10 pr-10 focus-visible:ring-2 focus-visible:ring-primary/50"
         />
         {searchQuery && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => onSearchChange("")}
-            className="absolute right-3 rounded-full p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="absolute right-1 h-6 w-6 rounded-full"
           >
             <X className="h-3 w-3" />
-          </button>
+          </Button>
         )}
       </div>
       {searchQuery && (
