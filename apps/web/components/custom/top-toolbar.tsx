@@ -13,12 +13,13 @@ import {
   HelpCircle,
   ChevronDown,
   Image as ImageIcon,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 
 // Lazy load heavy dependencies
+const loadDB = () => import("@/lib/db").then((mod) => ({ db: mod.db }));
 const loadImageExport = () => import("html-to-image");
 
 interface TopToolbarProps {
@@ -36,9 +37,10 @@ interface Project {
 }
 
 export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
-  const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges } = useSchemaStore();
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges } =
+    useSchemaStore();
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [projectName, setProjectName] = useState("Untitled Project");
   const [isEditingName, setIsEditingName] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -46,16 +48,37 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Load projects (lazy)
+  const loadProjects = useCallback(async () => {
+    try {
+      const { db } = await loadDB();
+      const allProjects = await db.projects
+        .orderBy("updatedAt")
+        .reverse()
+        .toArray();
+      setProjects(allProjects);
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+    }
+  }, []);
 
   // Auto-save with debouncing - only when dbml changes
   useEffect(() => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // Only auto-save if there's a current project and dbml content
+    if (currentProject && dbml && dbml.trim().length > 0) {
+      autoSaveTimerRef.current = setTimeout(() => {
+        handleSave();
+      }, 5000); // Auto-save every 5s
     }
 
     return () => {
@@ -68,16 +91,64 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+      if (
+        actionMenuRef.current &&
+        !actionMenuRef.current.contains(event.target as Node)
+      ) {
         setShowActionMenu(false);
       }
-      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(event.target as Node)
+      ) {
         setShowExportMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleSave = useCallback(async () => {
+    if (isSaving) return; // Prevent double saves
+
+    setIsSaving(true);
+    try {
+      const { db } = await loadDB();
+
+      if (currentProject?.id) {
+        await db.projects.update(currentProject.id, {
+          name: projectName,
+          dbml,
+          nodes,
+          edges,
+          updatedAt: new Date(),
+        });
+      } else {
+        const id = await db.projects.add({
+          name: projectName,
+          dbml,
+          nodes,
+          edges,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        setCurrentProject({
+          id,
+          name: projectName,
+          dbml,
+          nodes,
+          edges,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+      setLastSaved(new Date());
+    } catch (error) {
+      toast.error("Failed to save project. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [currentProject, projectName, dbml, nodes, edges, isSaving]);
 
   const handleNew = async () => {
     if (dbml && dbml.trim().length > 0) {
@@ -97,7 +168,24 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
     setShowActionMenu(false);
   };
 
+  const handleDelete = async () => {
+    if (currentProject?.id && confirm(`Delete project "${projectName}"?`)) {
+      try {
+        const { db } = await loadDB();
+        await db.projects.delete(currentProject.id);
+        setCurrentProject(null);
+        setProjectName("Untitled Project");
+        setLastSaved(null);
+        await updateFromDBML("");
+      } catch (error) {
+        console.error("Failed to delete project:", error);
+      }
+    }
+    setShowActionMenu(false);
+  };
+
   const handleBrowse = async () => {
+    await loadProjects();
     setShowProjectBrowser(true);
     setShowActionMenu(false);
   };
@@ -117,7 +205,10 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
       }
 
       // Update the store which will preserve positions if nodes exist
-      await updateFromDBML(project.dbml || "", project.nodes && project.nodes.length > 0);
+      await updateFromDBML(
+        project.dbml || "",
+        project.nodes && project.nodes.length > 0
+      );
 
       setShowProjectBrowser(false);
     } catch (error) {
@@ -171,13 +262,13 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
             dataUrl = await toPng(element, {
               quality: 1.0,
               pixelRatio: 2,
-              cacheBust: true
+              cacheBust: true,
             });
           } else if (format === "jpeg") {
             dataUrl = await toJpeg(element, {
               quality: 0.95,
               pixelRatio: 2,
-              cacheBust: true
+              cacheBust: true,
             });
           } else {
             dataUrl = await toSvg(element, { cacheBust: true });
@@ -266,7 +357,14 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
                   <FolderOpen className="h-4 w-4" />
                   Browse Projects
                 </button>
-
+                <button
+                  onClick={handleDelete}
+                  disabled={!currentProject}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete Project
+                </button>
                 <div className="h-px bg-border" />
                 <div className="relative">
                   <button
@@ -361,6 +459,26 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
+          <span className="text-xs text-muted-foreground">
+            Saved: {formatLastSaved()}
+          </span>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save
+              </>
+            )}
+          </button>
           <a
             href="https://github.com/santosh-marar/enops.dev"
             target="_blank"
@@ -414,7 +532,7 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
       )}
 
       {showNewProjectDialog && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl">
             <h2 className="text-lg font-semibold text-emerald-700">
               Unsaved Changes

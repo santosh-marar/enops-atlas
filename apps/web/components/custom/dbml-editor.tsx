@@ -20,7 +20,25 @@ export default function DBMLEditor() {
   const [isValid, setIsValid] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
 
-  const { updateFromDBML } = useSchemaStore();
+  const { updateFromDBML, dbml } = useSchemaStore();
+
+  // Initial sync: Load SAMPLE_DBML on first mount if store is empty
+  useEffect(() => {
+    if (!dbml || dbml.trim() === "") {
+      updateFromDBML(SAMPLE_DBML);
+    }
+  }, []); // Run only once on mount
+
+  // Sync editor with store when DBML changes externally
+  useEffect(() => {
+    if (dbml !== localDBML) {
+      setLocalDBML(dbml);
+      if (dbml === "") {
+        setValidationErrors([]);
+        setIsValid(true);
+      }
+    }
+  }, [dbml]);
 
   // If any errors, show them in editor after 1 second
   useEffect(() => {
@@ -69,7 +87,8 @@ export default function DBMLEditor() {
 
     const handler = setTimeout(async () => {
       try {
-        updateFromDBML(localDBML);
+        // Preserve positions when updating from editor
+        updateFromDBML(localDBML, true);
       } catch (err) {
         console.error("Failed to apply DBML:", err);
       }
@@ -242,61 +261,7 @@ export default function DBMLEditor() {
   ).length;
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="px-4 py-3 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <span className="font-semibold text-lg">DBML Editor</span>
-
-          {/* Status Badge */}
-          {isValidating ? (
-            <span className="text-xs px-2.5 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full flex items-center gap-1.5">
-              <svg
-                className="w-3 h-3 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              Validating
-            </span>
-          ) : isValid ? (
-            <span className="text-xs px-2.5 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center gap-1.5">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Valid
-            </span>
-          ) : (
-            <span className="text-xs px-2.5 py-1 bg-red-500/10 text-red-600 dark:text-red-400 rounded-full flex items-center gap-1.5">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              {errorCount} Error{errorCount !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-      </div>
+    <div className="h-full flex flex-col bg-background">
 
       {/* Error Panel */}
       {validationErrors.length > 0 && (

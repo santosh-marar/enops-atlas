@@ -7,6 +7,7 @@ export interface TableNodeData {
   schema: string;
   alias?: string;
   columns: Column[];
+  sourceColumns?: string[]; // columns that are sources for relationships
 }
 
 const formatForeignKeyTarget = (fk: ForeignKeyMeta) => {
@@ -34,6 +35,10 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
   );
 
   const columns = useMemo(() => nodeData.columns ?? [], [nodeData.columns]);
+  const sourceColumnSet = useMemo(
+    () => new Set(nodeData.sourceColumns ?? []),
+    [nodeData.sourceColumns]
+  );
 
   return (
     <div className="relative min-w-[260px] overflow-hidden rounded-xl border border-border/60 bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] backdrop-blur-sm">
@@ -65,6 +70,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
           const isPrimaryKey = Boolean(column.primaryKey);
           const foreignKeys = column.foreignKeys ?? [];
           const isForeignKey = foreignKeys.length > 0;
+          const isSourceColumn = sourceColumnSet.has(column.name); // Column is referenced by a relationship
 
           const badges: string[] = [];
           if (isPrimaryKey) {
@@ -133,7 +139,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                 </div>
               </div>
 
-              {isPrimaryKey ? (
+              {(isPrimaryKey || isSourceColumn) ? (
                 <Handle
                   type="source"
                   position={Position.Right}
