@@ -22,9 +22,13 @@ export default function DBMLEditor() {
 
   const { updateFromDBML, dbml } = useSchemaStore();
 
-  // Initial sync: Load SAMPLE_DBML on first mount if store is empty
+  // Initial sync: Load SAMPLE_DBML on first mount if store is empty AND no project to restore
   useEffect(() => {
-    if (!dbml || dbml.trim() === "") {
+    // Check if there's a project ID stored (will be restored by TopToolbar)
+    const hasProjectToRestore = localStorage.getItem("enops-dev-last-project-id");
+
+    // Only load sample if store is empty AND no project to restore
+    if (!hasProjectToRestore && (!dbml || dbml.trim() === "")) {
       updateFromDBML(SAMPLE_DBML);
     }
   }, []); // Run only once on mount

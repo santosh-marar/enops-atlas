@@ -22,6 +22,9 @@ import Image from "next/image";
 const loadDB = () => import("@/lib/db").then((mod) => ({ db: mod.db }));
 const loadImageExport = () => import("html-to-image");
 
+// localStorage key for tracking last opened project
+const LAST_PROJECT_KEY = "enops-dev-last-project-id";
+
 interface TopToolbarProps {
   flowContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
@@ -190,31 +193,64 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
     setShowActionMenu(false);
   };
 
-  const handleOpenProject = async (project: Project) => {
-    try {
-      setCurrentProject(project);
-      setProjectName(project.name);
-      setLastSaved(project.updatedAt);
+  const handleOpenProject = useCallback(
+    async (project: Project) => {
+      try {
+        setCurrentProject(project);
+        setProjectName(project.name);
+        setLastSaved(project.updatedAt);
 
-      // If project has saved nodes, restore them first
-      if (project.nodes && project.nodes.length > 0) {
-        setNodes(project.nodes);
+        // Store the project ID in localStorage for auto-restore on refresh
+        if (project.id) {
+          localStorage.setItem(LAST_PROJECT_KEY, project.id.toString());
+        }
+
+        // If project has saved nodes, restore them first
+        if (project.nodes && project.nodes.length > 0) {
+          setNodes(project.nodes);
+        }
+        if (project.edges && project.edges.length > 0) {
+          setEdges(project.edges);
+        }
+
+        // Update the store which will preserve positions if nodes exist
+        await updateFromDBML(
+          project.dbml || "",
+          project.nodes && project.nodes.length > 0
+        );
+
+        setShowProjectBrowser(false);
+      } catch (error) {
+        toast.error("Failed to open project. Please try again.");
       }
-      if (project.edges && project.edges.length > 0) {
-        setEdges(project.edges);
+    },
+    [setNodes, setEdges, updateFromDBML]
+  );
+
+  // Auto-restore last opened project on mount
+  useEffect(() => {
+    const restoreLastProject = async () => {
+      try {
+        const lastProjectId = localStorage.getItem(LAST_PROJECT_KEY);
+        if (!lastProjectId) return;
+
+        const { db } = await loadDB();
+        const project = await db.projects.get(parseInt(lastProjectId));
+
+        if (project) {
+          await handleOpenProject(project);
+        } else {
+          // Project was deleted, clear localStorage
+          localStorage.removeItem(LAST_PROJECT_KEY);
+        }
+      } catch (error) {
+        console.error("Failed to restore last project:", error);
+        localStorage.removeItem(LAST_PROJECT_KEY);
       }
+    };
 
-      // Update the store which will preserve positions if nodes exist
-      await updateFromDBML(
-        project.dbml || "",
-        project.nodes && project.nodes.length > 0
-      );
-
-      setShowProjectBrowser(false);
-    } catch (error) {
-      toast.error("Failed to open project. Please try again.");
-    }
-  };
+    restoreLastProject();
+  }, [handleOpenProject]); // Run once on mount
 
   const handleExportSQL = () => {
     const { sql } = useSchemaStore.getState();
