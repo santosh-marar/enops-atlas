@@ -10,6 +10,7 @@ import {
   Loader2,
   Moon,
   Sun,
+  Code2,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -29,7 +30,7 @@ interface TopToolbarProps {
 }
 
 export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
-  const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges } =
+  const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges, } =
     useSchemaStore();
   const { theme, setTheme } = useTheme();
 

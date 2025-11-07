@@ -40,6 +40,7 @@ interface SchemaState {
   canUndo: boolean;
   canRedo: boolean;
   isLocked: boolean;
+  showIde: boolean;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
   onNodesChange: (changes: NodeChange[]) => void;
@@ -50,6 +51,7 @@ interface SchemaState {
   redo: () => void;
   addToHistory: (nodes: Node[]) => void;
   toggleLock: () => void;
+  toggleIde: () => void;
 }
 
 const DEFAULT_STROKE = "var(--muted-foreground)";
@@ -99,6 +101,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
   canUndo: false,
   canRedo: false,
   isLocked: false,
+  showIde: true,
 
   setNodes: (nodes) => {
     set({ nodes });
@@ -400,5 +403,9 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
   toggleLock: () => {
     set((state) => ({ isLocked: !state.isLocked }));
+  },
+
+  toggleIde: () => {
+    set((state) => ({ showIde: !state.showIde }));
   },
 }));

@@ -266,7 +266,6 @@ export default function DBMLEditor() {
 
   return (
     <div className="h-full flex flex-col bg-background">
-
       {/* Error Panel */}
       {validationErrors.length > 0 && (
         <div className="border-b bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 max-h-48 overflow-y-auto">
@@ -312,13 +311,13 @@ export default function DBMLEditor() {
           options={{
             minimap: { enabled: false },
             fontSize: 14,
+            lineHeight: 20,
             lineNumbers: "on",
             scrollBeyondLastLine: false,
             automaticLayout: true,
             padding: { top: 16, bottom: 16 },
             tabSize: 2,
             wordWrap: "on",
-            fontFamily: "ui-monospace, monospace",
             fontLigatures: true,
             quickSuggestions: true,
             suggestOnTriggerCharacters: true,
@@ -327,6 +326,7 @@ export default function DBMLEditor() {
             formatOnPaste: true,
           }}
           onMount={handleEditorDidMount}
+          className="font-mono"
         />
       </div>
     </div>
