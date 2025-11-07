@@ -1,6 +1,12 @@
 import { memo, useMemo } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
 import { Column, ForeignKeyMeta } from "@/lib/schema-transformer";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface TableNodeData {
   label: string;
@@ -45,14 +51,14 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
     const schema = nodeData.schema || "public";
     const colors = {
       public: {
-        from: "from-emerald-500",
-        to: "to-emerald-600",
+        from: "from-emerald-600",
+        to: "to-emerald-700",
         border: "border-emerald-500/60",
         shadow: "shadow-emerald-500/20",
       },
       ecommerce: {
-        from: "from-emerald-500",
-        to: "to-emerald-600",
+        from: "from-emerald-600",
+        to: "to-emerald-700",
         border: "border-emerald-500/60",
         shadow: "shadow-emerald-500/20",
       },
@@ -127,170 +133,203 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
   }, [nodeData.schema]);
 
   return (
-    <div
-      className={`relative min-w-[260px] overflow-hidden rounded-xl border ${schemaColor.border} bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] ${schemaColor.shadow} backdrop-blur-sm`}
-    >
+    <TooltipProvider delayDuration={200}>
       <div
-        className={`flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r ${schemaColor.from} ${schemaColor.to} px-4 py-3 text-sm font-semibold text-primary-foreground`}
+        className={`relative min-w-[260px] rounded-xl border ${schemaColor.border} bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] ${schemaColor.shadow} backdrop-blur-sm`}
       >
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-foreground/70">
-              {schemaTag}
-            </span>
-            <span className="text-[15px] font-semibold tracking-[0.04em]">
-              {nodeData.label}
+        <div
+          className={`flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r ${schemaColor.from} ${schemaColor.to} px-4 py-3 text-sm font-semibold text-primary-foreground`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-foreground/70">
+                {schemaTag}
+              </span>
+              <span className="text-[15px] font-semibold tracking-[0.04em]">
+                {nodeData.label}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {aliasTag ? (
+              <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
+                AS {aliasTag}
+              </span>
+            ) : null}
+            <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
+              TABLE
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {aliasTag ? (
-            <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
-              AS {aliasTag}
-            </span>
-          ) : null}
-          <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
-            TABLE
-          </span>
-        </div>
-      </div>
 
-      <div className="divide-y divide-border/60">
-        {columns.map((column, index) => {
-          const isPrimaryKey = Boolean(column.primaryKey);
-          const foreignKeys = column.foreignKeys ?? [];
-          const isForeignKey = foreignKeys.length > 0;
-          const isSourceColumn = sourceColumnSet.has(column.name); // Column is referenced by a relationship
+        <div className="divide-y divide-border/60">
+          {columns.map((column, index) => {
+            const isPrimaryKey = Boolean(column.primaryKey);
+            const foreignKeys = column.foreignKeys ?? [];
+            const isForeignKey = foreignKeys.length > 0;
+            const isSourceColumn = sourceColumnSet.has(column.name);
 
-          const badges: string[] = [];
-          if (isPrimaryKey) {
-            badges.push("PK");
-          }
-          if (isForeignKey) {
-            badges.push("FK");
-          }
-          if (column.unique && !isPrimaryKey) {
-            badges.push("UQ");
-          }
-          if (column.autoIncrement) {
-            badges.push("AI");
-          }
-          if (column.nullable === false) {
-            badges.push("NN");
-          }
-          if (column.indexed && !isPrimaryKey) {
-            badges.push("IDX");
-          }
+            // Simple badges without tooltips (devs know what they mean)
+            const badges: string[] = [];
+            if (isPrimaryKey) {
+              badges.push("PK");
+            }
+            if (isForeignKey) {
+              badges.push("FK");
+            }
+            if (column.unique && !isPrimaryKey) {
+              badges.push("UQ");
+            }
+            if (column.autoIncrement) {
+              badges.push("AI");
+            }
+            if (column.nullable === false) {
+              badges.push("NN");
+            }
 
-          const fkTargets = foreignKeys.map((fk) => formatForeignKeyTarget(fk));
+            const fkTargets = foreignKeys.map((fk) => formatForeignKeyTarget(fk));
 
-          return (
-            <div
-              key={`${column.name}-${index}`}
-              className="group relative flex items-start gap-3 px-4 py-2 text-sm transition-colors hover:bg-muted/40"
-            >
-              {isForeignKey ? (
-                <Handle
-                  type="target"
-                  position={Position.Left}
-                  id={`${id}-${column.name}-target`}
-                  className="!h-2 !w-2 !-left-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
-                />
-              ) : null}
+            // Show enum values and FK references on hover
+            const hasEnumValues = column.enumValues && column.enumValues.length > 0;
+            const hasForeignKeys = fkTargets.length > 0;
+            const hasNote = Boolean(column.note);
+            const hasDefaultValue = column.defaultValue !== undefined && column.defaultValue !== null;
+            const hasIndex = column.indexed && !isPrimaryKey;
 
-              <div className="flex flex-1 flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium tracking-wide text-foreground">
-                    {column.name}
-                  </span>
-                  <span className="rounded bg-primary/10 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.18em] text-primary">
-                    {column.type}
-                  </span>
-                  {column.typeDetail ? (
-                    <span className="rounded bg-muted/60 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
-                      {column.typeDetail}
+            return (
+              <div
+                key={`${column.name}-${index}`}
+                className="group relative flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/40"
+              >
+                {isForeignKey ? (
+                  <Handle
+                    type="target"
+                    position={Position.Left}
+                    id={`${id}-${column.name}-target`}
+                    className="!h-2 !w-2 !-left-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
+                  />
+                ) : null}
+
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium tracking-wide text-foreground">
+                      {column.name}
                     </span>
-                  ) : null}
-                  {column.enumValues && column.enumValues.length > 0 ? (
-                    <span className="rounded bg-emerald-500/10 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      ENUM
+                    <span className="rounded bg-primary/10 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.18em] text-primary">
+                      {column.type}
                     </span>
-                  ) : null}
-                </div>
+                    {column.typeDetail ? (
+                      <span className="rounded bg-muted/60 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                        {column.typeDetail}
+                      </span>
+                    ) : null}
+                  </div>
 
-                <div className="flex flex-wrap items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  {badges.length > 0
-                    ? badges.map((badge) => {
-                        const isIdxBadge = badge === "IDX";
-                        return (
-                          <span
-                            key={`${column.name}-${badge}`}
-                            className={`inline-flex items-center rounded px-1.5 py-[1px] ${
-                              isIdxBadge
-                                ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20"
-                                : "bg-muted/60"
-                            }`}
-                          >
-                            {badge}
-                            {isIdxBadge && column.indexType ? (
-                              <span className="ml-1 text-[9px] font-normal lowercase opacity-70">
-                                ({column.indexType})
-                              </span>
-                            ) : null}
-                          </span>
-                        );
-                      })
-                    : null}
-                  {fkTargets.length > 0 ? (
-                    <span className="ml-1 text-[10px] font-medium normal-case tracking-tight text-muted-foreground">
-                      FK → {fkTargets.join(", ")}
-                    </span>
-                  ) : null}
-                  {column.defaultValue !== undefined &&
-                  column.defaultValue !== null ? (
-                    <span className="ml-1 rounded bg-cyan-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
-                      default: {String(column.defaultValue)}
-                    </span>
-                  ) : null}
-                </div>
-
-                {column.enumValues && column.enumValues.length > 0 ? (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {column.enumValues.map((enumValue, enumIdx) => (
+                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    {badges.map((badge) => (
                       <span
-                        key={`${column.name}-enum-${enumIdx}`}
-                        className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                        key={`${column.name}-${badge}`}
+                        className="inline-flex items-center rounded bg-muted/60 px-1.5 py-[1px]"
                       >
-                        {enumValue}
+                        {badge}
                       </span>
                     ))}
+                    {hasIndex && (
+                      <span className="inline-flex items-center rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 px-1.5 py-[1px]">
+                        IDX
+                        {column.indexType && (
+                          <span className="ml-1 text-[9px] font-normal lowercase opacity-70">
+                            ({column.indexType})
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    {hasDefaultValue && (
+                      <span className="rounded bg-cyan-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                        default: {String(column.defaultValue)}
+                      </span>
+                    )}
+                    {/* Show enum values on hover - inline */}
+                    {hasEnumValues && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-help">
+                            ENUM ({column.enumValues!.length})
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <div className="space-y-1">
+                            <p className="font-semibold text-xs">Enum Values:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {column.enumValues!.map((val, idx) => (
+                                <span
+                                  key={idx}
+                                  className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium"
+                                >
+                                  {val}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {/* Show FK references on hover - inline */}
+                    {hasForeignKeys && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center rounded bg-blue-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-blue-600 dark:text-blue-400 border border-blue-500/20 cursor-help">
+                            REF {fkTargets.length > 1 ? `(${fkTargets.length})` : ''}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <div className="space-y-1">
+                            <p className="font-semibold text-xs">References:</p>
+                            {fkTargets.map((target, idx) => (
+                              <p key={idx} className="text-xs font-mono text-muted-foreground">
+                                → {target}
+                              </p>
+                            ))}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {/* Show note on hover - inline */}
+                    {hasNote && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-amber-600 dark:text-amber-400 border border-amber-500/20 cursor-help">
+                            NOTE
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs">
+                          <div className="space-y-1">
+                            <p className="font-semibold text-xs">Note:</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {column.note}
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                   </div>
-                ) : null}
+                </div>
 
-                {column.note ? (
-                  <div className="mt-1.5 rounded bg-muted/40 px-2 py-1.5 text-[11px] leading-relaxed text-muted-foreground border-l-2 border-orange-500/50">
-                    <span className="font-semibold text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                      Note:
-                    </span>{" "}
-                    {column.note}
-                  </div>
+                {isPrimaryKey || isSourceColumn ? (
+                  <Handle
+                    type="source"
+                    position={Position.Right}
+                    id={`${id}-${column.name}-source`}
+                    className="!h-2 !w-2 !-right-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
+                  />
                 ) : null}
               </div>
+            );
+          })}
+        </div>
 
-              {isPrimaryKey || isSourceColumn ? (
-                <Handle
-                  type="source"
-                  position={Position.Right}
-                  id={`${id}-${column.name}-source`}
-                  className="!h-2 !w-2 !-right-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
-                />
-              ) : null}
-            </div>
-          );
-        })}
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       </div>
-
-      <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-    </div>
+    </TooltipProvider>
   );
 });
