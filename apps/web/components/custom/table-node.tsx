@@ -135,10 +135,10 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
   return (
     <TooltipProvider delayDuration={200}>
       <div
-        className={`relative min-w-[260px] rounded-xl border ${schemaColor.border} bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] ${schemaColor.shadow} backdrop-blur-sm`}
+        className={`relative min-w-[260px] rounded-lg border ${schemaColor.border} bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] ${schemaColor.shadow} backdrop-blur-sm`}
       >
         <div
-          className={`flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r ${schemaColor.from} ${schemaColor.to} px-4 py-3 text-sm font-semibold text-primary-foreground`}
+          className={`flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r ${schemaColor.from} ${schemaColor.to} px-4 py-3 text-sm font-semibold text-primary-foreground rounded-t-lg`}
         >
           <div className="flex items-center gap-3">
             <div className="flex flex-col gap-1">

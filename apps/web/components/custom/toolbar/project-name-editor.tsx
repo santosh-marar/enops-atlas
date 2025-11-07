@@ -19,27 +19,29 @@ export function ProjectNameEditor({
   };
 
   return (
-    <div className="flex-1 text-center">
-      {isEditingName ? (
-        <input
-          type="text"
-          value={projectName}
-          onChange={(e) => onNameChange(e.target.value)}
-          onBlur={() => handleEditingChange(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleEditingChange(false);
-          }}
-          className="rounded-md border border-border bg-background px-3 py-1 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary"
-          autoFocus
-        />
-      ) : (
-        <button
-          onClick={() => handleEditingChange(true)}
-          className="rounded-md px-3 py-1 text-sm font-medium transition-colors hover:bg-muted"
-        >
-          {projectName}
-        </button>
-      )}
+    <div className="flex flex-1 justify-center">
+      <div className="relative min-w-[200px] max-w-[400px]">
+        {isEditingName ? (
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => onNameChange(e.target.value)}
+            onBlur={() => handleEditingChange(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleEditingChange(false);
+            }}
+            className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-center text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-primary"
+            autoFocus
+          />
+        ) : (
+          <button
+            onClick={() => handleEditingChange(true)}
+            className="w-full truncate rounded-md border border-transparent px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+          >
+            {projectName}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { useTheme } from "next-themes";
 import {
@@ -10,7 +10,6 @@ import {
   Loader2,
   Moon,
   Sun,
-  Code2,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -61,6 +60,7 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedContentRef = useRef<string>("");
 
   // Toggle theme function
   const toggleTheme = () => {
@@ -127,7 +127,7 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
           toggleTheme();
           break;
         case SHORTCUT_CONFIGS.SAVE_PROJECT:
-          handleSave();
+          handleSaveWithReset();
           break;
         case SHORTCUT_CONFIGS.NEW_PROJECT:
           handleNewWithConfirmation();
@@ -172,7 +172,7 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
       } else if (cmd.id === "new-project") {
         handleNewWithConfirmation();
       } else if (cmd.id === "save-project") {
-        handleSave();
+        handleSaveWithReset();
       } else if (cmd.id === "browse-projects") {
         handleBrowse();
       } else if (cmd.id === "delete-project") {
@@ -191,16 +191,33 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
     },
   }));
 
-  // Auto-save with debouncing
+  // resets auto-save timer
+  const handleSaveWithReset = useCallback(async () => {
+    await handleSave();
+    lastSavedContentRef.current = dbml;
+    // Clear the timer when manual save happens
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+  }, [handleSave, dbml]);
+
   useEffect(() => {
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    if (currentProject && dbml && dbml.trim().length > 0) {
+    // Only auto-save if there's a current project, content exists, and content has changed
+    if (
+      currentProject &&
+      dbml &&
+      dbml.trim().length > 0 &&
+      dbml !== lastSavedContentRef.current
+    ) {
       autoSaveTimerRef.current = setTimeout(() => {
         handleSave();
-      }, 5000);
+        lastSavedContentRef.current = dbml;
+      }, 30000); // 30 seconds
     }
 
     return () => {
@@ -208,7 +225,15 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [dbml, currentProject, handleSave]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbml, currentProject]);
+
+  // Update lastSavedContentRef when project loads
+  useEffect(() => {
+    if (currentProject) {
+      lastSavedContentRef.current = dbml;
+    }
+  }, [currentProject, dbml]);
 
   // Format last saved time
   const formatLastSaved = () => {
@@ -274,7 +299,7 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
             Saved: {formatLastSaved()}
           </span>
           <button
-            onClick={handleSave}
+            onClick={handleSaveWithReset}
             disabled={isSaving}
             className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
