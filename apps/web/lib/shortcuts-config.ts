@@ -80,6 +80,13 @@ export const SHORTCUT_CONFIGS = {
     description: "Export as PNG",
     category: "Export",
   },
+  SEARCH_TABLES: {
+    key: "f",
+    ctrl: true,
+    shift: true,
+    description: "Search tables",
+    category: "Navigation",
+  },
 } as const;
 
 export function createCommands(

@@ -16,10 +16,12 @@ import { FlowToolbar } from "./flow-toolbar";
 import { TableSearch } from "./table-search";
 import { useTheme } from "next-themes";
 import { ErrorBoundary } from "./error-boundary";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useTableFilter } from "@/hooks/use-table-filter";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useNodeZoom } from "@/hooks/use-node-zoom";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
 
 const nodeTypes = {
   table: TableNode as any,
@@ -44,6 +46,7 @@ function XYFlowsInner() {
   const isDark = theme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const {
     nodes,
@@ -62,6 +65,18 @@ function XYFlowsInner() {
     padding: 0.5,
     minZoom: 0.5,
     maxZoom: 1.5,
+  });
+
+  useKeyboardShortcuts({
+    shortcuts: [
+      {
+        ...SHORTCUT_CONFIGS.SEARCH_TABLES,
+        action: () => {
+          searchInputRef.current?.focus();
+        },
+      },
+    ],
+    enabled: true,
   });
 
   return (
@@ -138,6 +153,7 @@ function XYFlowsInner() {
 
               {/* Search Panel */}
               <TableSearch
+                ref={searchInputRef}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
                 resultCount={debouncedSearchQuery ? filteredNodes.length : nodes.length}

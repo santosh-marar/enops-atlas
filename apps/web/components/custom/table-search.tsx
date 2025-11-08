@@ -4,6 +4,7 @@ import { Panel } from "@xyflow/react";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { forwardRef } from "react";
 
 interface TableSearchProps {
   searchQuery: string;
@@ -12,26 +13,23 @@ interface TableSearchProps {
   totalCount: number;
 }
 
-export function TableSearch({
-  searchQuery,
-  onSearchChange,
-  resultCount,
-  totalCount,
-}: TableSearchProps) {
-  return (
-    <Panel
-      position="top-center"
-      className="rounded-lg border border-border/60 bg-card/95 shadow-lg backdrop-blur-sm"
-    >
-      <div className="relative flex items-center">
-        <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-        <Input
-          type="text"
-          placeholder="Search tables, schemas, columns..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="w-[320px] border-0 bg-transparent pl-10 pr-10 focus-visible:ring-2 focus-visible:ring-primary/50"
-        />
+export const TableSearch = forwardRef<HTMLInputElement, TableSearchProps>(
+  ({ searchQuery, onSearchChange, resultCount, totalCount }, ref) => {
+    return (
+      <Panel
+        position="top-center"
+        className="rounded-lg border border-border/60 bg-card/95 shadow-lg backdrop-blur-sm"
+      >
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+          <Input
+            ref={ref}
+            type="text"
+            placeholder="Search tables, schemas, columns..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="w-[320px] border-0 bg-transparent pl-10 pr-10 focus-visible:ring-2 focus-visible:ring-primary/50"
+          />
         {searchQuery && (
           <Button
             variant="ghost"
@@ -54,6 +52,9 @@ export function TableSearch({
           )}
         </div>
       )}
-    </Panel>
-  );
-}
+      </Panel>
+    );
+  }
+);
+
+TableSearch.displayName = "TableSearch";
