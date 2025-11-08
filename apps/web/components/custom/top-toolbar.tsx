@@ -25,6 +25,8 @@ import { ActionMenu } from "./toolbar/action-menu";
 import { ProjectNameEditor } from "./toolbar/project-name-editor";
 import { ProjectDialogs } from "./toolbar/project-dialogs";
 import { APISettingsDialog } from "./api-settings-dialog";
+import { AIExportDialog } from "./ai-export-dialog";
+import { Button } from "../ui/button";
 
 interface TopToolbarProps {
   flowContainerRef?: React.RefObject<HTMLDivElement | null>;
@@ -288,11 +290,13 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
           </button>
 
           <APISettingsDialog>
-            <button className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
+            <Button variant="ghost" size="sm">
               <Settings className="h-4 w-4" />
               AI Settings
-            </button>
+            </Button>
           </APISettingsDialog>
+
+          <AIExportDialog nodes={nodes} edges={edges} />
 
         </div>
 

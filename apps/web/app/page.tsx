@@ -155,7 +155,7 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
             <Button
               onClick={handleToggleEditor}
               title={showIde ? "Close IDE" : "Open IDE"}
-              className={`absolute h-12 w-4 top-13 z-100 transition-all rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm hover:bg-accent ${
+              className={`absolute h-12 w-4 top-13 z-10 transition-all rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm hover:bg-accent ${
                 showIde ? "left-[576px]" : "left-0"
               }`}
             >
@@ -172,7 +172,7 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
             <Button
               onClick={() => setShowAIChat(false)}
               title="Close AI Chat"
-              className="absolute h-12 w-4 top-13 left-[576px] z-100 transition-all rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm hover:bg-accent"
+              className="absolute h-12 w-4 top-13 left-[576px] z-10 transition-all rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm hover:bg-accent"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>

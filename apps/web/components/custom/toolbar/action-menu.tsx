@@ -6,6 +6,7 @@ import {
   Trash2,
   Download,
   ImageIcon,
+  Code2,
 } from "lucide-react";
 
 interface ActionMenuProps {
@@ -13,6 +14,7 @@ interface ActionMenuProps {
   onBrowse: () => void;
   onDelete: () => void;
   onExport: (format: "png" | "jpeg" | "svg") => void;
+  onExportSchema?: () => void;
   hasCurrentProject: boolean;
 }
 
@@ -21,6 +23,7 @@ export function ActionMenu({
   onBrowse,
   onDelete,
   onExport,
+  onExportSchema,
   hasCurrentProject,
 }: ActionMenuProps) {
   const [showActionMenu, setShowActionMenu] = useState(false);
@@ -139,6 +142,21 @@ export function ActionMenu({
                 >
                   <ImageIcon className="h-4 w-4" />
                   Export as SVG
+                </button>
+                <div className="h-px bg-border my-1" />
+                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+                  Export Schema
+                </div>
+                <button
+                  onClick={() => {
+                    onExportSchema?.();
+                    setShowExportMenu(false);
+                    setShowActionMenu(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  <Code2 className="h-4 w-4" />
+                  Export for ORM/DB
                 </button>
               </div>
             )}
