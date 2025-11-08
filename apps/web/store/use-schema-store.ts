@@ -14,6 +14,7 @@ import {
   Table as ParsedTable,
   TransformWarning,
 } from "@/lib/schema-transformer";
+import { getLayoutedElements } from "@/lib/layout";
 
 interface FlowTable extends ParsedTable {
   id: string;
@@ -318,7 +319,12 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
         };
       });
 
-  
+      // Apply dagre layout only for new schemas (not preserving positions)
+      if (!preservePositions && nodes.length > 0) {
+        const layouted = getLayoutedElements(nodes, edges);
+        nodes = layouted.nodes;
+      }
+
       set({
         dbml,
         sql: result.sql,
