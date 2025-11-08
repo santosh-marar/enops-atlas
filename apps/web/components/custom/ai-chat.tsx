@@ -494,6 +494,7 @@ export function AIChat({
   const [techStack, setTechStack] = useState<TechStack | null>(
     initialTechStack || null
   );
+  const prevProjectIdRef = useRef<number | undefined>(null);
 
   useEffect(() => {
     if (initialTechStack) {
@@ -503,20 +504,24 @@ export function AIChat({
 
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (projectId && isOpen) {
-        try {
-          const project = await db.projects.get(projectId);
-          if (project?.aiChatHistory && project.aiChatHistory.length > 0) {
-            setMessages(project.aiChatHistory);
-          } else {
-            setMessages([]);
-          }
-        } catch (error) {
-          console.error("Failed to load chat history:", error);
+      if (!projectId || !isOpen) return;
+
+      const projectChanged = prevProjectIdRef.current !== projectId;
+      prevProjectIdRef.current = projectId;
+
+      if (projectChanged) {
+        setMessages([]);
+      }
+
+      try {
+        const project = await db.projects.get(projectId);
+        if (project?.aiChatHistory && project.aiChatHistory.length > 0) {
+          setMessages(project.aiChatHistory);
+        } else if (projectChanged) {
           setMessages([]);
         }
-      } else {
-        setMessages([]);
+      } catch (error) {
+        console.error("Failed to load chat history:", error);
       }
     };
     loadChatHistory();
