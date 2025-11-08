@@ -7,7 +7,6 @@ import {
   Panel,
   MarkerType,
   BackgroundVariant,
-  useReactFlow,
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -154,10 +153,11 @@ function XYFlowsInner() {
   );
 }
 
-export default function XYFlows() {
+export default function XYFlows({ children }: { children?: React.ReactNode }) {
   return (
     <ReactFlowProvider>
       <XYFlowsInner />
+      {children}
     </ReactFlowProvider>
   );
 }

@@ -23,6 +23,7 @@ import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
 import { ActionMenu } from "./toolbar/action-menu";
 import { ProjectNameEditor } from "./toolbar/project-name-editor";
 import { ProjectDialogs } from "./toolbar/project-dialogs";
+import { APISettingsDialog } from "./api-settings-dialog";
 
 interface TopToolbarProps {
   flowContainerRef?: React.RefObject<HTMLDivElement | null>;
@@ -284,6 +285,9 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
             <HelpCircle className="h-4 w-4" />
             Help
           </button>
+
+          <APISettingsDialog />
+
         </div>
 
         {/* Middle Section - Project Name */}

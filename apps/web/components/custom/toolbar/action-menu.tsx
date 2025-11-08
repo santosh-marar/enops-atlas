@@ -113,7 +113,7 @@ export function ActionMenu({
 
             {showExportMenu && (
               <div
-                className="absolute left-full top-0 ml-1 w-48 rounded-md border border-border bg-card shadow-lg"
+                className="absolute left-full top-0 ml-1 w-56 rounded-md border border-border bg-card shadow-lg"
                 ref={exportMenuRef}
               >
                 <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
