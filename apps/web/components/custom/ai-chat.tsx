@@ -611,7 +611,7 @@ Generate a schema that matches MY SPECIFIC USE CASE above, not a generic SaaS te
         const openai = createOpenAI({
           apiKey: settings.openaiApiKey,
         });
-        model = openai("gpt-3.5-turbo");
+        model = openai("gpt-4-turbo");
       } else {
         throw new Error("No valid API key configured");
       }

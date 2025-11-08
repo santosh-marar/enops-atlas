@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ProjectDialogs } from "@/components/custom/toolbar/project-dialogs";
 import { AIChat } from "@/components/custom/ai-chat";
-import { TechStack, getSavedTechStack } from "@/components/custom/ai-tech-stack-dialog";
+import { AITechStackDialog, TechStack, getSavedTechStack } from "@/components/custom/ai-tech-stack-dialog";
+import { APISettingsDialog } from "@/components/custom/api-settings-dialog";
 
 export default function Home() {
 const flowContainerRef = useRef<HTMLDivElement>(null);
@@ -144,6 +145,7 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
             onAI={handleAIClick}
             onToggleEditor={handleToggleEditor}
             isEditorOpen={showIde}
+            isAIOpen={showAIChat}
           />
         </aside>
 
@@ -215,6 +217,15 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
           onConfirmDelete={async () => {}}
           projectName={projectName}
         />
+
+        {/* AI Dialogs */}
+        <AITechStackDialog
+          isOpen={showTechStackDialog}
+          onClose={() => setShowTechStackDialog(false)}
+          onGenerate={handleTechStackGenerate}
+        />
+
+        <APISettingsDialog open={showAISettings} onOpenChange={setShowAISettings} />
       </div>
     </div>
   );

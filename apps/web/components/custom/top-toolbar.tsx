@@ -10,6 +10,7 @@ import {
   Loader2,
   Moon,
   Sun,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -286,7 +287,12 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
             Help
           </button>
 
-          <APISettingsDialog />
+          <APISettingsDialog>
+            <button className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted">
+              <Settings className="h-4 w-4" />
+              AI Settings
+            </button>
+          </APISettingsDialog>
 
         </div>
 

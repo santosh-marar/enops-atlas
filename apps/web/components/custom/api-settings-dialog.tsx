@@ -110,15 +110,12 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen} modal={true}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            API Settings
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {children && (
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
