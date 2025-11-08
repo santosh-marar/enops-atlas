@@ -506,12 +506,17 @@ export function AIChat({
       if (projectId && isOpen) {
         try {
           const project = await db.projects.get(projectId);
-          if (project?.aiChatHistory) {
+          if (project?.aiChatHistory && project.aiChatHistory.length > 0) {
             setMessages(project.aiChatHistory);
+          } else {
+            setMessages([]);
           }
         } catch (error) {
           console.error("Failed to load chat history:", error);
+          setMessages([]);
         }
+      } else {
+        setMessages([]);
       }
     };
     loadChatHistory();
