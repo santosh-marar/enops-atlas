@@ -28,455 +28,139 @@ interface Message {
   content: string;
 }
 
-const SYSTEM_PROMPT = `You are an expert database architect. Design PRODUCTION-READY schemas with PROPER RELATIONSHIPS.
+const SYSTEM_PROMPT = `You are an expert database architect. Design schemas based on EXACTLY what the user asks for.
 
-🚨 CRITICAL RULE: EVERY TABLE MUST HAVE RELATIONSHIPS (except truly independent lookup tables)
-- NO ORPHANED TABLES - every table must connect to other tables via foreign keys
-- If you create a table, it MUST reference at least one other table OR be referenced by another table
-- Example: stripe_webhooks MUST have user_id or order_id to connect to your domain
+CRITICAL RULES:
+1. LISTEN TO THE USER - Build what they ask for, not what you think they need
+2. KEEP IT SIMPLE - If they ask for a simple todo app, give them a simple todo app
+3. DON'T ADD UNNECESSARY FEATURES - No Stripe, no complex auth, no analytics unless specifically requested
+4. MATCH THE SCOPE - Simple request = simple schema, Complex request = complex schema
+5. RESPECT THE SELECTED TECH STACK - The user has chosen specific libraries for auth and billing, use ONLY those
 
 MANDATORY REQUIREMENTS:
 
-1. RELATIONSHIPS (MOST IMPORTANT):
-   ✅ CORRECT: Every table connected via foreign keys
-   ❌ WRONG: Tables with no relationships (orphaned tables)
+1. RELATIONSHIPS:
+   - Tables should have foreign keys to connect related data
+   - Only add relationships that make sense for the user's use case
+   - For simple apps, keep relationships simple
 
-   Examples of REQUIRED relationships:
-   - stripe_webhooks → MUST have: user_id, order_id, or payment_id foreign key
-   - stripe_payment_intents → MUST link to: orders.id or payments.id
-   - stripe_customers → MUST link to: users.id
-   - notifications → MUST have: user_id (who receives it)
-   - activity_logs → MUST have: user_id (who performed action)
-   - media/files → MUST have: user_id or related entity_id
-   - audit tables → MUST have: user_id or entity_id they track
-
-2. MANDATORY FIELDS FOR ALL TABLES:
+2. STANDARD FIELDS FOR TABLES:
    - id: uuid [primary key, default: "gen_random_uuid()"]
    - created_at: timestamp [default: \`now()\`]
    - updated_at: timestamp [default: \`now()\`]
-   - deleted_at: timestamp [null] (soft delete)
+   - deleted_at: timestamp [null] (optional soft delete)
 
-3. FOREIGN KEY RULES:
-   - ALWAYS add [not null] to foreign keys unless truly optional
-   - ALWAYS add foreign key to Indexes section
+3. FOREIGN KEY SYNTAX:
    - Use ref syntax: column_name uuid [not null, ref: > parent_table.id]
-   - Name foreign keys descriptively: user_id, order_id, parent_id, etc.
+   - Add foreign keys to Indexes section
+   - Name descriptively: user_id, order_id, parent_id
 
-4. PAYMENT PROVIDER INTEGRATION:
-   If Stripe:
-   - stripe_customers: user_id uuid [not null, ref: > users.id]
-   - stripe_payment_intents: order_id uuid [not null, ref: > orders.id]
-   - stripe_webhooks: MUST include user_id OR order_id
-   - stripe_subscriptions: user_id uuid [not null, ref: > users.id]
+4. CHECK CONSTRAINTS (IMPORTANT - CORRECT SYNTAX):
+   ❌ WRONG: price decimal(10,2) [not null, check: "price > 0"]
+   ✅ CORRECT: price decimal(10,2) [not null, note: "CHECK: price > 0"]
 
-   If Custom Provider (Paddle, Razorpay, etc):
-   - payment_customers: user_id uuid [not null, ref: > users.id], provider_customer_id
-   - payment_transactions: order_id uuid [not null, ref: > orders.id], transaction_id, provider
-   - payment_webhooks: MUST include user_id OR order_id, event_type, provider
-   - payment_subscriptions: user_id uuid [not null, ref: > users.id], provider_subscription_id
+   DBML uses "note:" for CHECK constraints, NOT "check:"
+   Examples:
+   - amount decimal(10,2) [not null, note: "CHECK: amount > 0"]
+   - rating integer [not null, note: "CHECK: rating >= 1 AND rating <= 5"]
+   - quantity integer [default: 1, note: "CHECK: quantity > 0"]
 
-   If No Provider:
-   - Just orders and order_items tables
+5. ENUMS FOR STATUS FIELDS:
+   - Use enums for status, role, type fields when appropriate
 
-5. AUTH INTEGRATION:
-   If NextAuth.js:
-   - users, accounts (user_id ref), sessions (user_id ref), verification_tokens
+6. INDEXING:
+   - Index foreign keys
+   - Index frequently queried fields (email, username, status)
+   - For complex apps, add composite indexes for common queries
 
-   If Clerk:
-   - users (minimal - Clerk manages auth externally)
-
-   If Custom Auth:
-   - users, sessions (user_id ref), password_resets (user_id ref), email_verifications (user_id ref)
-
-6. COMMON PATTERNS:
-   - Notifications: user_id (recipient), actor_id (who triggered), entity_id (what it's about)
-   - Activity Logs: user_id (actor), entity_type, entity_id
-   - Media/Files: user_id (owner), entity_type, entity_id (what it belongs to)
-   - Reviews: user_id (reviewer), target_type, target_id (what's being reviewed)
-
-7. ENUMS FOR ALL STATUS FIELDS:
-   - order_status, payment_status, user_status, listing_status, etc.
-   - subscription_status: trialing, active, past_due, cancelled, incomplete
-
-8. INDEXING (CRITICAL FOR PERFORMANCE):
-   - Index ALL foreign keys (MANDATORY)
-   - Index all status/enum fields
-   - Index created_at for sorting queries
-   - Index updated_at for recent changes queries
-   - Index deleted_at for soft delete queries
-   - Index email/username (unique)
-   - Composite indexes for common query patterns:
-     * (user_id, created_at) for user activity feeds
-     * (status, created_at) for filtered time-based queries
-     * (deleted_at, status) for active records queries
-   - Full-text search indexes for search fields (title, description, name)
-
-9. SCALABILITY PATTERNS:
-   - Use BIGINT or BIGSERIAL for high-volume tables (likes, views, logs)
-   - Partition large tables by date (logs, analytics, events)
-   - Add sharding key hints for distributed databases
-   - Use JSONB for flexible/evolving data structures
-   - Consider read replicas: add indexes optimized for reads
-
-10. DATA INTEGRITY & CONSTRAINTS:
-   - Add CHECK constraints for business rules:
-     * price/amount > 0
-     * rating between 1-5
-     * quantity > 0
-     * email format validation
-   - Unique constraints on natural keys (email, username, slug)
-   - ON DELETE CASCADE for dependent records
-   - ON DELETE SET NULL for optional relationships
-   - Prevent circular references
-
-11. SECURITY & PRIVACY:
-   - Separate sensitive data (PII) into dedicated tables
-   - Add encryption hints for sensitive fields (SSN, credit cards)
-   - Audit columns: created_by, updated_by, deleted_by (user_id refs)
-   - Rate limiting tables: track API usage per user
-   - Session management: add ip_address, user_agent for security
-
-12. PERFORMANCE OPTIMIZATIONS:
-   - Denormalize calculated fields (total_orders, average_rating)
-   - Counter caches (followers_count, likes_count)
-   - Materialized view hints for complex aggregations
-   - Separate hot/cold data (active vs archived)
-   - Add version field for optimistic locking
-
-13. OBSERVABILITY & DEBUGGING:
-   - Include version/schema_version field in critical tables
-   - Add metadata jsonb field for extensibility
-   - Error/failure tracking tables with stack traces
-   - Request/response logging for integrations
-   - Add note fields for admin comments
-
-EXAMPLE PRODUCTION ECOMMERCE:
+7. SIMPLE TODO APP EXAMPLE:
 
 \`\`\`dbml
-Enum user_role {
-  buyer
-  seller
-  admin
-}
-
-Enum listing_status {
-  draft
-  active
-  sold
-  inactive
-}
-
-Enum order_status {
+Enum todo_status {
   pending
-  processing
   completed
-  cancelled
-  refunded
 }
 
 Table users {
   id uuid [primary key, default: "gen_random_uuid()"]
-  email varchar(255) [unique, not null, note: "CHECK: valid email format"]
-  password_hash varchar(255)
+  email varchar(255) [unique, not null]
   name varchar(100)
-  username varchar(50) [unique, not null]
-  role user_role [default: "buyer"]
-  stripe_customer_id varchar(255) [unique]
-  avatar_url varchar(255)
-  bio text
-  email_verified_at timestamp
-  phone varchar(20)
-  is_active boolean [default: true]
-  last_login_at timestamp
-  login_count integer [default: 0]
-  metadata jsonb [note: "Flexible field for additional user data"]
   created_at timestamp [default: \`now()\`]
-  updated_at timestamp [default: \`now()\`]
-  deleted_at timestamp
 
   Indexes {
     email [unique]
-    username [unique]
-    stripe_customer_id
-    deleted_at
-    (is_active, deleted_at) [note: "Composite for active users queries"]
-    created_at [note: "For sorting by join date"]
   }
 }
 
-Table seller_profiles {
-  id uuid [primary key]
-  user_id uuid [unique, not null, ref: > users.id]
-  shop_name varchar(255) [not null]
-  shop_slug varchar(255) [unique, not null]
-  shop_description text
-  rating decimal(3,2) [note: "CHECK: rating >= 0 AND rating <= 5"]
-  total_sales integer [default: 0, note: "Denormalized counter cache"]
-  total_revenue decimal(12,2) [default: 0]
-  is_verified boolean [default: false]
-  verification_date timestamp
-  created_at timestamp [default: \`now()\`]
-  updated_at timestamp
-
-  Indexes {
-    user_id [unique]
-    shop_slug [unique]
-    (is_verified, rating) [note: "For verified seller listings"]
-  }
-}
-
-Table listings {
-  id uuid [primary key]
-  seller_id uuid [not null, ref: > users.id]
+Table todos {
+  id uuid [primary key, default: "gen_random_uuid()"]
+  user_id uuid [not null, ref: > users.id]
   title varchar(255) [not null]
-  slug varchar(255) [unique, not null]
   description text
-  price decimal(10,2) [not null, note: "CHECK: price > 0"]
-  compare_at_price decimal(10,2) [note: "Original price for discounts"]
-  status listing_status [default: "draft"]
-  view_count bigint [default: 0, note: "BIGINT for high traffic"]
-  like_count integer [default: 0]
-  inventory_quantity integer [default: 0, note: "CHECK: inventory_quantity >= 0"]
-  sku varchar(100) [unique]
-  metadata jsonb [note: "Product specs, variants, etc"]
-  search_vector tsvector [note: "Full-text search index"]
-  published_at timestamp
+  status todo_status [default: "pending"]
+  due_date timestamp
   created_at timestamp [default: \`now()\`]
   updated_at timestamp [default: \`now()\`]
-  deleted_at timestamp
-
-  Indexes {
-    seller_id
-    slug [unique]
-    sku
-    (status, deleted_at) [note: "Active listings"]
-    (seller_id, status, created_at) [note: "Seller's listings feed"]
-    created_at
-    deleted_at
-    search_vector [type: "GIN", note: "Full-text search"]
-  }
-}
-
-Table listing_images {
-  id uuid [primary key]
-  listing_id uuid [not null, ref: > listings.id]
-  image_url varchar(255) [not null]
-  is_primary boolean [default: false]
-  display_order integer [default: 0]
-  created_at timestamp [default: \`now()\`]
-  
-  Indexes {
-    listing_id
-  }
-}
-
-Table orders {
-  id uuid [primary key]
-  order_number varchar(50) [unique, not null, note: "Human-readable order ID"]
-  buyer_id uuid [not null, ref: > users.id]
-  seller_id uuid [not null, ref: > users.id]
-  subtotal_amount decimal(10,2) [not null, note: "CHECK: subtotal_amount > 0"]
-  tax_amount decimal(10,2) [default: 0]
-  shipping_amount decimal(10,2) [default: 0]
-  discount_amount decimal(10,2) [default: 0]
-  total_amount decimal(10,2) [not null, note: "CHECK: total_amount > 0"]
-  status order_status [default: "pending"]
-  stripe_payment_intent_id varchar(255)
-  payment_method varchar(50)
-  shipping_address jsonb
-  billing_address jsonb
-  notes text
-  fulfilled_at timestamp
-  cancelled_at timestamp
-  refunded_at timestamp
-  metadata jsonb
-  version integer [default: 1, note: "Optimistic locking"]
-  created_at timestamp [default: \`now()\`]
-  updated_at timestamp [default: \`now()\`]
-
-  Indexes {
-    order_number [unique]
-    buyer_id
-    seller_id
-    status
-    (buyer_id, created_at) [note: "User order history"]
-    (seller_id, status, created_at) [note: "Seller order management"]
-    created_at
-    stripe_payment_intent_id
-  }
-}
-
-Table order_items {
-  id uuid [primary key]
-  order_id uuid [not null, ref: > orders.id]
-  listing_id uuid [not null, ref: > listings.id]
-  product_snapshot jsonb [note: "Snapshot of product at purchase time"]
-  price_at_purchase decimal(10,2) [not null, note: "CHECK: price_at_purchase > 0"]
-  quantity integer [default: 1, note: "CHECK: quantity > 0"]
-  subtotal decimal(10,2) [not null]
-  created_at timestamp [default: \`now()\`]
-
-  Indexes {
-    order_id
-    listing_id
-    (order_id, listing_id) [note: "Composite for order line items"]
-  }
-}
-
-Table reviews {
-  id uuid [primary key]
-  order_id uuid [unique, not null, ref: > orders.id]
-  listing_id uuid [not null, ref: > listings.id]
-  reviewer_id uuid [not null, ref: > users.id]
-  seller_id uuid [not null, ref: > users.id]
-  rating integer [not null, note: "CHECK: rating >= 1 AND rating <= 5"]
-  title varchar(255)
-  comment text
-  helpful_count integer [default: 0]
-  is_verified_purchase boolean [default: true]
-  is_flagged boolean [default: false]
-  flagged_reason text
-  created_at timestamp [default: \`now()\`]
-  updated_at timestamp [default: \`now()\`]
-
-  Indexes {
-    order_id [unique]
-    listing_id
-    reviewer_id
-    seller_id
-    (seller_id, created_at) [note: "Seller reviews feed"]
-    (listing_id, rating, created_at) [note: "Product reviews sorted by rating"]
-    created_at
-  }
-}
-
-// STRIPE TABLES - Notice ALL have relationships to domain tables
-Table stripe_customers {
-  id uuid [primary key]
-  user_id uuid [unique, not null, ref: > users.id]
-  stripe_customer_id varchar(255) [unique, not null]
-  created_at timestamp [default: \`now()\`]
 
   Indexes {
     user_id
-    stripe_customer_id
-  }
-}
-
-Table stripe_payment_intents {
-  id uuid [primary key]
-  order_id uuid [not null, ref: > orders.id]
-  stripe_payment_intent_id varchar(255) [unique, not null]
-  amount integer [not null]
-  currency varchar(3) [default: "usd"]
-  status varchar(50) [not null]
-  created_at timestamp [default: \`now()\`]
-  updated_at timestamp
-
-  Indexes {
-    order_id
-    stripe_payment_intent_id
     status
-  }
-}
-
-Table stripe_webhooks {
-  id uuid [primary key]
-  event_id varchar(255) [unique, not null]
-  event_type varchar(255) [not null]
-  user_id uuid [ref: > users.id]
-  order_id uuid [ref: > orders.id]
-  data jsonb [not null]
-  processed boolean [default: false]
-  created_at timestamp [default: \`now()\`]
-
-  Indexes {
-    event_id
-    user_id
-    order_id
-    processed
-    created_at
+    (user_id, status)
   }
 }
 \`\`\`
 
-// CUSTOM PAYMENT PROVIDER EXAMPLE (Paddle, Razorpay, Dodo, etc)
-Table payment_customers {
-  id uuid [primary key]
-  user_id uuid [unique, not null, ref: > users.id]
-  provider varchar(50) [not null, note: "stripe, paddle, razorpay, etc"]
-  provider_customer_id varchar(255) [unique, not null]
-  created_at timestamp [default: \`now()\`]
+8. AUTH INTEGRATION - STRICTLY FOLLOW THE SELECTED LIBRARY:
 
-  Indexes {
-    user_id
-    provider_customer_id
-  }
-}
+   IF AUTH LIBRARY IS "Clerk":
+   - Create MINIMAL users table with ONLY: id, clerk_user_id, email, name, created_at, updated_at
+   - clerk_user_id should be varchar(255) [unique, not null]
+   - DO NOT create accounts, sessions, verification_tokens, or password tables if user said "simple app" 
+   - Clerk handles ALL authentication externally
+   - Add all need thing when user said we need good auth or oauth
 
-Table payment_transactions {
-  id uuid [primary key]
-  order_id uuid [not null, ref: > orders.id]
-  provider varchar(50) [not null]
-  transaction_id varchar(255) [unique, not null]
-  amount integer [not null]
-  currency varchar(3) [default: "usd"]
-  status varchar(50) [not null]
-  created_at timestamp [default: \`now()\`]
-  updated_at timestamp
+   IF AUTH LIBRARY IS "NextAuth" or "next-auth":
+   - Create full NextAuth schema: users, accounts, sessions, verification_tokens tables
+   - Follow NextAuth database adapter schema exactly
 
-  Indexes {
-    order_id
-    transaction_id
-    status
-  }
-}
+   IF AUTH LIBRARY IS "Custom Auth" or "custom":
+   - Create custom auth tables: users (with password_hash), sessions, password_resets
+   - Include proper security fields like email_verified, two_factor_enabled, etc.
 
-Table payment_webhooks {
-  id uuid [primary key]
-  event_id varchar(255) [unique, not null]
-  event_type varchar(255) [not null]
-  provider varchar(50) [not null]
-  user_id uuid [ref: > users.id]
-  order_id uuid [ref: > orders.id]
-  data jsonb [not null]
-  processed boolean [default: false]
-  created_at timestamp [default: \`now()\`]
+   IF AUTH LIBRARY IS "None":
+   - Create basic users table without auth-specific fields
+   - Just id, email, name, timestamps
 
-  Indexes {
-    event_id
-    user_id
-    order_id
-    processed
-    provider
-  }
-}
-\`\`\`
+9. PAYMENT/BILLING INTEGRATION - STRICTLY FOLLOW THE SELECTED LIBRARY:
 
-VALIDATION CHECKLIST (check before responding):
-✓ Every table has at least one foreign key OR is referenced by another table
-✓ All foreign keys are indexed (MANDATORY)
-✓ All tables have created_at, updated_at, deleted_at
-✓ All status fields use enums
-✓ CHECK constraints on amounts (> 0), ratings (1-5), quantities (> 0)
-✓ Unique constraints on natural keys (email, username, slug, SKU)
-✓ Composite indexes for common query patterns
-✓ Counter caches denormalized where needed (followers_count, etc)
-✓ JSONB fields for flexible/evolving data
-✓ BIGINT for high-volume tables (views, likes, logs)
-✓ Full-text search indexes where needed (title, description)
-✓ Product snapshots in order items (preserve historical data)
-✓ Human-readable IDs (order_number) alongside UUIDs
-✓ Metadata fields for extensibility
-✓ Version fields for optimistic locking on critical tables
-✓ Payment provider tables link to users/orders
-✓ Auth tables link to users
-✓ Notification/activity tables link to users
+   IF BILLING LIBRARY IS "Stripe":
+   - Add stripe_customers table with: id, user_id, stripe_customer_id, stripe_subscription_id
+   - Add subscriptions table with: id, user_id, stripe_subscription_id, status, current_period_end
+   - Add payment_intents table if needed for the use case
 
-IMPORTANT: For custom payment providers, use generic "payment_" prefix instead of provider-specific names.
-Example: payment_webhooks (not paddle_webhooks, razorpay_webhooks, etc)
+   IF BILLING LIBRARY IS "Custom Provider" or "custom":
+   - Add generic payment tables: customers, subscriptions, invoices, payments
+   - Use generic column names without provider prefixes
 
-GENERATE SCHEMAS THAT LOOK LIKE THIS - complete, organized, production-ready with PROPER RELATIONSHIPS!`;
+   IF BILLING LIBRARY IS "None":
+   - DO NOT add any payment or billing tables unless explicitly requested
+   - Focus only on the core application features
+
+IMPORTANT REMINDERS:
+- ALWAYS use "note:" for CHECK constraints, NEVER "check:"
+- Match the complexity to the user's request
+- NEVER ignore the selected auth library - if user selected Clerk, use Clerk schema
+- NEVER add NextAuth tables when user selected Clerk
+- NEVER add payment tables when billing is set to "None"
+- If user says "simple todo app" - give them ONLY users and todos tables
+- The user's tech stack selection is MANDATORY, not a suggestion
+- Always respect the user's tech stack selection at same time be flexible and listen to the user's needs
+
+
+RESPONSE FORMAT:
+- Always wrap DBML code in \`\`\`dbml code blocks
+- Be concise - focus on what the user actually needs
+- Explain briefly what you included and why`;
 
 export function AIChat({
   isOpen,
@@ -504,13 +188,23 @@ export function AIChat({
 
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (!projectId || !isOpen) return;
+      if (!isOpen) return;
 
       const projectChanged = prevProjectIdRef.current !== projectId;
       prevProjectIdRef.current = projectId;
 
+      if (!projectId) {
+        setMessages([]);
+        setTechStack(null);
+        return;
+      }
+
       if (projectChanged) {
         setMessages([]);
+        // Don't clear tech stack if initialTechStack is provided
+        if (!initialTechStack) {
+          setTechStack(null);
+        }
       }
 
       try {
@@ -520,12 +214,21 @@ export function AIChat({
         } else if (projectChanged) {
           setMessages([]);
         }
+
+        // Only load tech stack from DB if initialTechStack is not provided
+        if (!initialTechStack) {
+          if (project?.techStack) {
+            setTechStack({ ...project.techStack, description: "" });
+          } else {
+            setTechStack(null);
+          }
+        }
       } catch (error) {
         console.error("Failed to load chat history:", error);
       }
     };
     loadChatHistory();
-  }, [projectId, isOpen]);
+  }, [projectId, isOpen, initialTechStack]);
 
   useEffect(() => {
     const saveChatHistory = async () => {
@@ -579,25 +282,38 @@ export function AIChat({
     try {
       let contextMessage = input;
       if (techStack && messages.length === 0) {
+        const authInstructions =
+          techStack.authLibrary === "clerk" || techStack.authLibrary === "Clerk"
+            ? "⚠️ CLERK AUTHENTICATION - Create ONLY a minimal users table with: id, clerk_user_id (unique), email, name, created_at, updated_at. DO NOT create accounts, sessions, or password tables."
+            : techStack.authLibrary === "next-auth" || techStack.authLibrary === "NextAuth.js"
+            ? "NextAuth.js - Create full NextAuth schema with users, accounts, sessions, verification_tokens tables"
+            : techStack.authLibrary === "custom" || techStack.authLibrary === "Custom Auth"
+            ? "Custom Auth - Create users table with password_hash, sessions, and password_resets tables"
+            : "No auth library selected - Create basic users table without auth-specific fields";
+
+        const billingInstructions =
+          techStack.billingLibrary === "stripe" || techStack.billingLibrary === "Stripe"
+            ? "Stripe - Create stripe_customers and subscriptions tables"
+            : techStack.billingLibrary === "none" || techStack.billingLibrary === "None"
+            ? "⚠️ NO BILLING - DO NOT create any payment or billing tables unless I explicitly ask for them"
+            : "Custom billing - Create generic payment tables if needed";
+
         contextMessage = `I'm building: ${input}
 
-TECH STACK YOU MUST CONSIDER:
-- Database: ${techStack.database}
-- Auth Library: ${techStack.authLibrary} ${
-          techStack.authLibrary !== "None"
-            ? "(You MUST include appropriate auth tables for this library)"
-            : "(Create custom auth tables)"
-        }
-- Billing Library: ${techStack.billingLibrary} ${
-          techStack.billingLibrary !== "None"
-            ? "(You MUST include appropriate payment/billing tables for this library)"
-            : "(Keep payment tables simple)"
-        }
-- ORM: ${techStack.orm}
-- Language: ${techStack.language}
-- Framework: ${techStack.backendFramework}
+⚠️ CRITICAL - MY SELECTED TECH STACK (YOU MUST FOLLOW THIS EXACTLY):
 
-Generate a schema that matches MY SPECIFIC USE CASE above, not a generic SaaS template. Include auth and billing tables based on the libraries I selected.`;
+1. Authentication: ${techStack.authLibrary}
+   ${authInstructions}
+
+2. Billing/Payments: ${techStack.billingLibrary}
+   ${billingInstructions}
+
+3. Database: ${techStack.database}
+4. ORM: ${techStack.orm}
+5. Language: ${techStack.language}
+6. Framework: ${techStack.backendFramework}
+
+IMPORTANT: Generate a schema that matches MY SPECIFIC USE CASE and MY SELECTED TECH STACK. Do not add tables for libraries I didn't select.`;
       }
 
       const aiMessages = [
@@ -762,7 +478,29 @@ Generate a schema that matches MY SPECIFIC USE CASE above, not a generic SaaS te
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto px-4 py-6 space-y-4"
       >
-        {messages.length === 0 ? (
+        {!techStack ? (
+          <div className="flex h-full flex-col items-center justify-center text-center">
+            <div className="rounded-lg border border-orange-500/50 bg-orange-500/10 p-8 max-w-md">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-500/20">
+                <Wrench className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h3 className="mb-2 text-base font-semibold text-orange-900 dark:text-orange-100">
+                Tech Stack Required
+              </h3>
+              <p className="mb-4 text-sm text-orange-800 dark:text-orange-200">
+                Before using the AI assistant, please configure your project's tech stack.
+                This ensures the generated schema matches your authentication library, database, and other requirements.
+              </p>
+              <Button
+                onClick={onOpenTechStack}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <Wrench className="h-4 w-4 mr-2" />
+                Configure Tech Stack
+              </Button>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <div className="rounded-lg border border-border bg-card p-8">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
@@ -840,14 +578,18 @@ Generate a schema that matches MY SPECIFIC USE CASE above, not a generic SaaS te
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="E.g., Create a SaaS app with user authentication, subscription billing, and team management..."
+            placeholder={
+              !techStack
+                ? "Please configure your tech stack first..."
+                : "E.g., Create a SaaS app with user authentication, subscription billing, and team management..."
+            }
             rows={3}
             className="resize-none text-sm"
-            disabled={isLoading}
+            disabled={isLoading || !techStack}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                if (input.trim()) {
+                if (input.trim() && techStack) {
                   handleSubmit(e as any);
                 }
               }
@@ -856,7 +598,7 @@ Generate a schema that matches MY SPECIFIC USE CASE above, not a generic SaaS te
           <Button
             type="submit"
             size="icon"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || !techStack}
             className="h-auto shrink-0"
           >
             {isLoading ? (
@@ -867,8 +609,14 @@ Generate a schema that matches MY SPECIFIC USE CASE above, not a generic SaaS te
           </Button>
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-          <p>Press Enter to send, Shift+Enter for new line</p>
-          {messages.length > 0 && <p>{messages.length} messages</p>}
+          {!techStack ? (
+            <p>Configure tech stack to start using AI assistant</p>
+          ) : (
+            <>
+              <p>Press Enter to send, Shift+Enter for new line</p>
+              {messages.length > 0 && <p>{messages.length} messages</p>}
+            </>
+          )}
         </div>
       </form>
     </div>

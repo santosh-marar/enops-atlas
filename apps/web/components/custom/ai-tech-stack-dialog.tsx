@@ -30,15 +30,20 @@ interface AITechStackDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerate: (techStack: TechStack) => void;
+  projectId?: number;
 }
 
-export async function getSavedTechStack(): Promise<TechStack | null> {
+export async function getSavedTechStack(projectId?: number): Promise<TechStack | null> {
   try {
-    const saved = await db.techStack.toArray();
-    if (saved.length > 0) {
-      const { id, updatedAt, ...techStack } = saved[0];
-      return techStack as TechStack;
+    if (!projectId) {
+      return null;
     }
+
+    const project = await db.projects.get(projectId);
+    if (project?.techStack) {
+      return { ...project.techStack, description: "" };
+    }
+
     return null;
   } catch (error) {
     console.error("Failed to get saved tech stack:", error);
@@ -46,11 +51,21 @@ export async function getSavedTechStack(): Promise<TechStack | null> {
   }
 }
 
-export async function saveTechStack(techStack: TechStack): Promise<void> {
+export async function saveTechStack(techStack: TechStack, projectId?: number): Promise<void> {
   try {
-    await db.techStack.clear();
-    await db.techStack.add({
-      ...techStack,
+    if (!projectId) {
+      throw new Error("Cannot save tech stack without a project ID. Please save the project first.");
+    }
+
+    await db.projects.update(projectId, {
+      techStack: {
+        database: techStack.database,
+        orm: techStack.orm,
+        language: techStack.language,
+        backendFramework: techStack.backendFramework,
+        authLibrary: techStack.authLibrary,
+        billingLibrary: techStack.billingLibrary,
+      },
       updatedAt: new Date(),
     });
   } catch (error) {
@@ -63,6 +78,7 @@ export function AITechStackDialog({
   isOpen,
   onClose,
   onGenerate,
+  projectId,
 }: AITechStackDialogProps) {
   const [techStack, setTechStack] = useState<TechStack>({
     database: "postgresql",
@@ -76,13 +92,23 @@ export function AITechStackDialog({
 
   useEffect(() => {
     if (isOpen) {
-      getSavedTechStack().then((saved) => {
+      getSavedTechStack(projectId).then((saved) => {
         if (saved) {
           setTechStack(saved);
+        } else {
+          setTechStack({
+            database: "postgresql",
+            orm: "prisma",
+            language: "typescript",
+            backendFramework: "nextjs",
+            authLibrary: "next-auth",
+            billingLibrary: "stripe",
+            description: "",
+          });
         }
       });
     }
-  }, [isOpen]);
+  }, [isOpen, projectId]);
 
   const handleChange = (field: keyof TechStack, value: string) => {
     setTechStack((prev) => ({ ...prev, [field]: value }));
@@ -93,8 +119,11 @@ export function AITechStackDialog({
       toast.error("Please provide a description of your project");
       return;
     }
+
     try {
-      await saveTechStack(techStack);
+      if (projectId) {
+        await saveTechStack(techStack, projectId);
+      }
       onGenerate(techStack);
       onClose();
     } catch (error) {

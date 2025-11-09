@@ -35,6 +35,7 @@ const {
   loadProjects,
   handleNew,
   handleOpenProject,
+  handleSave,
 } = useProjectManager({
   dbml,
   nodes,
@@ -58,6 +59,8 @@ const handleNewWithConfirmation = async () => {
     return;
   }
   await handleNew();
+  setShowAIChat(false);
+  setCurrentTechStack(undefined);
 };
 
 // Handle browse
@@ -70,6 +73,8 @@ const handleBrowse = async () => {
 const confirmNewProject = async () => {
   try {
     await handleNew();
+    setShowAIChat(false);
+    setCurrentTechStack(undefined);
   } catch {
     toast.error("Failed to create new project.");
   } finally {
@@ -91,8 +96,14 @@ const handleAIClick = async () => {
     return;
   }
 
+  // If no project exists, auto-save it first
+  let projectId = currentProject?.id;
+  if (!projectId) {
+    projectId = await handleSave();
+  }
+
   // Otherwise, open it
-  const savedTechStack = await getSavedTechStack();
+  const savedTechStack = await getSavedTechStack(projectId);
   if (savedTechStack) {
     setCurrentTechStack(savedTechStack);
     setShowAIChat(true);
@@ -223,6 +234,7 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
           isOpen={showTechStackDialog}
           onClose={() => setShowTechStackDialog(false)}
           onGenerate={handleTechStackGenerate}
+          projectId={currentProject?.id}
         />
 
         <APISettingsDialog open={showAISettings} onOpenChange={setShowAISettings} />

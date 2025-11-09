@@ -52,8 +52,8 @@ export function useProjectManager({
   }, []);
 
   // Save project
-  const handleSave = useCallback(async () => {
-    if (isSaving) return;
+  const handleSave = useCallback(async (): Promise<number | undefined> => {
+    if (isSaving) return currentProject?.id;
 
     setIsSaving(true);
     try {
@@ -67,6 +67,8 @@ export function useProjectManager({
           edges,
           updatedAt: new Date(),
         });
+        setLastSaved(new Date());
+        return currentProject.id;
       } else {
         const id = await db.projects.add({
           name: projectName,
@@ -85,10 +87,12 @@ export function useProjectManager({
           createdAt: new Date(),
           updatedAt: new Date(),
         });
+        setLastSaved(new Date());
+        return id;
       }
-      setLastSaved(new Date());
     } catch (error) {
       toast.error("Failed to save project. Please try again.");
+      return undefined;
     } finally {
       setIsSaving(false);
     }
