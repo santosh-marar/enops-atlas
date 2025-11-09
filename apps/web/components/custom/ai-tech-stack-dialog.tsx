@@ -40,13 +40,14 @@ export async function getSavedTechStack(projectId?: number): Promise<TechStack |
     }
 
     const project = await db.projects.get(projectId);
+
     if (project?.techStack) {
       return { ...project.techStack, description: "" };
     }
 
     return null;
   } catch (error) {
-    console.error("Failed to get saved tech stack:", error);
+    // console.error("Failed to get saved tech stack:", error);
     return null;
   }
 }
@@ -69,7 +70,7 @@ export async function saveTechStack(techStack: TechStack, projectId?: number): P
       updatedAt: new Date(),
     });
   } catch (error) {
-    console.error("Failed to save tech stack:", error);
+    // console.error("Failed to save tech stack:", error);
     throw error;
   }
 }

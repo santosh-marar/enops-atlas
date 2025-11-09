@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { db } from "@/lib/db";
 
-const loadDB = () => import("@/lib/db").then((mod) => ({ db: mod.db }));
 const LAST_PROJECT_KEY = "enops-dev-last-project-id";
 
 interface Project {
@@ -40,25 +40,24 @@ export function useProjectManager({
   // Load projects
   const loadProjects = useCallback(async () => {
     try {
-      const { db } = await loadDB();
       const allProjects = await db.projects
         .orderBy("updatedAt")
         .reverse()
         .toArray();
       setProjects(allProjects);
     } catch (error) {
-      console.error("Failed to load projects:", error);
+      // console.error("Failed to load projects:", error);
     }
   }, []);
 
   // Save project
   const handleSave = useCallback(async (): Promise<number | undefined> => {
-    if (isSaving) return currentProject?.id;
+    if (isSaving) {
+      return currentProject?.id;
+    }
 
     setIsSaving(true);
     try {
-      const { db } = await loadDB();
-
       if (currentProject?.id) {
         await db.projects.update(currentProject.id, {
           name: projectName,
@@ -78,6 +77,10 @@ export function useProjectManager({
           createdAt: new Date(),
           updatedAt: new Date(),
         });
+
+        // Verify it was created
+        const verify = await db.projects.get(id);
+
         setCurrentProject({
           id,
           name: projectName,
@@ -91,6 +94,7 @@ export function useProjectManager({
         return id;
       }
     } catch (error) {
+      // console.error("[handleSave] Error saving project:", error);
       toast.error("Failed to save project. Please try again.");
       return undefined;
     } finally {
@@ -104,6 +108,7 @@ export function useProjectManager({
       setCurrentProject(null);
       setProjectName("Untitled Project");
       setLastSaved(null);
+      localStorage.removeItem(LAST_PROJECT_KEY); // Clear localStorage too!
       await updateFromDBML("");
       toast.success("New project created successfully!");
     } catch (error) {
@@ -116,7 +121,6 @@ export function useProjectManager({
     if (!currentProject?.id) return;
 
     try {
-      const { db } = await loadDB();
       await db.projects.delete(currentProject.id);
       setCurrentProject(null);
       setProjectName("Untitled Project");
@@ -124,7 +128,7 @@ export function useProjectManager({
       await updateFromDBML("");
       toast.success("Project deleted successfully!");
     } catch (error) {
-      console.error("Failed to delete project:", error);
+      // console.error("Failed to delete project:", error);
       toast.error("Failed to delete project. Please try again.");
     }
   };
@@ -159,14 +163,16 @@ export function useProjectManager({
     [setNodes, setEdges, updateFromDBML]
   );
 
-  // Auto-restore last opened project on mount
+  // Auto-restore last opened project on mount ONLY ONCE
   useEffect(() => {
     const restoreLastProject = async () => {
       try {
         const lastProjectId = localStorage.getItem(LAST_PROJECT_KEY);
-        if (!lastProjectId) return;
 
-        const { db } = await loadDB();
+        if (!lastProjectId) {
+          return;
+        }
+
         const project = await db.projects.get(parseInt(lastProjectId));
 
         if (project) {
@@ -175,16 +181,18 @@ export function useProjectManager({
           localStorage.removeItem(LAST_PROJECT_KEY);
         }
       } catch (error) {
-        console.error("Failed to restore last project:", error);
+        // console.error("Failed to restore last project:", error);
         localStorage.removeItem(LAST_PROJECT_KEY);
       }
     };
 
     restoreLastProject();
-  }, [handleOpenProject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   return {
     currentProject,
+    setCurrentProject,
     projectName,
     setProjectName,
     lastSaved,

@@ -59,7 +59,7 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
         setOpenaiKey(current.openaiApiKey || "");
       }
     } catch (error) {
-      console.error("Failed to load API settings:", error);
+      // console.error("Failed to load API settings:", error);
       toast.error("Failed to load API settings");
     } finally {
       setIsLoading(false);
@@ -97,7 +97,7 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
       toast.success("API settings saved successfully");
       setOpen(false);
     } catch (error) {
-      console.error("Failed to save API settings:", error);
+      // console.error("Failed to save API settings:", error);
       toast.error("Failed to save API settings");
     } finally {
       setIsSaving(false);
