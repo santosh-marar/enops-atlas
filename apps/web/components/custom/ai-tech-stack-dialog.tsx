@@ -263,7 +263,7 @@ export function AITechStackDialog({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleGenerate}>Generate Schema</Button>
+            <Button onClick={handleGenerate}>Save</Button>
           </div>
         </div>
       </DialogContent>

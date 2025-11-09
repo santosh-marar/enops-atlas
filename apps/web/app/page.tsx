@@ -52,6 +52,7 @@ const [showAIChat, setShowAIChat] = useState(false);
 const [showTechStackDialog, setShowTechStackDialog] = useState(false);
 const [showAISettings, setShowAISettings] = useState(false);
 const [currentTechStack, setCurrentTechStack] = useState<TechStack | undefined>();
+const [resetKey, setResetKey] = useState(0);
 
 // Handle new project with confirmation
 const handleNewWithConfirmation = async () => {
@@ -66,6 +67,7 @@ const handleNewWithConfirmation = async () => {
   setCurrentTechStack(undefined);
 
   await handleNew();
+  setResetKey(prev => prev + 1);
 };
 
 // Handle browse
@@ -83,6 +85,7 @@ const confirmNewProject = async () => {
     setCurrentTechStack(undefined);
 
     await handleNew();
+    setResetKey(prev => prev + 1);
   } catch {
     toast.error("Failed to create new project.");
   } finally {
@@ -99,6 +102,7 @@ const handleOpenProjectWithClose = async (project: any) => {
   setCurrentTechStack(undefined);
 
   await handleOpenProject(project);
+  setResetKey(prev => prev + 1);
 
   setShowProjectBrowser(false);
 };
@@ -283,7 +287,7 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
           {showAIChat && currentProject?.id && (
             <div className="min-w-xl max-w-xl shrink-0 border-r border-border bg-background relative z-10">
               <AIChat
-                key={`ai-chat-${currentProject.id}`}
+                key={`ai-chat-${currentProject.id}-${resetKey}`}
                 isOpen={showAIChat}
                 onClose={() => setShowAIChat(false)}
                 onSchemaGenerated={handleSchemaGenerated}

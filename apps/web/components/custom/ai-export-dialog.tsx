@@ -351,7 +351,7 @@ Please provide complete, production-ready code with:
                 </div>
               </div>
               <div className="relative overflow-hidden rounded-md border">
-                <div className="h-full overflow-y-auto p-3 bg-card scroll-smooth">
+                <div className="h-full min-h-[480px] overflow-y-auto p-3 bg-card scroll-smooth">
                   <pre
                     ref={textareaRef}
                     className="font-mono text-sm whitespace-pre-wrap break-word min-h-full text-foreground"
