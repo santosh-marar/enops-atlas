@@ -85,7 +85,7 @@ export function AITechStackDialog({
     orm: "prisma",
     language: "typescript",
     backendFramework: "nextjs",
-    authLibrary: "next-auth",
+    authLibrary: "clerk",
     billingLibrary: "stripe",
     description: "",
   });
@@ -101,7 +101,7 @@ export function AITechStackDialog({
             orm: "prisma",
             language: "typescript",
             backendFramework: "nextjs",
-            authLibrary: "next-auth",
+            authLibrary: "clerk",
             billingLibrary: "stripe",
             description: "",
           });
@@ -207,9 +207,15 @@ export function AITechStackDialog({
                 onChange={(e) => handleChange("authLibrary", e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="next-auth">NextAuth.js</option>
                 <option value="clerk">Clerk</option>
+                <option value="next-auth">NextAuth.js</option>
+                <option value="supabase-auth">Supabase Auth</option>
+                <option value="auth0">Auth0</option>
+                <option value="firebase-auth">Firebase Auth</option>
+                <option value="lucia">Lucia Auth</option>
+                <option value="better-auth">Better Auth</option>
                 <option value="custom">Custom Auth</option>
+                <option value="none">None</option>
               </select>
             </div>
 
@@ -223,6 +229,12 @@ export function AITechStackDialog({
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
                 <option value="stripe">Stripe</option>
+                <option value="paddle">Paddle</option>
+                <option value="lemonsqueezy">Lemon Squeezy</option>
+                <option value="dodo">Dodo Payments</option>
+                <option value="paypal">PayPal</option>
+                <option value="razorpay">Razorpay</option>
+                <option value="mollie">Mollie</option>
                 <option value="custom">Custom Provider</option>
                 <option value="none">None</option>
               </select>
