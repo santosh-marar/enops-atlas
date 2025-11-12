@@ -17,7 +17,7 @@ export interface ProjectTechStack {
 }
 
 export interface Project {
-  id?: number;
+  id: string;
   name: string;
   dbml: string;
   nodes?: Node[];
@@ -29,7 +29,7 @@ export interface Project {
 }
 
 export interface AISettings {
-  id?: number;
+  id?: string;
   provider: "claude" | "gpt";
   claudeApiKey?: string;
   openaiApiKey?: string;
@@ -43,19 +43,24 @@ export class AppDatabase extends Dexie {
   constructor() {
     super("EnopsDevDB");
 
-    // Version 1: Initial schema with complete project isolation
-    // Each project has: name, dbml, nodes, edges, aiChatHistory, techStack
-    this.version(1).stores({
-      projects: "++id, name, createdAt, updatedAt",
-      aiSettings: "++id, updatedAt",
-    }).upgrade(tx => {
-      return tx.table("projects").toCollection().modify(project => {
-        if (!project.nodes) project.nodes = [];
-        if (!project.edges) project.edges = [];
-        if (!project.aiChatHistory) project.aiChatHistory = [];
-        if (!project.techStack) project.techStack = null;
+    // console.log("projects from fucken db", this.projects);
+
+    this.version(1)
+      .stores({
+        projects: "id, name, createdAt, updatedAt", // 'id' is primary key, others are indexes
+        aiSettings: "++id, updatedAt",
+      })
+      .upgrade((tx) => {
+        return tx
+          .table("projects")
+          .toCollection()
+          .modify((project) => {
+            if (!project.nodes) project.nodes = [];
+            if (!project.edges) project.edges = [];
+            if (!project.aiChatHistory) project.aiChatHistory = [];
+            if (!project.techStack) project.techStack = null;
+          });
       });
-    });
   }
 }
 

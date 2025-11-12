@@ -9,10 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 
@@ -30,16 +28,21 @@ interface AITechStackDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerate: (techStack: TechStack) => void;
-  projectId?: number;
+  projectId?: string;
 }
 
-export async function getSavedTechStack(projectId?: number): Promise<TechStack | null> {
+export async function getSavedTechStack(): Promise<TechStack | null> {
+
+  const projectId = localStorage.getItem("last_project_id");
+  // console.log("projectId from get tech stack", projectId);
+
   try {
     if (!projectId) {
       return null;
     }
-
     const project = await db.projects.get(projectId);
+
+    // console.log("project tech stack", project?.techStack);
 
     if (project?.techStack) {
       return { ...project.techStack, description: "" };
@@ -47,30 +50,52 @@ export async function getSavedTechStack(projectId?: number): Promise<TechStack |
 
     return null;
   } catch (error) {
-    // console.error("Failed to get saved tech stack:", error);
+    console.error("Failed to get saved tech stack:", error);
     return null;
   }
 }
 
-export async function saveTechStack(techStack: TechStack, projectId?: number): Promise<void> {
+export async function saveTechStack(
+  techStack: TechStack,
+  projectId: string
+): Promise<void> {
   try {
     if (!projectId) {
-      throw new Error("Cannot save tech stack without a project ID. Please save the project first.");
+      throw new Error(
+        "Cannot save tech stack without a project ID. Please save the project first."
+      );
     }
 
-    await db.projects.update(projectId, {
-      techStack: {
-        database: techStack.database,
-        orm: techStack.orm,
-        language: techStack.language,
-        backendFramework: techStack.backendFramework,
-        authLibrary: techStack.authLibrary,
-        billingLibrary: techStack.billingLibrary,
-      },
-      updatedAt: new Date(),
-    });
+    // Get the full project
+    const project = await db.projects.get(projectId);
+
+    // console.log("project", project);
+
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found.`);
+    }
+
+    // console.log("techStack", techStack);
+
+    // Modify the project object
+    project.techStack = {
+      database: techStack.database,
+      orm: techStack.orm,
+      language: techStack.language,
+      backendFramework: techStack.backendFramework,
+      authLibrary: techStack.authLibrary,
+      billingLibrary: techStack.billingLibrary,
+    };
+    project.updatedAt = new Date();
+
+    // Put it back (replaces the entire record)
+    await db.projects.put(project);
+
+    // Verify it saved
+    const verify = await db.projects.get(projectId);
+    // console.log("Saved tech stack:", verify?.techStack);
   } catch (error) {
-    // console.error("Failed to save tech stack:", error);
+    console.error("Failed to save tech stack:", error);
     throw error;
   }
 }
@@ -93,7 +118,7 @@ export function AITechStackDialog({
 
   useEffect(() => {
     if (isOpen) {
-      getSavedTechStack(projectId).then((saved) => {
+      getSavedTechStack().then((saved) => {
         if (saved) {
           setTechStack(saved);
         } else {

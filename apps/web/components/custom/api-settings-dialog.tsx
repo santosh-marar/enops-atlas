@@ -149,7 +149,7 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
             </div>
 
             <TabsContent value="claude" className="space-y-4 mt-0">
-              <div className="rounded-lg border bg-gradient-to-br from-primary/5 to-primary/10 p-4">
+              <div className="rounded-lg border bg-linear-to-br from-primary/5 to-primary/10 p-4">
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="rounded-lg bg-primary/10 p-2">
@@ -206,7 +206,7 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
             </TabsContent>
 
             <TabsContent value="gpt" className="space-y-4 mt-0">
-              <div className="rounded-lg border bg-gradient-to-br from-green-500/5 to-green-500/10 p-4">
+              <div className="rounded-lg border bg-linear-to-br from-green-500/5 to-green-500/10 p-4">
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="rounded-lg bg-green-500/10 p-2">
@@ -264,7 +264,7 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
 
             <div className="rounded-lg border p-3 bg-muted/50 mt-4">
               <div className="flex gap-2.5">
-                <Shield className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                 <div className="text-xs text-muted-foreground space-y-1">
                   <p className="font-medium text-foreground">Privacy & Security</p>
                   <p>

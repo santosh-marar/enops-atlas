@@ -1,11 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
-
-const LAST_PROJECT_KEY = "enops-dev-last-project-id";
+import { nanoId } from "@/lib/id";
 
 interface Project {
-  id?: number;
+  id: string;
   name: string;
   dbml: string;
   nodes?: any[];
@@ -51,12 +50,15 @@ export function useProjectManager({
   }, []);
 
   // Save project
-  const handleSave = useCallback(async (): Promise<number | undefined> => {
+  const handleSave = useCallback(async (): Promise<string | undefined> => {
+    // console.log("currentProject", currentProject);
+
     if (isSaving) {
       return currentProject?.id;
     }
 
     setIsSaving(true);
+
     try {
       if (currentProject?.id) {
         await db.projects.update(currentProject.id, {
@@ -69,38 +71,33 @@ export function useProjectManager({
         setLastSaved(new Date());
         return currentProject.id;
       } else {
-        const id = await db.projects.add({
+        const projectToSave = {
+          id: nanoId as string,
           name: projectName,
           dbml,
           nodes,
           edges,
           createdAt: new Date(),
           updatedAt: new Date(),
-        });
+        };
 
-        // Verify it was created
-        const verify = await db.projects.get(id);
+        // Add to database
+        await db.projects.add(projectToSave);
 
-        setCurrentProject({
-          id,
-          name: projectName,
-          dbml,
-          nodes,
-          edges,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+        setCurrentProject(projectToSave);
+        localStorage.setItem("last_project_id", projectToSave.id);
         setLastSaved(new Date());
-        return id;
+        // console.log(projectToSave.id);
+        return nanoId as string;
       }
     } catch (error) {
-      // console.error("[handleSave] Error saving project:", error);
+      console.error("[handleSave] Error saving project:", error);
       toast.error("Failed to save project. Please try again.");
       return undefined;
     } finally {
       setIsSaving(false);
     }
-  }, [currentProject, projectName, dbml, nodes, edges, isSaving]);
+  }, [currentProject, projectName, dbml, nodes, edges, isSaving, nanoId]);
 
   // Create new project
   const handleNew = async () => {
@@ -108,7 +105,7 @@ export function useProjectManager({
       setCurrentProject(null);
       setProjectName("Untitled Project");
       setLastSaved(null);
-      localStorage.removeItem(LAST_PROJECT_KEY); // Clear localStorage too!
+      localStorage.removeItem("last_project_id"); // Clear localStorage too!
       await updateFromDBML("");
       toast.success("New project created successfully!");
     } catch (error) {
@@ -142,7 +139,7 @@ export function useProjectManager({
         setLastSaved(project.updatedAt);
 
         if (project.id) {
-          localStorage.setItem(LAST_PROJECT_KEY, project.id.toString());
+          localStorage.setItem("last_project_id", project.id.toString());
         }
 
         if (project.nodes && project.nodes.length > 0) {
@@ -167,22 +164,20 @@ export function useProjectManager({
   useEffect(() => {
     const restoreLastProject = async () => {
       try {
-        const lastProjectId = localStorage.getItem(LAST_PROJECT_KEY);
-
+        const lastProjectId = localStorage.getItem("last_project_id");
         if (!lastProjectId) {
           return;
         }
 
-        const project = await db.projects.get(parseInt(lastProjectId));
+        const project = await db.projects.get(lastProjectId);
 
         if (project) {
           await handleOpenProject(project);
         } else {
-          localStorage.removeItem(LAST_PROJECT_KEY);
+          localStorage.removeItem("last_project_id");
         }
       } catch (error) {
-        // console.error("Failed to restore last project:", error);
-        localStorage.removeItem(LAST_PROJECT_KEY);
+        localStorage.removeItem("last_project_id");
       }
     };
 

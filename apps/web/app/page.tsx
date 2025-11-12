@@ -12,226 +12,214 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ProjectDialogs } from "@/components/custom/toolbar/project-dialogs";
 import { AIChat } from "@/components/custom/ai-chat";
-import { AITechStackDialog, TechStack, getSavedTechStack } from "@/components/custom/ai-tech-stack-dialog";
+import {
+  AITechStackDialog,
+  TechStack,
+  getSavedTechStack,
+} from "@/components/custom/ai-tech-stack-dialog";
 import { APISettingsDialog } from "@/components/custom/api-settings-dialog";
+import { nanoId } from "@/lib/id";
 
 export default function Home() {
-const flowContainerRef = useRef<HTMLDivElement>(null);
-const {
-  dbml,
-  nodes,
-  edges,
-  updateFromDBML,
-  setNodes,
-  setEdges,
-  showIde,
-  toggleIde,
-} = useSchemaStore();
+  const flowContainerRef = useRef<HTMLDivElement>(null);
+  const {
+    dbml,
+    nodes,
+    edges,
+    updateFromDBML,
+    setNodes,
+    setEdges,
+    showIde,
+    toggleIde,
+  } = useSchemaStore();
 
-const {
-  currentProject,
-  setCurrentProject,
-  projectName,
-  projects,
-  loadProjects,
-  handleNew,
-  handleOpenProject,
-  handleSave,
-} = useProjectManager({
-  dbml,
-  nodes,
-  edges,
-  updateFromDBML,
-  setNodes,
-  setEdges,
-});
+  const {
+    currentProject,
+    setCurrentProject,
+    projectName,
+    projects,
+    loadProjects,
+    handleNew,
+    handleOpenProject,
+    handleSave,
+  } = useProjectManager({
+    dbml,
+    nodes,
+    edges,
+    updateFromDBML,
+    setNodes,
+    setEdges,
+  });
 
-const [showProjectBrowser, setShowProjectBrowser] = useState(false);
-const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
-const [showAIChat, setShowAIChat] = useState(false);
-const [showTechStackDialog, setShowTechStackDialog] = useState(false);
-const [showAISettings, setShowAISettings] = useState(false);
-const [currentTechStack, setCurrentTechStack] = useState<TechStack | undefined>();
-const [resetKey, setResetKey] = useState(0);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [showTechStackDialog, setShowTechStackDialog] = useState(false);
+  const [showAISettings, setShowAISettings] = useState(false);
+  const [currentTechStack, setCurrentTechStack] = useState<
+    TechStack | undefined
+  >();
 
-// Handle new project with confirmation
-const handleNewWithConfirmation = async () => {
-
-  if (dbml && dbml.trim().length > 0) {
-    setShowNewProjectDialog(true);
-    return;
-  }
-
-  // Close AI chat and clear tech stack for new project
-  setShowAIChat(false);
-  setCurrentTechStack(undefined);
-
-  await handleNew();
-  setResetKey(prev => prev + 1);
-};
-
-// Handle browse
-const handleBrowse = async () => {
-  await loadProjects();
-  setShowProjectBrowser(true);
-};
-
-// Confirm new project
-const confirmNewProject = async () => {
-  try {
+  const handleNewWithConfirmation = async () => {
+    if (dbml && dbml.trim().length > 0) {
+      setShowNewProjectDialog(true);
+      return;
+    }
 
     // Close AI chat and clear tech stack for new project
     setShowAIChat(false);
     setCurrentTechStack(undefined);
 
     await handleNew();
-    setResetKey(prev => prev + 1);
-  } catch {
-    toast.error("Failed to create new project.");
-  } finally {
-    setShowNewProjectDialog(false);
-  }
-};
+    const id = nanoId;
+  };
 
-// Handle open project with dialog close
-const handleOpenProjectWithClose = async (project: any) => {
+  // Handle browse
+  const handleBrowse = async () => {
+    await loadProjects();
+    setShowProjectBrowser(true);
+  };
 
-  // Close AI chat when switching projects
-  setShowAIChat(false);
-  // Clear the current tech stack so it loads fresh from the new project
-  setCurrentTechStack(undefined);
+  // Confirm new project
+  const confirmNewProject = async () => {
+    try {
+      // Close AI chat and clear tech stack for new project
+      setShowAIChat(false);
+      setCurrentTechStack(undefined);
 
-  await handleOpenProject(project);
-  setResetKey(prev => prev + 1);
+      await handleNew();
+    } catch {
+      toast.error("Failed to create new project.");
+    } finally {
+      setShowNewProjectDialog(false);
+    }
+  };
 
-  setShowProjectBrowser(false);
-};
-
-// Handle AI button click - toggle AI chat
-const handleAIClick = async () => {
-
-  // If AI chat is already open, close it
-  if (showAIChat) {
+  // Handle open project with dialog close
+  const handleOpenProjectWithClose = async (project: any) => {
     setShowAIChat(false);
-    return;
-  }
+    setCurrentTechStack(undefined);
 
-  // Check if we have a project
-  let projectId = currentProject?.id;
+    await handleOpenProject(project);
+    setShowProjectBrowser(false);
+  };
 
-  // If no project exists at all, show tech stack dialog first
-  if (!projectId) {
-    // Check if there's DBML content to save first
-    if (dbml && dbml.trim().length > 0) {
-      projectId = await handleSave();
-      // After saving, check if this new project has a tech stack
-      const savedTechStack = await getSavedTechStack(projectId);
-      if (savedTechStack) {
-        setCurrentTechStack(savedTechStack);
-        setShowAIChat(true);
-        if (showIde) {
-          toggleIde();
+  // Handle AI button click - toggle AI chat
+  const handleAIClick = async () => {
+    if (showAIChat) {
+      setShowAIChat(false);
+      return;
+    }
+
+    let projectId: string | undefined = currentProject?.id;
+
+    if (!projectId) {
+      // Check if there's DBML content to save first
+      if (dbml && dbml.trim().length > 0) {
+        projectId = await handleSave();
+        const savedTechStack = await getSavedTechStack();
+        // console.log("savedTechStack", savedTechStack);
+        if (savedTechStack) {
+          setCurrentTechStack(savedTechStack);
+          setShowAIChat(true);
+          if (showIde) {
+            toggleIde();
+          }
+          return;
         }
-        return;
+      }
+      setShowTechStackDialog(true);
+      return;
+    }
+
+    const savedTechStack = await getSavedTechStack();
+
+    // Always update state with fresh data from DB
+    setCurrentTechStack(savedTechStack || undefined);
+
+    if (savedTechStack) {
+      setShowAIChat(true);
+      if (showIde) {
+        toggleIde();
+      }
+    } else {
+      setShowTechStackDialog(true);
+    }
+  };
+
+  // Handle tech stack generation
+  const handleTechStackGenerate = async (techStack: TechStack) => {
+    setCurrentTechStack(techStack);
+
+    // Ensure project exists and save tech stack
+    let projectId = currentProject?.id;
+
+    // Check if project actually exists in DB
+    if (projectId) {
+      const projectExists = await db.projects.get(projectId);
+      if (!projectExists) {
+        setCurrentProject(null); // Clear the invalid project from state
+        projectId = undefined; // Force creation of new project
       }
     }
-    // No project or no tech stack - show dialog
-    setShowTechStackDialog(true);
-    return;
-  }
 
-  // Project exists - ALWAYS load fresh tech stack from DB (ignore state)
-  const savedTechStack = await getSavedTechStack(projectId);
+    if (!projectId) {
+      projectId = await handleSave();
+    }
 
-  // Always update state with fresh data from DB
-  setCurrentTechStack(savedTechStack || undefined);
+    if (projectId) {
+      // Save tech stack to the project
+      try {
+        const updateResult = await db.projects.update(projectId, {
+          techStack: {
+            database: techStack.database,
+            orm: techStack.orm,
+            language: techStack.language,
+            backendFramework: techStack.backendFramework,
+            authLibrary: techStack.authLibrary,
+            billingLibrary: techStack.billingLibrary,
+          },
+          updatedAt: new Date(),
+        });
 
-  if (savedTechStack) {
+        const verify = await db.projects.get(projectId);
+
+        if (!verify?.techStack) {
+          throw new Error("Tech stack was not saved!");
+        }
+
+        toast.success("Tech stack saved!");
+      } catch (error) {
+        // console.error("Failed to save tech stack:", error);
+        toast.error("Failed to save tech stack");
+      }
+    }
+
     setShowAIChat(true);
     // Always close IDE when opening AI chat
     if (showIde) {
       toggleIde();
     }
-  } else {
-    setShowTechStackDialog(true);
-  }
-};
+  };
 
-// Handle tech stack generation
-const handleTechStackGenerate = async (techStack: TechStack) => {
-  setCurrentTechStack(techStack);
-
-  // Ensure project exists and save tech stack
-  let projectId = currentProject?.id;
-
-  // Check if project actually exists in DB
-  if (projectId) {
-    const projectExists = await db.projects.get(projectId);
-    if (!projectExists) {
-      setCurrentProject(null); // Clear the invalid project from state
-      projectId = undefined; // Force creation of new project
+  // Handle toggle editor - close AI chat if opening editor
+  const handleToggleEditor = () => {
+    if (!showIde && showAIChat) {
+      setShowAIChat(false);
     }
-  }
-
-  if (!projectId) {
-    projectId = await handleSave();
-  }
-
-  if (projectId) {
-    // Save tech stack to the project
-    try {
-
-      const updateResult = await db.projects.update(projectId, {
-        techStack: {
-          database: techStack.database,
-          orm: techStack.orm,
-          language: techStack.language,
-          backendFramework: techStack.backendFramework,
-          authLibrary: techStack.authLibrary,
-          billingLibrary: techStack.billingLibrary,
-        },
-        updatedAt: new Date(),
-      });
-
-
-      const verify = await db.projects.get(projectId);
-
-      if (!verify?.techStack) {
-        throw new Error("Tech stack was not saved!");
-      }
-
-      toast.success("Tech stack saved!");
-    } catch (error) {
-      // console.error("Failed to save tech stack:", error);
-      toast.error("Failed to save tech stack");
-    }
-  }
-
-  setShowAIChat(true);
-  // Always close IDE when opening AI chat
-  if (showIde) {
     toggleIde();
-  }
-};
+  };
 
-// Handle toggle editor - close AI chat if opening editor
-const handleToggleEditor = () => {
-  if (!showIde && showAIChat) {
-    setShowAIChat(false);
-  }
-  toggleIde();
-};
-
-// Handle schema generated from AI
-const handleSchemaGenerated = async (dbmlContent: string) => {
-  try {
-    await updateFromDBML(dbmlContent);
-    toast.success("Schema updated successfully!");
-  } catch (error) {
-    // console.error("Failed to update schema:", error);
-    toast.error("Failed to update schema");
-  }
-};
+  // Handle schema generated from AI
+  const handleSchemaGenerated = async (dbmlContent: string) => {
+    try {
+      await updateFromDBML(dbmlContent);
+      toast.success("Schema updated successfully!");
+    } catch (error) {
+      // console.error("Failed to update schema:", error);
+      toast.error("Failed to update schema");
+    }
+  };
 
   return (
     <div className="flex h-screen w-full flex-col">
@@ -287,13 +275,13 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
           {showAIChat && currentProject?.id && (
             <div className="min-w-xl max-w-xl shrink-0 border-r border-border bg-background relative z-10">
               <AIChat
-                key={`ai-chat-${currentProject.id}-${resetKey}`}
+                key={`ai-chat-${currentProject.id}`}
                 isOpen={showAIChat}
                 onClose={() => setShowAIChat(false)}
                 onSchemaGenerated={handleSchemaGenerated}
                 onOpenSettings={() => setShowAISettings(true)}
                 onOpenTechStack={() => setShowTechStackDialog(true)}
-                projectId={currentProject.id}
+                projectId={currentProject.id as string}
               />
             </div>
           )}
@@ -325,7 +313,10 @@ const handleSchemaGenerated = async (dbmlContent: string) => {
           projectId={currentProject?.id}
         />
 
-        <APISettingsDialog open={showAISettings} onOpenChange={setShowAISettings} />
+        <APISettingsDialog
+          open={showAISettings}
+          onOpenChange={setShowAISettings}
+        />
       </div>
     </div>
   );

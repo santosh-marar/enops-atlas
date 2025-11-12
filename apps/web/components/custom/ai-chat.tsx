@@ -19,7 +19,7 @@ interface AIChatProps {
   onOpenSettings: () => void;
   onOpenTechStack: () => void;
   initialTechStack?: TechStack;
-  projectId?: number;
+  projectId?: string;
 }
 
 interface Message {
@@ -397,7 +397,7 @@ export function AIChat({
   const [techStack, setTechStack] = useState<TechStack | null>(
     initialTechStack || null
   );
-  const prevProjectIdRef = useRef<number | undefined>(null);
+  const prevProjectIdRef = useRef<string | undefined>(null);
 
   useEffect(() => {
     if (initialTechStack) {

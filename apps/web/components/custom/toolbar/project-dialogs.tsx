@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 
 interface Project {
-  id?: number;
+  id?: string;
   name: string;
   dbml: string;
   nodes?: any[];
