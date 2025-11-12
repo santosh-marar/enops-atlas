@@ -46,22 +46,24 @@ export function Sidebar({
           </span>
         </button>
 
+        <div className="h-px bg-border my-2" />
+
         <button
           onClick={onAI}
           className={`group relative flex h-12 w-12 items-center justify-center rounded-lg transition-all ${
             isAIOpen
-              ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-purple-500/50"
+              ? "bg-linear-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-purple-500/50"
               : "hover:bg-sidebar-accent"
           }`}
           title="AI Schema Assistant"
         >
-          <Sparkles className={`h-5 w-5 ${isAIOpen ? "" : "text-sidebar-foreground"}`} />
+          <Sparkles
+            className={`h-5 w-5 ${isAIOpen ? "" : "text-sidebar-foreground"}`}
+          />
           <span className="absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
             AI Assistant
           </span>
         </button>
-
-        <div className="h-px bg-border my-2" />
 
         <button
           onClick={onToggleEditor}
@@ -103,7 +105,7 @@ export function Sidebar({
         >
           <IconBrandX className="h-5 w-5 text-sidebar-foreground" />
           <span className="absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md group-hover:block">
-             (Twitter)
+            (Twitter)
           </span>
         </a>
       </div>

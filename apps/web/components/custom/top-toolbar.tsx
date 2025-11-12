@@ -12,7 +12,6 @@ import {
   Sun,
   Settings,
 } from "lucide-react";
-import { toast } from "sonner";
 import Image from "next/image";
 import { CommandPalette } from "./command-palette";
 import { HelpDialog } from "./help-dialog";
@@ -30,10 +29,22 @@ import { Button } from "../ui/button";
 
 interface TopToolbarProps {
   flowContainerRef?: React.RefObject<HTMLDivElement | null>;
+  handleNewWithConfirmation: () => void;
+  confirmNewProject: () => void;
+  showNewProjectDialog: boolean;
+  onNewProjectDialogChange: (show: boolean) => void;
+  onConfirmNew: () => void;
 }
 
-export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
-  const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges, } =
+export function TopToolbar({
+  flowContainerRef,
+  handleNewWithConfirmation,
+  confirmNewProject,
+  showNewProjectDialog,
+  onNewProjectDialogChange,
+  onConfirmNew,
+}: TopToolbarProps) {
+  const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges } =
     useSchemaStore();
   const { theme, setTheme } = useTheme();
 
@@ -50,7 +61,14 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
     handleNew,
     handleDelete,
     handleOpenProject,
-  } = useProjectManager({ dbml, nodes, edges, updateFromDBML, setNodes, setEdges });
+  } = useProjectManager({
+    dbml,
+    nodes,
+    edges,
+    updateFromDBML,
+    setNodes,
+    setEdges,
+  });
 
   // Image export
   const { isExporting, isCancelling, handleExportImage, handleCancelExport } =
@@ -61,7 +79,6 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
-  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>("");
@@ -69,15 +86,6 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   // Toggle theme function
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
-  };
-
-  // Handle new project with confirmation
-  const handleNewWithConfirmation = async () => {
-    if (dbml && dbml.trim().length > 0) {
-      setShowNewProjectDialog(true);
-      return;
-    }
-    await handleNew();
   };
 
   // Handle delete with dialog
@@ -91,17 +99,6 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
   const handleBrowse = async () => {
     await loadProjects();
     setShowProjectBrowser(true);
-  };
-
-  // Confirm new project
-  const confirmNewProject = async () => {
-    try {
-      await handleNew();
-    } catch {
-      toast.error("Failed to create new project.");
-    } finally {
-      setShowNewProjectDialog(false);
-    }
   };
 
   // Confirm delete project
@@ -297,7 +294,6 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
           </APISettingsDialog>
 
           <AIExportDialog nodes={nodes} edges={edges} />
-
         </div>
 
         {/* Middle Section - Project Name */}
@@ -357,7 +353,7 @@ export function TopToolbar({ flowContainerRef }: TopToolbarProps) {
         projects={projects}
         onOpenProject={handleOpenProjectWithClose}
         showNewProjectDialog={showNewProjectDialog}
-        onNewProjectDialogChange={setShowNewProjectDialog}
+        onNewProjectDialogChange={onNewProjectDialogChange}
         onConfirmNew={confirmNewProject}
         showDeleteDialog={showDeleteDialog}
         onDeleteDialogChange={setShowDeleteDialog}

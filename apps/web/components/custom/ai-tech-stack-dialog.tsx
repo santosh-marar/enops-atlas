@@ -21,7 +21,7 @@ export interface TechStack {
   backendFramework: string;
   authLibrary: string;
   billingLibrary: string;
-  description: string;
+  description?: string;
 }
 
 interface AITechStackDialogProps {
@@ -34,16 +34,12 @@ interface AITechStackDialogProps {
 export async function getSavedTechStack(): Promise<TechStack | null> {
 
   const projectId = localStorage.getItem("last_project_id");
-  // console.log("projectId from get tech stack", projectId);
 
   try {
     if (!projectId) {
       return null;
     }
     const project = await db.projects.get(projectId);
-
-    // console.log("project tech stack", project?.techStack);
-
     if (project?.techStack) {
       return { ...project.techStack, description: "" };
     }
@@ -75,8 +71,6 @@ export async function saveTechStack(
       throw new Error(`Project with ID ${projectId} not found.`);
     }
 
-    // console.log("techStack", techStack);
-
     // Modify the project object
     project.techStack = {
       database: techStack.database,
@@ -93,7 +87,6 @@ export async function saveTechStack(
 
     // Verify it saved
     const verify = await db.projects.get(projectId);
-    // console.log("Saved tech stack:", verify?.techStack);
   } catch (error) {
     console.error("Failed to save tech stack:", error);
     throw error;
@@ -141,11 +134,6 @@ export function AITechStackDialog({
   };
 
   const handleGenerate = async () => {
-    if (!techStack.description.trim()) {
-      toast.error("Please provide a description of your project");
-      return;
-    }
-
     try {
       if (projectId) {
         await saveTechStack(techStack, projectId);
@@ -269,7 +257,7 @@ export function AITechStackDialog({
 
           {/* Project Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Project Description *</Label>
+            <Label htmlFor="description">Project Description (optional)</Label>
             <Textarea
               id="description"
               value={techStack.description}

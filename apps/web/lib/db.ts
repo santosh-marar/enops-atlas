@@ -43,8 +43,6 @@ export class AppDatabase extends Dexie {
   constructor() {
     super("EnopsDevDB");
 
-    // console.log("projects from fucken db", this.projects);
-
     this.version(1)
       .stores({
         projects: "id, name, createdAt, updatedAt", // 'id' is primary key, others are indexes

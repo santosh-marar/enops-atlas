@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, X, Settings, Sparkles, Wrench, Trash2 } from "lucide-react";
+import {
+  Send,
+  Loader2,
+  X,
+  Settings,
+  Sparkles,
+  Wrench,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getAISettings } from "./api-settings-dialog";
@@ -18,7 +26,6 @@ interface AIChatProps {
   onSchemaGenerated: (dbml: string) => void;
   onOpenSettings: () => void;
   onOpenTechStack: () => void;
-  initialTechStack?: TechStack;
   projectId?: string;
 }
 
@@ -387,23 +394,43 @@ export function AIChat({
   onSchemaGenerated,
   onOpenSettings,
   onOpenTechStack,
-  initialTechStack,
   projectId,
 }: AIChatProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [techStack, setTechStack] = useState<TechStack | null>(
-    initialTechStack || null
-  );
+  const [techStack, setTechStack] = useState<TechStack | null>(null);
   const prevProjectIdRef = useRef<string | undefined>(null);
 
   useEffect(() => {
-    if (initialTechStack) {
-      setTechStack(initialTechStack);
-    }
-  }, [initialTechStack]);
+    if (!isOpen) return;
+    setIsLoading(true);
+
+    const loadTechStack = async () => {
+      try {
+        const currentProjectId = localStorage.getItem("last_project_id");
+        if (!currentProjectId) {
+          return;
+        }
+
+        const project = await db.projects.get(currentProjectId);
+        if (!project) {
+          return;
+        }
+
+        if (project.techStack) {
+          setTechStack(project.techStack);
+        } else {
+          setTechStack(null);
+        }
+      } catch (error) {
+      }
+    };
+
+    loadTechStack();
+    setIsLoading(false);
+  }, [isOpen]);
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -420,10 +447,6 @@ export function AIChat({
 
       if (projectChanged) {
         setMessages([]);
-        // Don't clear tech stack if initialTechStack is provided
-        if (!initialTechStack) {
-          setTechStack(null);
-        }
       }
 
       try {
@@ -433,21 +456,10 @@ export function AIChat({
         } else if (projectChanged) {
           setMessages([]);
         }
-
-        // Only load tech stack from DB if initialTechStack is not provided
-        if (!initialTechStack) {
-          if (project?.techStack) {
-            setTechStack({ ...project.techStack, description: "" });
-          } else {
-            setTechStack(null);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load chat history:", error);
-      }
+      } catch (error) {}
     };
     loadChatHistory();
-  }, [projectId, isOpen, initialTechStack]);
+  }, [projectId, isOpen]);
 
   useEffect(() => {
     const saveChatHistory = async () => {
@@ -458,7 +470,6 @@ export function AIChat({
             updatedAt: new Date(),
           });
         } catch (error) {
-          console.error("Failed to save chat history:", error);
         }
       }
     };
@@ -571,7 +582,6 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
         onSchemaGenerated(dbml);
       }
     } catch (error) {
-      console.error("AI chat error:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to generate response"
       );
@@ -582,7 +592,11 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
   };
 
   const handleClearChat = async () => {
-    if (confirm("Are you sure you want to clear the chat history? This cannot be undone.")) {
+    if (
+      confirm(
+        "Are you sure you want to clear the chat history? This cannot be undone."
+      )
+    ) {
       setMessages([]);
       if (projectId) {
         try {
@@ -592,12 +606,15 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
           });
           toast.success("Chat history cleared");
         } catch (error) {
-          console.error("Failed to clear chat history:", error);
           toast.error("Failed to clear chat history");
         }
       }
     }
   };
+
+  if (isLoading) {
+    return <Loader2 className="size-4 animate-spin" />;
+  }
 
   return (
     <div className="flex h-full w-full flex-col bg-background">
@@ -687,8 +704,9 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
                 Tech Stack Required
               </h3>
               <p className="mb-4 text-sm text-orange-800 dark:text-orange-200">
-                Before using the AI assistant, please configure your project's tech stack.
-                This ensures the generated schema matches your authentication library, database, and other requirements.
+                Before using the AI assistant, please configure your project's
+                tech stack. This ensures the generated schema matches your
+                authentication library, database, and other requirements.
               </p>
               <Button
                 onClick={onOpenTechStack}

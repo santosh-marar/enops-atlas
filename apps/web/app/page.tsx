@@ -18,7 +18,6 @@ import {
   getSavedTechStack,
 } from "@/components/custom/ai-tech-stack-dialog";
 import { APISettingsDialog } from "@/components/custom/api-settings-dialog";
-import { nanoId } from "@/lib/id";
 
 export default function Home() {
   const flowContainerRef = useRef<HTMLDivElement>(null);
@@ -71,11 +70,11 @@ export default function Home() {
     setCurrentTechStack(undefined);
 
     await handleNew();
-    const id = nanoId;
   };
 
   // Handle browse
   const handleBrowse = async () => {
+    setShowAIChat(false);
     await loadProjects();
     setShowProjectBrowser(true);
   };
@@ -223,7 +222,14 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-full flex-col">
-      <TopToolbar flowContainerRef={flowContainerRef} />
+      <TopToolbar
+        flowContainerRef={flowContainerRef}
+        handleNewWithConfirmation={handleNewWithConfirmation}
+        confirmNewProject={confirmNewProject}
+        showNewProjectDialog={showNewProjectDialog}
+        onNewProjectDialogChange={setShowNewProjectDialog}
+        onConfirmNew={confirmNewProject}
+      />
       <div className="flex h-[calc(100vh-3rem)] w-full overflow-hidden">
         <aside className="shrink-0 border-r border-border bg-background">
           <Sidebar
