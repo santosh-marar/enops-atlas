@@ -18,7 +18,7 @@ export function Sidebar({
   onAI,
   onToggleEditor,
   isEditorOpen,
-  isAIOpen
+  isAIOpen,
 }: SidebarProps) {
   return (
     <div className="flex h-full min-w-16 flex-col items-center border-r border-border bg-background py-4 relative z-50">

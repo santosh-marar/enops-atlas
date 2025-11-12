@@ -162,7 +162,10 @@ Output should be valid ${orm} schema code that can be copied and used immediatel
       });
 
       for await (const chunk of stream) {
-        if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+        if (
+          chunk.type === "content_block_delta" &&
+          chunk.delta.type === "text_delta"
+        ) {
           const text = chunk.delta.text;
           fullText += text;
           onStream(text);
@@ -170,7 +173,10 @@ Output should be valid ${orm} schema code that can be copied and used immediatel
       }
 
       let code = fullText;
-      code = code.replace(/```[\w]*\n/g, "").replace(/```$/g, "").trim();
+      code = code
+        .replace(/```[\w]*\n/g, "")
+        .replace(/```$/g, "")
+        .trim();
       return code;
     } else {
       const message = await anthropic.messages.create({
@@ -184,7 +190,10 @@ Output should be valid ${orm} schema code that can be copied and used immediatel
       const content = message.content[0];
       if (content.type === "text") {
         let code = content.text;
-        code = code.replace(/```[\w]*\n/g, "").replace(/```$/g, "").trim();
+        code = code
+          .replace(/```[\w]*\n/g, "")
+          .replace(/```$/g, "")
+          .trim();
         return code;
       }
       throw new Error("No text content received");
@@ -214,7 +223,10 @@ Output should be valid ${orm} schema code that can be copied and used immediatel
       }
 
       let code = fullText;
-      code = code.replace(/```[\w]*\n/g, "").replace(/```$/g, "").trim();
+      code = code
+        .replace(/```[\w]*\n/g, "")
+        .replace(/```$/g, "")
+        .trim();
       return code;
     } else {
       const completion = await openai.chat.completions.create({
@@ -228,7 +240,10 @@ Output should be valid ${orm} schema code that can be copied and used immediatel
       });
 
       let code = completion.choices[0]?.message?.content || "";
-      code = code.replace(/```[\w]*\n/g, "").replace(/```$/g, "").trim();
+      code = code
+        .replace(/```[\w]*\n/g, "")
+        .replace(/```$/g, "")
+        .trim();
       return code;
     }
   }
@@ -267,11 +282,16 @@ Tech Stack Context:
         max_tokens: MAX_TOKENS,
         temperature: TEMPERATURE,
         system: DBML_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: `${techStackContext}\n\n${prompt}` }],
+        messages: [
+          { role: "user", content: `${techStackContext}\n\n${prompt}` },
+        ],
       });
 
       for await (const chunk of stream) {
-        if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
+        if (
+          chunk.type === "content_block_delta" &&
+          chunk.delta.type === "text_delta"
+        ) {
           const text = chunk.delta.text;
           fullText += text;
           onStream(text);
@@ -285,7 +305,9 @@ Tech Stack Context:
         max_tokens: MAX_TOKENS,
         temperature: TEMPERATURE,
         system: DBML_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: `${techStackContext}\n\n${prompt}` }],
+        messages: [
+          { role: "user", content: `${techStackContext}\n\n${prompt}` },
+        ],
       });
 
       const content = message.content[0];

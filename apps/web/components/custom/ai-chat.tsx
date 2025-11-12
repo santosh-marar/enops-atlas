@@ -424,8 +424,7 @@ export function AIChat({
         } else {
           setTechStack(null);
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     };
 
     loadTechStack();
@@ -469,8 +468,7 @@ export function AIChat({
             aiChatHistory: messages,
             updatedAt: new Date(),
           });
-        } catch (error) {
-        }
+        } catch (error) {}
       }
     };
     saveChatHistory();
@@ -572,8 +570,8 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
         fullResponse += textPart;
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === assistantMessage.id ? { ...m, content: fullResponse } : m
-          )
+            m.id === assistantMessage.id ? { ...m, content: fullResponse } : m,
+          ),
         );
       }
 
@@ -583,7 +581,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
       }
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to generate response"
+        error instanceof Error ? error.message : "Failed to generate response",
       );
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } finally {
@@ -594,7 +592,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
   const handleClearChat = async () => {
     if (
       confirm(
-        "Are you sure you want to clear the chat history? This cannot be undone."
+        "Are you sure you want to clear the chat history? This cannot be undone.",
       )
     ) {
       setMessages([]);

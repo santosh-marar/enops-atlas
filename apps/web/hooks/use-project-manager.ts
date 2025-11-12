@@ -151,13 +151,13 @@ export function useProjectManager({
 
         await updateFromDBML(
           project.dbml || "",
-          project.nodes && project.nodes.length > 0
+          project.nodes && project.nodes.length > 0,
         );
       } catch (error) {
         toast.error("Failed to open project. Please try again.");
       }
     },
-    [setNodes, setEdges, updateFromDBML]
+    [setNodes, setEdges, updateFromDBML],
   );
 
   // Auto-restore last opened project on mount ONLY ONCE

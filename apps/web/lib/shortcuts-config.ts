@@ -97,7 +97,7 @@ export function createCommands(
   handleBrowse: () => void,
   handleDelete: () => void,
   handleExportImage: (format: "png" | "jpeg" | "svg") => void,
-  setShowHelpDialog: (show: boolean) => void
+  setShowHelpDialog: (show: boolean) => void,
 ): CommandConfig[] {
   return [
     {

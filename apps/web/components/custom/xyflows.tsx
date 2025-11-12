@@ -58,7 +58,11 @@ function XYFlowsInner() {
     isLocked,
   } = useSchemaStore();
 
-  const { filteredNodes, filteredEdges } = useTableFilter(nodes, edges, debouncedSearchQuery);
+  const { filteredNodes, filteredEdges } = useTableFilter(
+    nodes,
+    edges,
+    debouncedSearchQuery,
+  );
 
   const { handleNodeDoubleClick, isZoomed } = useNodeZoom({
     duration: 500,
@@ -156,7 +160,9 @@ function XYFlowsInner() {
                 ref={searchInputRef}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                resultCount={debouncedSearchQuery ? filteredNodes.length : nodes.length}
+                resultCount={
+                  debouncedSearchQuery ? filteredNodes.length : nodes.length
+                }
                 totalCount={nodes.length}
               />
 

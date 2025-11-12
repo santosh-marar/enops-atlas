@@ -4,7 +4,7 @@ import { Node, Edge } from "@xyflow/react";
 export function useTableFilter(
   nodes: Node[],
   edges: Edge[],
-  searchQuery: string
+  searchQuery: string,
 ) {
   // Filter nodes based on search query
   const filteredNodes = useMemo(() => {
@@ -24,9 +24,12 @@ export function useTableFilter(
       if (schema.includes(query)) return true;
 
       // Search in column names
-      return columns.some((col: any) =>
-        col && typeof col === 'object' && col.name &&
-        String(col.name).toLowerCase().includes(query)
+      return columns.some(
+        (col: any) =>
+          col &&
+          typeof col === "object" &&
+          col.name &&
+          String(col.name).toLowerCase().includes(query),
       );
     });
   }, [nodes, searchQuery]);
@@ -35,7 +38,8 @@ export function useTableFilter(
   const filteredEdges = useMemo(() => {
     const visibleNodeIds = new Set(filteredNodes.map((node) => node.id));
     return edges.filter(
-      (edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
+      (edge) =>
+        visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target),
     );
   }, [edges, filteredNodes]);
 

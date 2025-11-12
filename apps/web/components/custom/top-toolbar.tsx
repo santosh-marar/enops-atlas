@@ -164,7 +164,7 @@ export function TopToolbar({
     handleBrowse,
     handleDeleteWithDialog,
     handleExportImage,
-    setShowHelpDialog
+    setShowHelpDialog,
   ).map((cmd) => ({
     ...cmd,
     action: () => {

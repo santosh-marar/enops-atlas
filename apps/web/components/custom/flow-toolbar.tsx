@@ -5,15 +5,8 @@ import { useSchemaStore } from "@/store/use-schema-store";
 import { Panel, useReactFlow, useStore } from "@xyflow/react";
 
 export const FlowToolbar = memo(function FlowToolbar() {
-  const {
-    canUndo,
-    canRedo,
-    undo,
-    redo,
-    warnings,
-    isLocked,
-    toggleLock,
-  } = useSchemaStore();
+  const { canUndo, canRedo, undo, redo, warnings, isLocked, toggleLock } =
+    useSchemaStore();
 
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const zoom = useStore((s) => s.transform[2]);
@@ -83,7 +76,9 @@ export const FlowToolbar = memo(function FlowToolbar() {
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "bg-background text-foreground"
           }`}
-          title={isLocked ? "Unlock (Enable Dragging)" : "Lock (Disable Dragging)"}
+          title={
+            isLocked ? "Unlock (Enable Dragging)" : "Lock (Disable Dragging)"
+          }
         >
           {isLocked ? "🔒" : "🔓"}
         </button>
@@ -122,7 +117,9 @@ export const FlowToolbar = memo(function FlowToolbar() {
               <div key={idx} className="rounded bg-background/50 p-1.5">
                 <div className="font-medium">{warning.message}</div>
                 {warning.context && (
-                  <div className="text-[10px] opacity-70">{warning.context}</div>
+                  <div className="text-[10px] opacity-70">
+                    {warning.context}
+                  </div>
                 )}
               </div>
             ))}

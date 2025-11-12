@@ -17,7 +17,8 @@ export interface TableNodeData {
 }
 
 const formatForeignKeyTarget = (fk: ForeignKeyMeta) => {
-  const schemaPrefix = fk.schema && fk.schema !== "public" ? `${fk.schema}.` : "";
+  const schemaPrefix =
+    fk.schema && fk.schema !== "public" ? `${fk.schema}.` : "";
   return `${schemaPrefix}${fk.table}.${fk.column}`;
 };
 
@@ -29,7 +30,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
       nodeData.schema && nodeData.schema !== "public"
         ? nodeData.schema.toUpperCase()
         : "PUBLIC",
-    [nodeData.schema]
+    [nodeData.schema],
   );
 
   const aliasTag = useMemo(
@@ -37,13 +38,13 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
       nodeData.alias && nodeData.alias !== nodeData.label
         ? nodeData.alias.toUpperCase()
         : null,
-    [nodeData.alias, nodeData.label]
+    [nodeData.alias, nodeData.label],
   );
 
   const columns = useMemo(() => nodeData.columns ?? [], [nodeData.columns]);
   const sourceColumnSet = useMemo(
     () => new Set(nodeData.sourceColumns ?? []),
-    [nodeData.sourceColumns]
+    [nodeData.sourceColumns],
   );
 
   // Generate color based on schema name for visual grouping
@@ -187,13 +188,17 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
               badges.push("NN");
             }
 
-            const fkTargets = foreignKeys.map((fk) => formatForeignKeyTarget(fk));
+            const fkTargets = foreignKeys.map((fk) =>
+              formatForeignKeyTarget(fk),
+            );
 
             // Show enum values and FK references on hover
-            const hasEnumValues = column.enumValues && column.enumValues.length > 0;
+            const hasEnumValues =
+              column.enumValues && column.enumValues.length > 0;
             const hasForeignKeys = fkTargets.length > 0;
             const hasNote = Boolean(column.note);
-            const hasDefaultValue = column.defaultValue !== undefined && column.defaultValue !== null;
+            const hasDefaultValue =
+              column.defaultValue !== undefined && column.defaultValue !== null;
             const hasIndex = column.indexed && !isPrimaryKey;
 
             return (
@@ -259,7 +264,9 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs">
                           <div className="space-y-1">
-                            <p className="font-semibold text-xs">Enum Values:</p>
+                            <p className="font-semibold text-xs">
+                              Enum Values:
+                            </p>
                             <div className="flex flex-wrap gap-1">
                               {column.enumValues!.map((val, idx) => (
                                 <span
@@ -279,14 +286,20 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="inline-flex items-center rounded bg-blue-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-blue-600 dark:text-blue-400 border border-blue-500/20 cursor-help">
-                            REF {fkTargets.length > 1 ? `(${fkTargets.length})` : ''}
+                            REF{" "}
+                            {fkTargets.length > 1
+                              ? `(${fkTargets.length})`
+                              : ""}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs">
                           <div className="space-y-1">
                             <p className="font-semibold text-xs">References:</p>
                             {fkTargets.map((target, idx) => (
-                              <p key={idx} className="text-xs font-mono text-muted-foreground">
+                              <p
+                                key={idx}
+                                className="text-xs font-mono text-muted-foreground"
+                              >
                                 → {target}
                               </p>
                             ))}

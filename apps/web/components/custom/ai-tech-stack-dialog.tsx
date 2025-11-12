@@ -32,7 +32,6 @@ interface AITechStackDialogProps {
 }
 
 export async function getSavedTechStack(): Promise<TechStack | null> {
-
   const projectId = localStorage.getItem("last_project_id");
 
   try {
@@ -53,12 +52,12 @@ export async function getSavedTechStack(): Promise<TechStack | null> {
 
 export async function saveTechStack(
   techStack: TechStack,
-  projectId: string
+  projectId: string,
 ): Promise<void> {
   try {
     if (!projectId) {
       throw new Error(
-        "Cannot save tech stack without a project ID. Please save the project first."
+        "Cannot save tech stack without a project ID. Please save the project first.",
       );
     }
 
@@ -205,7 +204,9 @@ export function AITechStackDialog({
               <select
                 id="backend"
                 value={techStack.backendFramework}
-                onChange={(e) => handleChange("backendFramework", e.target.value)}
+                onChange={(e) =>
+                  handleChange("backendFramework", e.target.value)
+                }
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
                 <option value="nextjs">Next.js</option>
@@ -267,8 +268,8 @@ export function AITechStackDialog({
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Provide a detailed description of your project, including key features
-              and relationships.
+              Provide a detailed description of your project, including key
+              features and relationships.
             </p>
           </div>
 

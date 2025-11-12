@@ -45,7 +45,7 @@ export function CommandPalette({
       (cmd) =>
         cmd.label.toLowerCase().includes(searchLower) ||
         cmd.description?.toLowerCase().includes(searchLower) ||
-        cmd.category.toLowerCase().includes(searchLower)
+        cmd.category.toLowerCase().includes(searchLower),
     );
   }, [commands, search]);
 
@@ -74,7 +74,7 @@ export function CommandPalette({
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < filteredCommands.length - 1 ? prev + 1 : prev
+          prev < filteredCommands.length - 1 ? prev + 1 : prev,
         );
       } else if (e.key === "ArrowUp") {
         e.preventDefault();

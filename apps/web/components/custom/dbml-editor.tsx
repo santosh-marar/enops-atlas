@@ -15,7 +15,7 @@ export default function DBMLEditor() {
 
   const [localDBML, setLocalDBML] = useState(SAMPLE_DBML);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
-    []
+    [],
   );
   const [isValid, setIsValid] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
@@ -25,7 +25,9 @@ export default function DBMLEditor() {
   // Initial sync: Load SAMPLE_DBML on first mount if store is empty AND no project to restore
   useEffect(() => {
     // Check if there's a project ID stored (will be restored by TopToolbar)
-    const hasProjectToRestore = localStorage.getItem("enops-dev-last-project-id");
+    const hasProjectToRestore = localStorage.getItem(
+      "enops-dev-last-project-id",
+    );
 
     // Only load sample if store is empty AND no project to restore
     if (!hasProjectToRestore && (!dbml || dbml.trim() === "")) {
@@ -68,7 +70,7 @@ export default function DBMLEditor() {
               endLineNumber: err.line,
               endColumn: Math.min(
                 model.getLineLength(err.line) + 1,
-                err.column + 30
+                err.column + 30,
               ),
               message: err.message,
             }));
@@ -101,8 +103,6 @@ export default function DBMLEditor() {
     // Clear timeout if localDBML changes again within 5s
     return () => clearTimeout(handler);
   }, [localDBML, isValid]);
-
-
 
   // Monaco editor setup with DBML language support
   const handleEditorDidMount = (editor: any, monaco: any) => {
@@ -261,7 +261,7 @@ export default function DBMLEditor() {
   };
 
   const errorCount = validationErrors.filter(
-    (e) => e.severity === "error"
+    (e) => e.severity === "error",
   ).length;
 
   return (

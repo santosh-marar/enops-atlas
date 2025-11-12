@@ -125,7 +125,7 @@ const makeTableKey = (schemaName: string, tableName: string) =>
 const makeColumnKey = (
   schemaName: string,
   tableName: string,
-  columnName: string
+  columnName: string,
 ) => `${schemaName}::${tableName}::${columnName}`;
 
 interface DbmlFieldType {
@@ -146,7 +146,7 @@ interface DbmlField {
 }
 
 const formatColumnType = (
-  field: DbmlField
+  field: DbmlField,
 ): { type: string; detail?: string } => {
   if (!field.type) {
     return { type: "unknown" };
@@ -181,7 +181,7 @@ interface DbmlDefaultValue {
 }
 
 const parseDefaultValue = (
-  dbdefault: unknown
+  dbdefault: unknown,
 ): {
   value: string | number | boolean | null;
   type: "expression" | "string" | "number" | "boolean" | "null";
@@ -190,7 +190,11 @@ const parseDefaultValue = (
     return { value: null, type: "null" };
   }
 
-  if (typeof dbdefault === "object" && dbdefault !== null && "type" in dbdefault) {
+  if (
+    typeof dbdefault === "object" &&
+    dbdefault !== null &&
+    "type" in dbdefault
+  ) {
     const defaultObj = dbdefault as DbmlDefaultValue;
     const { type, value } = defaultObj;
     switch (type) {
@@ -281,7 +285,7 @@ interface DbmlModel {
 const resolveTableEntry = (
   tableRegistry: Map<string, TableRegistryEntry>,
   endpoint: DbmlEndpoint,
-  fallbackSchema: string
+  fallbackSchema: string,
 ): ResolvedEndpoint | null => {
   if (!endpoint.tableName) {
     return null;
@@ -298,7 +302,7 @@ const resolveTableEntry = (
 
   for (const candidate of candidates) {
     const registryEntry = tableRegistry.get(
-      makeTableKey(candidate, endpoint.tableName)
+      makeTableKey(candidate, endpoint.tableName),
     );
     if (registryEntry) {
       return { entry: registryEntry, schemaName: candidate };
@@ -353,11 +357,11 @@ export function transformDbml(dbml: string): TransformResult {
   // Validate schema limits
   const totalTables = schemas.reduce(
     (acc, schema) => acc + (schema.tables?.length ?? 0),
-    0
+    0,
   );
   if (totalTables > MAX_TABLES) {
     throw new Error(
-      `Schema exceeds maximum table limit of ${MAX_TABLES}. Found ${totalTables} tables.`
+      `Schema exceeds maximum table limit of ${MAX_TABLES}. Found ${totalTables} tables.`,
     );
   }
 
@@ -374,7 +378,7 @@ export function transformDbml(dbml: string): TransformResult {
       if (enumDef.name && enumDef.values) {
         const enumKey = `${schemaName}.${enumDef.name}`;
         const enumValues = enumDef.values.map((v) =>
-          typeof v === 'object' && v.name ? v.name : String(v)
+          typeof v === "object" && v.name ? v.name : String(v),
         );
         enumRegistry.set(enumKey, enumValues);
         if (schemaName === "public") {
@@ -405,7 +409,7 @@ export function transformDbml(dbml: string): TransformResult {
 
       if (table.fields.length > MAX_COLUMNS_PER_TABLE) {
         throw new Error(
-          `Table "${table.name}" exceeds maximum column limit of ${MAX_COLUMNS_PER_TABLE}. Found ${table.fields.length} columns.`
+          `Table "${table.name}" exceeds maximum column limit of ${MAX_COLUMNS_PER_TABLE}. Found ${table.fields.length} columns.`,
         );
       }
 
@@ -440,13 +444,16 @@ export function transformDbml(dbml: string): TransformResult {
         if (Array.isArray(field.type?.args)) {
           if (field.type.args.length === 1) {
             const arg = field.type.args[0];
-            column.length = typeof arg === "number" ? arg : parseInt(String(arg), 10);
+            column.length =
+              typeof arg === "number" ? arg : parseInt(String(arg), 10);
           }
           if (field.type.args.length === 2) {
             const arg0 = field.type.args[0];
             const arg1 = field.type.args[1];
-            column.precision = typeof arg0 === "number" ? arg0 : parseInt(String(arg0), 10);
-            column.scale = typeof arg1 === "number" ? arg1 : parseInt(String(arg1), 10);
+            column.precision =
+              typeof arg0 === "number" ? arg0 : parseInt(String(arg0), 10);
+            column.scale =
+              typeof arg1 === "number" ? arg1 : parseInt(String(arg1), 10);
           }
         }
 
@@ -490,7 +497,10 @@ export function transformDbml(dbml: string): TransformResult {
 
           if (typeof idxCol.value === "string") {
             columnName = idxCol.value;
-          } else if (typeof idxCol.value === "object" && idxCol.value !== null) {
+          } else if (
+            typeof idxCol.value === "object" &&
+            idxCol.value !== null
+          ) {
             columnName = idxCol.value.name;
           }
 
@@ -516,7 +526,12 @@ export function transformDbml(dbml: string): TransformResult {
           if (index.type && typeof index.type === "string") {
             const validTypes = ["btree", "hash", "gist", "gin", "brin"];
             if (validTypes.includes(index.type)) {
-              column.indexType = index.type as "btree" | "hash" | "gist" | "gin" | "brin";
+              column.indexType = index.type as
+                | "btree"
+                | "hash"
+                | "gist"
+                | "gin"
+                | "brin";
             }
           }
 
@@ -562,7 +577,7 @@ export function transformDbml(dbml: string): TransformResult {
         columns.forEach((column) => {
           columnRegistry.set(
             makeColumnKey(schemaName, name, column.name),
-            column
+            column,
           );
         });
       });
@@ -589,12 +604,12 @@ export function transformDbml(dbml: string): TransformResult {
       const resolvedA = resolveTableEntry(
         tableRegistry,
         endpointA,
-        fallbackSchemaName
+        fallbackSchemaName,
       );
       const resolvedB = resolveTableEntry(
         tableRegistry,
         endpointB,
-        fallbackSchemaName
+        fallbackSchemaName,
       );
 
       if (!resolvedA || !resolvedB) {
@@ -684,7 +699,7 @@ export function transformDbml(dbml: string): TransformResult {
 
         if (relationships.length > MAX_RELATIONSHIPS) {
           throw new Error(
-            `Schema exceeds maximum relationship limit of ${MAX_RELATIONSHIPS}. Found ${relationships.length} relationships.`
+            `Schema exceeds maximum relationship limit of ${MAX_RELATIONSHIPS}. Found ${relationships.length} relationships.`,
           );
         }
 
@@ -693,15 +708,15 @@ export function transformDbml(dbml: string): TransformResult {
             makeColumnKey(
               childResolved.schemaName,
               childEndpoint.tableName,
-              childField
-            )
+              childField,
+            ),
           ) ??
           columnRegistry.get(
             makeColumnKey(
               childResolved.entry.schema,
               childResolved.entry.actualName,
-              childField
-            )
+              childField,
+            ),
           );
 
         if (childColumn) {

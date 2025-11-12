@@ -36,7 +36,9 @@ export function useKeyboardShortcuts({
 
       for (const shortcut of shortcuts) {
         const keyMatches = e.key.toLowerCase() === shortcut.key.toLowerCase();
-        const ctrlMatches = shortcut.ctrl ? e.ctrlKey || e.metaKey : !e.ctrlKey && !e.metaKey;
+        const ctrlMatches = shortcut.ctrl
+          ? e.ctrlKey || e.metaKey
+          : !e.ctrlKey && !e.metaKey;
         const shiftMatches = shortcut.shift ? e.shiftKey : !e.shiftKey;
         const altMatches = shortcut.alt ? e.altKey : !e.altKey;
 
@@ -47,7 +49,7 @@ export function useKeyboardShortcuts({
         }
       }
     },
-    [shortcuts, enabled]
+    [shortcuts, enabled],
   );
 
   useEffect(() => {
@@ -56,8 +58,12 @@ export function useKeyboardShortcuts({
   }, [handleKeyDown]);
 }
 
-export function formatShortcut(shortcut: Pick<KeyboardShortcut, "key" | "ctrl" | "shift" | "alt" | "meta">): string {
-  const isMac = typeof window !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+export function formatShortcut(
+  shortcut: Pick<KeyboardShortcut, "key" | "ctrl" | "shift" | "alt" | "meta">,
+): string {
+  const isMac =
+    typeof window !== "undefined" &&
+    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   const parts: string[] = [];
 
   if (shortcut.ctrl || shortcut.meta) {

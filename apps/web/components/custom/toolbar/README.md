@@ -17,12 +17,12 @@ This directory contains modular components for the top toolbar.
 
 ## Keyboard Shortcuts (Fixed for Browser Compatibility)
 
-| Shortcut | Action | Notes |
-|----------|--------|-------|
-| Ctrl+K | Command Palette | - |
-| Ctrl+/ | Keyboard Shortcuts | - |
-| Ctrl+Shift+D | Toggle Theme | Changed from Ctrl+T (browser conflict) |
-| Ctrl+S | Save Project | - |
-| Ctrl+Shift+P | New Project | Changed from Ctrl+Shift+N (browser conflict) |
-| Ctrl+O | Browse Projects | - |
-| Ctrl+Shift+E | Export PNG | - |
+| Shortcut     | Action             | Notes                                        |
+| ------------ | ------------------ | -------------------------------------------- |
+| Ctrl+K       | Command Palette    | -                                            |
+| Ctrl+/       | Keyboard Shortcuts | -                                            |
+| Ctrl+Shift+D | Toggle Theme       | Changed from Ctrl+T (browser conflict)       |
+| Ctrl+S       | Save Project       | -                                            |
+| Ctrl+Shift+P | New Project        | Changed from Ctrl+Shift+N (browser conflict) |
+| Ctrl+O       | Browse Projects    | -                                            |
+| Ctrl+Shift+E | Export PNG         | -                                            |

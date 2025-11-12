@@ -40,7 +40,7 @@ export function useNodeZoom(options?: UseNodeZoomOptions) {
         setZoomedNodeId(node.id);
       }
     },
-    [fitView, zoomedNodeId, duration, padding, minZoom, maxZoom]
+    [fitView, zoomedNodeId, duration, padding, minZoom, maxZoom],
   );
 
   const resetZoom = useCallback(() => {

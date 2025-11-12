@@ -7,35 +7,44 @@ const runSampleSchemaTest = () => {
   const result = transformDbml(SAMPLE_DBML);
 
   assert.equal(result.tables.length, 9, "expected 9 tables in sample DBML");
-  assert.equal(result.relationships.length > 0, true, "relationships should be detected");
-  assert.equal(result.warnings.length, 0, "sample DBML should not produce warnings");
+  assert.equal(
+    result.relationships.length > 0,
+    true,
+    "relationships should be detected",
+  );
+  assert.equal(
+    result.warnings.length,
+    0,
+    "sample DBML should not produce warnings",
+  );
 
   const usersTable = result.tables.find(
-    (table) => table.schema === "public" && table.name === "users"
+    (table) => table.schema === "public" && table.name === "users",
   );
   assert.ok(usersTable, "users table should exist");
   assert.equal(usersTable?.alias, "U", "users table alias should be captured");
   assert.equal(
     usersTable?.referenceName,
     "U",
-    "reference name should use alias when provided"
+    "reference name should use alias when provided",
   );
 
   const merchantPeriods = result.tables.find(
-    (table) => table.schema === "ecommerce" && table.name === "merchant_periods"
+    (table) =>
+      table.schema === "ecommerce" && table.name === "merchant_periods",
   );
   assert.ok(merchantPeriods, "merchant_periods table should exist");
 
   const compositeRefs = result.relationships.filter(
     (rel) =>
       rel.child.table === "merchant_periods" &&
-      rel.parent.table === "merchants"
+      rel.parent.table === "merchants",
   );
 
   assert.equal(
     compositeRefs.length,
     2,
-    "composite foreign key should generate an entry per column pair"
+    "composite foreign key should generate an entry per column pair",
   );
 
   const fkColumns = compositeRefs.map((rel) => rel.child.column).sort();
@@ -57,7 +66,7 @@ const runMissingReferenceErrorTest = () => {
   assert.throws(
     () => transformDbml(BROKEN_SCHEMA),
     /Can't find table/i,
-    "missing foreign key target should throw a descriptive error"
+    "missing foreign key target should throw a descriptive error",
   );
   console.log("✓ Missing reference error test passed");
 };
@@ -76,12 +85,12 @@ const runEmptyDbmlTest = () => {
   assert.throws(
     () => transformDbml(""),
     /DBML string cannot be empty/i,
-    "empty DBML should throw error"
+    "empty DBML should throw error",
   );
   assert.throws(
     () => transformDbml("   "),
     /DBML string cannot be empty/i,
-    "whitespace-only DBML should throw error"
+    "whitespace-only DBML should throw error",
   );
   console.log("✓ Empty DBML test passed");
 };
@@ -91,13 +100,13 @@ const runTableLimitTest = () => {
   // Create a schema with many tables to test limits
   const manyTables = Array.from(
     { length: 510 },
-    (_, i) => `Table table_${i} {\n  id int [pk]\n}`
+    (_, i) => `Table table_${i} {\n  id int [pk]\n}`,
   ).join("\n\n");
 
   assert.throws(
     () => transformDbml(manyTables),
     /exceeds maximum table limit/i,
-    "should enforce table limit"
+    "should enforce table limit",
   );
   console.log("✓ Table limit test passed");
 };
@@ -113,7 +122,7 @@ const runColumnLimitTest = () => {
   assert.throws(
     () => transformDbml(manyColumns),
     /exceeds maximum column limit/i,
-    "should enforce column limit per table"
+    "should enforce column limit per table",
   );
   console.log("✓ Column limit test passed");
 };
@@ -137,12 +146,24 @@ const runColumnTypesTest = () => {
   assert.equal(table.columns.length, 5, "should have 5 columns");
 
   const varcharCol = table.columns.find((c) => c.name === "name");
-  assert.equal(varcharCol?.type, "varchar", "varchar type should be normalized");
-  assert.equal(varcharCol?.typeDetail, "255", "varchar length should be captured");
+  assert.equal(
+    varcharCol?.type,
+    "varchar",
+    "varchar type should be normalized",
+  );
+  assert.equal(
+    varcharCol?.typeDetail,
+    "255",
+    "varchar length should be captured",
+  );
 
   const decimalCol = table.columns.find((c) => c.name === "price");
   assert.equal(decimalCol?.type, "decimal", "decimal type should be present");
-  assert.equal(decimalCol?.typeDetail, "10,2", "decimal precision should be captured");
+  assert.equal(
+    decimalCol?.typeDetail,
+    "10,2",
+    "decimal precision should be captured",
+  );
 
   console.log("✓ Column types test passed");
 };
@@ -166,7 +187,10 @@ const runCircularReferenceTest = () => {
 
   const result = transformDbml(circularSchema);
   // Should not throw but may generate warnings
-  assert.ok(result.tables.length >= 2, "should parse tables with circular refs");
+  assert.ok(
+    result.tables.length >= 2,
+    "should parse tables with circular refs",
+  );
   console.log("✓ Circular reference test passed");
 };
 
@@ -186,19 +210,43 @@ const runDefaultValuesTest = () => {
   const table = result.tables[0];
 
   const nameCol = table.columns.find((c) => c.name === "name");
-  assert.equal(nameCol?.defaultValue, "unknown", "string default should be captured");
-  assert.equal(nameCol?.defaultValueType, "string", "string type should be detected");
+  assert.equal(
+    nameCol?.defaultValue,
+    "unknown",
+    "string default should be captured",
+  );
+  assert.equal(
+    nameCol?.defaultValueType,
+    "string",
+    "string type should be detected",
+  );
 
   const countCol = table.columns.find((c) => c.name === "count");
   assert.equal(countCol?.defaultValue, 0, "numeric default should be captured");
-  assert.equal(countCol?.defaultValueType, "number", "number type should be detected");
+  assert.equal(
+    countCol?.defaultValueType,
+    "number",
+    "number type should be detected",
+  );
 
   const activeCol = table.columns.find((c) => c.name === "active");
-  assert.equal(activeCol?.defaultValue, true, "boolean default should be captured");
-  assert.equal(activeCol?.defaultValueType, "boolean", "boolean type should be detected");
+  assert.equal(
+    activeCol?.defaultValue,
+    true,
+    "boolean default should be captured",
+  );
+  assert.equal(
+    activeCol?.defaultValueType,
+    "boolean",
+    "boolean type should be detected",
+  );
 
   const createdCol = table.columns.find((c) => c.name === "created_at");
-  assert.equal(createdCol?.defaultValueType, "expression", "expression type should be detected");
+  assert.equal(
+    createdCol?.defaultValueType,
+    "expression",
+    "expression type should be detected",
+  );
 
   console.log("✓ Default values test passed");
 };

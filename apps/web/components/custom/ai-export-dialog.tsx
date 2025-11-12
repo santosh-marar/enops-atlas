@@ -21,7 +21,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Sparkles, Copy, Check, Settings as SettingsIcon } from "lucide-react";
+import {
+  Download,
+  Sparkles,
+  Copy,
+  Check,
+  Settings as SettingsIcon,
+} from "lucide-react";
 import { Node, Edge } from "@xyflow/react";
 import { db } from "@/lib/db";
 import { toast } from "sonner";
@@ -38,21 +44,60 @@ interface ExportDialogProps {
 }
 
 const ormOptions = [
-  { value: "prisma", label: "Prisma", description: "Next-generation ORM for TypeScript" },
-  { value: "drizzle", label: "Drizzle ORM", description: "TypeScript ORM with SQL-like syntax" },
-  { value: "mongoose", label: "Mongoose", description: "MongoDB object modeling" },
-  { value: "typeorm", label: "TypeORM", description: "ORM for TypeScript and JavaScript" },
-  { value: "sequelize", label: "Sequelize", description: "Promise-based Node.js ORM" },
+  {
+    value: "prisma",
+    label: "Prisma",
+    description: "Next-generation ORM for TypeScript",
+  },
+  {
+    value: "drizzle",
+    label: "Drizzle ORM",
+    description: "TypeScript ORM with SQL-like syntax",
+  },
+  {
+    value: "mongoose",
+    label: "Mongoose",
+    description: "MongoDB object modeling",
+  },
+  {
+    value: "typeorm",
+    label: "TypeORM",
+    description: "ORM for TypeScript and JavaScript",
+  },
+  {
+    value: "sequelize",
+    label: "Sequelize",
+    description: "Promise-based Node.js ORM",
+  },
 ];
 
 const databaseOptions = [
-  { value: "postgresql", label: "PostgreSQL", compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"] },
-  { value: "mysql", label: "MySQL", compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"] },
-  { value: "mongodb", label: "MongoDB", compatibleWith: ["mongoose", "prisma"] },
-  { value: "sqlite", label: "SQLite", compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"] },
-  { value: "mariadb", label: "MariaDB", compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"] },
+  {
+    value: "postgresql",
+    label: "PostgreSQL",
+    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+  },
+  {
+    value: "mysql",
+    label: "MySQL",
+    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+  },
+  {
+    value: "mongodb",
+    label: "MongoDB",
+    compatibleWith: ["mongoose", "prisma"],
+  },
+  {
+    value: "sqlite",
+    label: "SQLite",
+    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+  },
+  {
+    value: "mariadb",
+    label: "MariaDB",
+    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+  },
 ];
-
 
 export function AIExportDialog({ children, nodes, edges }: ExportDialogProps) {
   const [open, setOpen] = useState(false);
@@ -65,20 +110,23 @@ export function AIExportDialog({ children, nodes, edges }: ExportDialogProps) {
   const textareaRef = useRef<HTMLPreElement>(null);
 
   const generatePrompt = () => {
+    const schemaDescription = nodes
+      .map((node) => {
+        const { data } = node;
+        const fields = data.fields as any[] | undefined;
+        return `Table: ${data.label}
 
-    const schemaDescription = nodes.map(node => {
-      const { data } = node;
-      const fields = data.fields as any[] | undefined;
-      return `Table: ${data.label}
+Fields: ${fields?.map((f: any) => `${f.name} (${f.type}${f.required ? ", required" : ""})`).join(", ") || "No fields"}`;
+      })
+      .join("\n\n");
 
-Fields: ${fields?.map((f: any) => `${f.name} (${f.type}${f.required ? ', required' : ''})`).join(', ') || 'No fields'}`;
-    }).join('\n\n');
-
-    const relationships = edges.map(edge => {
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-      return `${sourceNode?.data.label} -> ${targetNode?.data.label} (${edge.data?.relationType || 'relation'})`;
-    }).join('\n');
+    const relationships = edges
+      .map((edge) => {
+        const sourceNode = nodes.find((n) => n.id === edge.source);
+        const targetNode = nodes.find((n) => n.id === edge.target);
+        return `${sourceNode?.data.label} -> ${targetNode?.data.label} (${edge.data?.relationType || "relation"})`;
+      })
+      .join("\n");
 
     return `Generate ${selectedORM} schema for ${selectedDatabase} database:
 
@@ -86,7 +134,7 @@ Schema:
 ${schemaDescription}
 
 Relationships:
-${relationships || 'No relationships defined'}
+${relationships || "No relationships defined"}
 
 Please provide complete, production-ready code with:
 1. Proper data types for ${selectedDatabase}
@@ -116,7 +164,9 @@ Please provide complete, production-ready code with:
       const apiKey = provider === "claude" ? claudeApiKey : openaiApiKey;
 
       if (!apiKey) {
-        toast.error(`Please add your ${provider === "claude" ? "Claude" : "OpenAI"} API key in settings`);
+        toast.error(
+          `Please add your ${provider === "claude" ? "Claude" : "OpenAI"} API key in settings`,
+        );
         setIsGenerating(false);
         setActiveTab("configure");
         return;
@@ -140,7 +190,9 @@ Please provide complete, production-ready code with:
       toast.success("Code generated successfully");
     } catch (error: any) {
       toast.error(error.message || "Failed to generate code");
-      setGeneratedCode(`Error: ${error.message || "Failed to generate code. Please try again."}`);
+      setGeneratedCode(
+        `Error: ${error.message || "Failed to generate code. Please try again."}`,
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -173,12 +225,16 @@ Please provide complete, production-ready code with:
     URL.revokeObjectURL(url);
   };
 
-  const filteredDatabases = databaseOptions.filter(db =>
-    !selectedORM || db.compatibleWith.includes(selectedORM as string)
+  const filteredDatabases = databaseOptions.filter(
+    (db) => !selectedORM || db.compatibleWith.includes(selectedORM as string),
   );
 
   useEffect(() => {
-    if (isGenerating && textareaRef.current && textareaRef.current.parentElement) {
+    if (
+      isGenerating &&
+      textareaRef.current &&
+      textareaRef.current.parentElement
+    ) {
       const container = textareaRef.current.parentElement;
       container.scrollTop = container.scrollHeight;
     }
@@ -208,14 +264,18 @@ Please provide complete, production-ready code with:
             </APISettingsDialog>
           </div>
           <DialogDescription>
-            Choose your ORM/ODM and database, then let AI generate production-ready code
+            Choose your ORM/ODM and database, then let AI generate
+            production-ready code
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="configure">Configure</TabsTrigger>
-            <TabsTrigger value="preview" disabled={!generatedCode && !isGenerating}>
+            <TabsTrigger
+              value="preview"
+              disabled={!generatedCode && !isGenerating}
+            >
               Preview & Export
             </TabsTrigger>
           </TabsList>
@@ -273,7 +333,8 @@ Please provide complete, production-ready code with:
                 </Select>
                 {selectedORM && (
                   <p className="text-xs text-muted-foreground">
-                    Showing databases compatible with {ormOptions.find(o => o.value === selectedORM)?.label}
+                    Showing databases compatible with{" "}
+                    {ormOptions.find((o) => o.value === selectedORM)?.label}
                   </p>
                 )}
               </div>
@@ -286,7 +347,8 @@ Please provide complete, production-ready code with:
                     <Badge variant="secondary">{selectedDatabase}</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    AI will generate optimized schema code based on your visual design
+                    AI will generate optimized schema code based on your visual
+                    design
                   </p>
                 </div>
               )}
@@ -358,7 +420,9 @@ Please provide complete, production-ready code with:
                   >
                     {generatedCode || (
                       <span className="text-muted-foreground">
-                        {isGenerating ? "AI is generating your code..." : "Generated code will appear here..."}
+                        {isGenerating
+                          ? "AI is generating your code..."
+                          : "Generated code will appear here..."}
                       </span>
                     )}
                   </pre>
@@ -367,7 +431,9 @@ Please provide complete, production-ready code with:
                   <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
                     <div className="flex flex-col items-center gap-2">
                       <Sparkles className="h-8 w-8 animate-pulse text-primary" />
-                      <p className="text-sm text-muted-foreground">Starting generation...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Starting generation...
+                      </p>
                     </div>
                   </div>
                 )}
@@ -377,7 +443,8 @@ Please provide complete, production-ready code with:
             {!isGenerating && generatedCode && (
               <div className="rounded-lg border p-4 bg-muted/50">
                 <p className="text-sm text-muted-foreground">
-                  Review the generated code and make any necessary adjustments before using it in your project.
+                  Review the generated code and make any necessary adjustments
+                  before using it in your project.
                 </p>
               </div>
             )}
@@ -387,9 +454,12 @@ Please provide complete, production-ready code with:
                 <div className="flex items-start gap-3">
                   <Sparkles className="h-5 w-5 animate-pulse text-primary mt-0.5" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Generating your schema code</p>
+                    <p className="text-sm font-medium">
+                      Generating your schema code
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      AI is analyzing your schema and creating optimized {selectedORM} code for {selectedDatabase}...
+                      AI is analyzing your schema and creating optimized{" "}
+                      {selectedORM} code for {selectedDatabase}...
                     </p>
                   </div>
                 </div>

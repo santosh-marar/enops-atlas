@@ -37,7 +37,7 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
       acc[shortcut.category].push(shortcut);
       return acc;
     },
-    {} as Record<string, ShortcutItem[]>
+    {} as Record<string, ShortcutItem[]>,
   );
 
   return (

@@ -30,31 +30,31 @@ export const TableSearch = forwardRef<HTMLInputElement, TableSearchProps>(
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-[320px] border-0 bg-transparent pl-10 pr-10 focus-visible:ring-2 focus-visible:ring-primary/50"
           />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onSearchChange("")}
-            className="absolute right-1 h-6 w-6 rounded-full"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-      {searchQuery && (
-        <div className="mt-1 border-t border-border/60 px-3 py-1.5 text-[10px] text-muted-foreground">
-          {resultCount === 0 ? (
-            <span className="text-destructive">No results found</span>
-          ) : (
-            <span>
-              Found {resultCount} table{resultCount !== 1 ? "s" : ""}
-            </span>
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onSearchChange("")}
+              className="absolute right-1 h-6 w-6 rounded-full"
+            >
+              <X className="h-3 w-3" />
+            </Button>
           )}
         </div>
-      )}
+        {searchQuery && (
+          <div className="mt-1 border-t border-border/60 px-3 py-1.5 text-[10px] text-muted-foreground">
+            {resultCount === 0 ? (
+              <span className="text-destructive">No results found</span>
+            ) : (
+              <span>
+                Found {resultCount} table{resultCount !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+        )}
       </Panel>
     );
-  }
+  },
 );
 
 TableSearch.displayName = "TableSearch";

@@ -14,7 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, Eye, EyeOff, Check, AlertCircle, Sparkles, Shield } from "lucide-react";
+import {
+  Settings,
+  Eye,
+  EyeOff,
+  Check,
+  AlertCircle,
+  Sparkles,
+  Shield,
+} from "lucide-react";
 import { db, AISettings as DBAISettings } from "@/lib/db";
 import { toast } from "sonner";
 
@@ -24,7 +32,11 @@ interface APISettingsDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function APISettingsDialog({ children, open: controlledOpen, onOpenChange }: APISettingsDialogProps) {
+export function APISettingsDialog({
+  children,
+  open: controlledOpen,
+  onOpenChange,
+}: APISettingsDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = (value: boolean) => {
@@ -111,11 +123,7 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {children && (
-        <DialogTrigger asChild>
-          {children}
-        </DialogTrigger>
-      )}
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -129,12 +137,16 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
           </DialogDescription>
         </DialogHeader>
 
-{isLoading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <Tabs value={provider} onValueChange={(v) => setProvider(v as "claude" | "gpt")} className="w-full">
+          <Tabs
+            value={provider}
+            onValueChange={(v) => setProvider(v as "claude" | "gpt")}
+            className="w-full"
+          >
             <div className="flex items-center justify-center pb-4">
               <TabsList className="grid w-full max-w-md grid-cols-2">
                 <TabsTrigger value="claude" className="gap-2">
@@ -156,9 +168,12 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
                       <Sparkles className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm">Anthropic Claude</h3>
+                      <h3 className="font-semibold text-sm">
+                        Anthropic Claude
+                      </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Claude 3.5 Sonnet - Advanced reasoning and code generation
+                        Claude 3.5 Sonnet - Advanced reasoning and code
+                        generation
                       </p>
                     </div>
                   </div>
@@ -215,7 +230,8 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
                     <div>
                       <h3 className="font-semibold text-sm">OpenAI GPT</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        GPT-4 Turbo - Powerful language model with broad knowledge
+                        GPT-4 Turbo - Powerful language model with broad
+                        knowledge
                       </p>
                     </div>
                   </div>
@@ -266,10 +282,13 @@ export function APISettingsDialog({ children, open: controlledOpen, onOpenChange
               <div className="flex gap-2.5">
                 <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">Privacy & Security</p>
+                  <p className="font-medium text-foreground">
+                    Privacy & Security
+                  </p>
                   <p>
-                    Your API keys are encrypted and stored locally in your browser.
-                    They never leave your device and are only used for direct API requests.
+                    Your API keys are encrypted and stored locally in your
+                    browser. They never leave your device and are only used for
+                    direct API requests.
                   </p>
                 </div>
               </div>

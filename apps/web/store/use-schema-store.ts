@@ -116,7 +116,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
     // Only add to history for position changes (drag)
     const hasPositionChange = changes.some(
-      (change) => change.type === "position" && change.dragging === false
+      (change) => change.type === "position" && change.dragging === false,
     );
 
     set({ nodes: newNodes });
@@ -210,7 +210,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       // Get existing node positions if preserving
       const existingNodes = preservePositions ? get().nodes : [];
       const existingPositions = new Map(
-        existingNodes.map(node => [node.id, node.position])
+        existingNodes.map((node) => [node.id, node.position]),
       );
 
       const flowTables: FlowTable[] = result.tables.map(
@@ -225,15 +225,12 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
               y: 120 + Math.floor(index / 4) * 220,
             },
           };
-        }
+        },
       );
 
       const tableRegistry = new Map<string, FlowTable>();
       flowTables.forEach((table) => {
-        tableRegistry.set(
-          makeTableLookupKey(table.schema, table.name),
-          table
-        );
+        tableRegistry.set(makeTableLookupKey(table.schema, table.name), table);
       });
 
       // Track which columns are sources for relationships
@@ -250,10 +247,16 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
       result.relationships.forEach((relationship) => {
         const parentTable = tableRegistry.get(
-          makeTableLookupKey(relationship.parent.schema, relationship.parent.table)
+          makeTableLookupKey(
+            relationship.parent.schema,
+            relationship.parent.table,
+          ),
         );
         const childTable = tableRegistry.get(
-          makeTableLookupKey(relationship.child.schema, relationship.child.table)
+          makeTableLookupKey(
+            relationship.child.schema,
+            relationship.child.table,
+          ),
         );
 
         if (!parentTable || !childTable) {
@@ -265,10 +268,10 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
         }
 
         const parentColumn = parentTable.columns.find(
-          (column) => column.name === relationship.parent.column
+          (column) => column.name === relationship.parent.column,
         );
         const childColumn = childTable.columns.find(
-          (column) => column.name === relationship.child.column
+          (column) => column.name === relationship.child.column,
         );
 
         if (!parentColumn || !childColumn) {
