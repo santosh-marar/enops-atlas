@@ -139,7 +139,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
         className={`relative min-w-[260px] rounded-lg border ${schemaColor.border} bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] ${schemaColor.shadow} backdrop-blur-sm`}
       >
         <div
-          className={`flex items-center justify-between gap-3 border-b border-border/60 bg-gradient-to-r ${schemaColor.from} ${schemaColor.to} px-4 py-3 text-sm font-semibold text-primary-foreground rounded-t-lg`}
+          className={`flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r ${schemaColor.from} ${schemaColor.to} px-4 py-3 text-sm font-semibold text-primary-foreground rounded-t-lg`}
         >
           <div className="flex items-center gap-3">
             <div className="flex flex-col gap-1">
@@ -211,7 +211,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     type="target"
                     position={Position.Left}
                     id={`${id}-${column.name}-target`}
-                    className="!h-2 !w-2 !-left-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
+                    className="h-2! w-2! -left-3! bg-primary! border! border-primary/40! shadow-[0_0_0_4px_rgba(56,189,248,0.25)]! transition-transform group-hover:scale-125!"
                   />
                 ) : null}
 
@@ -220,11 +220,11 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     <span className="font-medium tracking-wide text-foreground">
                       {column.name}
                     </span>
-                    <span className="rounded bg-primary/10 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.18em] text-primary">
+                    <span className="rounded bg-primary/10 px-1.5 py-px text-[10px] font-mono uppercase tracking-[0.18em] text-primary">
                       {column.type}
                     </span>
                     {column.typeDetail ? (
-                      <span className="rounded bg-muted/60 px-1.5 py-[1px] text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                      <span className="rounded bg-muted/60 px-1.5 py-px text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
                         {column.typeDetail}
                       </span>
                     ) : null}
@@ -234,13 +234,13 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {badges.map((badge) => (
                       <span
                         key={`${column.name}-${badge}`}
-                        className="inline-flex items-center rounded bg-muted/60 px-1.5 py-[1px]"
+                        className="inline-flex items-center rounded bg-muted/60 px-1.5 py-px"
                       >
                         {badge}
                       </span>
                     ))}
                     {hasIndex && (
-                      <span className="inline-flex items-center rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 px-1.5 py-[1px]">
+                      <span className="inline-flex items-center rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 px-1.5 py-px">
                         IDX
                         {column.indexType && (
                           <span className="ml-1 text-[9px] font-normal lowercase opacity-70">
@@ -250,7 +250,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                       </span>
                     )}
                     {hasDefaultValue && (
-                      <span className="rounded bg-cyan-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                      <span className="rounded bg-cyan-500/10 px-1.5 py-px text-[10px] font-medium normal-case text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
                         default: {String(column.defaultValue)}
                       </span>
                     )}
@@ -258,7 +258,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {hasEnumValues && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-help">
+                          <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-1px text-[10px] font-medium normal-case text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-help">
                             ENUM ({column.enumValues!.length})
                           </span>
                         </TooltipTrigger>
@@ -285,7 +285,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {hasForeignKeys && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center rounded bg-blue-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-blue-600 dark:text-blue-400 border border-blue-500/20 cursor-help">
+                          <span className="inline-flex items-center rounded bg-blue-500/10 px-1.5 py-px text-[10px] font-medium normal-case text-blue-600 dark:text-blue-400 border border-blue-500/20 cursor-help">
                             REF{" "}
                             {fkTargets.length > 1
                               ? `(${fkTargets.length})`
@@ -311,7 +311,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {hasNote && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-[1px] text-[10px] font-medium normal-case text-amber-600 dark:text-amber-400 border border-amber-500/20 cursor-help">
+                          <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-px text-[10px] font-medium normal-case text-amber-600 dark:text-amber-400 border border-amber-500/20 cursor-help">
                             NOTE
                           </span>
                         </TooltipTrigger>
@@ -333,7 +333,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     type="source"
                     position={Position.Right}
                     id={`${id}-${column.name}-source`}
-                    className="!h-2 !w-2 !-right-3 !bg-primary !border !border-primary/40 !shadow-[0_0_0_4px_rgba(56,189,248,0.25)] transition-transform group-hover:!scale-125"
+                    className="h-2! w-2! -right-3! bg-primary! border! border-primary/40! shadow-[0_0_0_4px_rgba(56,189,248,0.25)]! transition-transform group-hover:scale-125!"
                   />
                 ) : null}
               </div>
@@ -341,7 +341,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
           })}
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-linear-to-r from-transparent via-primary/40 to-transparent" />
       </div>
     </TooltipProvider>
   );
