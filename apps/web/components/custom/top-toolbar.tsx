@@ -34,6 +34,7 @@ interface TopToolbarProps {
   showNewProjectDialog: boolean;
   onNewProjectDialogChange: (show: boolean) => void;
   onConfirmNew: () => void;
+  onBrowse: () => void;
 }
 
 export function TopToolbar({
@@ -43,6 +44,7 @@ export function TopToolbar({
   showNewProjectDialog,
   onNewProjectDialogChange,
   onConfirmNew,
+  onBrowse,
 }: TopToolbarProps) {
   const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges } =
     useSchemaStore();
@@ -95,12 +97,6 @@ export function TopToolbar({
     }
   };
 
-  // Handle browse
-  const handleBrowse = async () => {
-    await loadProjects();
-    setShowProjectBrowser(true);
-  };
-
   // Confirm delete project
   const confirmDeleteProject = async () => {
     await handleDelete();
@@ -134,7 +130,7 @@ export function TopToolbar({
           handleNewWithConfirmation();
           break;
         case SHORTCUT_CONFIGS.BROWSE_PROJECTS:
-          handleBrowse();
+          onBrowse();
           break;
         case SHORTCUT_CONFIGS.EXPORT_PNG:
           handleExportImage("png");
@@ -161,7 +157,7 @@ export function TopToolbar({
     setTheme,
     handleNewWithConfirmation,
     handleSave,
-    handleBrowse,
+    onBrowse,
     handleDeleteWithDialog,
     handleExportImage,
     setShowHelpDialog,
@@ -175,7 +171,7 @@ export function TopToolbar({
       } else if (cmd.id === "save-project") {
         handleSaveWithReset();
       } else if (cmd.id === "browse-projects") {
-        handleBrowse();
+        onBrowse();
       } else if (cmd.id === "delete-project") {
         handleDeleteWithDialog();
       } else if (cmd.id === "export-png") {
@@ -272,7 +268,7 @@ export function TopToolbar({
 
           <ActionMenu
             onNew={handleNewWithConfirmation}
-            onBrowse={handleBrowse}
+            onBrowse={onBrowse}
             onDelete={handleDeleteWithDialog}
             onExport={handleExportImage}
             hasCurrentProject={!!currentProject}

@@ -81,10 +81,7 @@ export function ActionMenu({
             New Project
           </button>
           <button
-            onClick={() => {
-              onBrowse();
-              setShowActionMenu(false);
-            }}
+            onClick={onBrowse}
             className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
           >
             <FolderOpen className="h-4 w-4" />

@@ -229,6 +229,7 @@ export default function Home() {
         showNewProjectDialog={showNewProjectDialog}
         onNewProjectDialogChange={setShowNewProjectDialog}
         onConfirmNew={confirmNewProject}
+        onBrowse={handleBrowse}
       />
       <div className="flex h-[calc(100vh-3rem)] w-full overflow-hidden">
         <aside className="shrink-0 border-r border-border bg-background">
