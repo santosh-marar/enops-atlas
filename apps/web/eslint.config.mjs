@@ -1,16 +1,15 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import prettierPlugin from "eslint-plugin-prettier/recommended";
 
-const eslintConfig = defineConfig([
+export default defineConfig([
   ...nextVitals,
   ...nextTs,
 
-  prettierConfig,
+  prettierPlugin,
+
   {
-    plugins: {
-      prettier: prettierPlugin,
-    },
     rules: {
       "prettier/prettier": ["error"],
       "@typescript-eslint/no-explicit-any": "off",
@@ -20,12 +19,9 @@ const eslintConfig = defineConfig([
   },
 
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
   ]),
 ]);
-
-export default eslintConfig;
