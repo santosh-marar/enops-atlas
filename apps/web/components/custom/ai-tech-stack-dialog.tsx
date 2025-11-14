@@ -32,7 +32,7 @@ interface AITechStackDialogProps {
 }
 
 export async function getSavedTechStack(): Promise<TechStack | null> {
-  const projectId = localStorage.getItem("last_project_id");
+  const projectId = localStorage.getItem("current_project_id");
 
   try {
     if (!projectId) {

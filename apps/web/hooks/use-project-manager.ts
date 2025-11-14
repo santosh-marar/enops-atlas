@@ -85,7 +85,7 @@ export function useProjectManager({
         await db.projects.add(projectToSave);
 
         setCurrentProject(projectToSave);
-        localStorage.setItem("last_project_id", projectToSave.id);
+        localStorage.setItem("current_project_id", projectToSave.id);
         setLastSaved(new Date());
         // console.log(projectToSave.id);
         return nanoId as string;
@@ -105,7 +105,7 @@ export function useProjectManager({
       setCurrentProject(null);
       setProjectName("Untitled Project");
       setLastSaved(null);
-      localStorage.removeItem("last_project_id"); // Clear localStorage too!
+      localStorage.removeItem("current_project_id"); // Clear localStorage too!
       await updateFromDBML("");
       toast.success("New project created successfully!");
     } catch (error) {
@@ -139,7 +139,7 @@ export function useProjectManager({
         setLastSaved(project.updatedAt);
 
         if (project.id) {
-          localStorage.setItem("last_project_id", project.id.toString());
+          localStorage.setItem("current_project_id", project.id.toString());
         }
 
         if (project.nodes && project.nodes.length > 0) {
@@ -164,7 +164,7 @@ export function useProjectManager({
   useEffect(() => {
     const restoreLastProject = async () => {
       try {
-        const lastProjectId = localStorage.getItem("last_project_id");
+        const lastProjectId = localStorage.getItem("current_project_id");
         if (!lastProjectId) {
           return;
         }
@@ -174,10 +174,10 @@ export function useProjectManager({
         if (project) {
           await handleOpenProject(project);
         } else {
-          localStorage.removeItem("last_project_id");
+          localStorage.removeItem("current_project_id");
         }
       } catch (error) {
-        localStorage.removeItem("last_project_id");
+        localStorage.removeItem("current_project_id");
       }
     };
 
