@@ -610,10 +610,6 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
     }
   };
 
-  if (isLoading) {
-    return <Loader2 className="size-4 animate-spin" />;
-  }
-
   return (
     <div className="flex h-full w-full flex-col bg-background">
       {/* Header */}
@@ -702,9 +698,10 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
                 Tech Stack Required
               </h3>
               <p className="mb-4 text-sm text-orange-800 dark:text-orange-200">
-                Before using the AI assistant, please configure your project's
-                tech stack. This ensures the generated schema matches your
-                authentication library, database, and other requirements.
+                Before using the AI assistant, please configure your
+                project&apos;s tech stack. This ensures the generated schema
+                matches your authentication library, database, and other
+                requirements.
               </p>
               <Button
                 onClick={onOpenTechStack}
@@ -725,7 +722,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
                 AI Schema Assistant
               </h3>
               <p className="mb-4 text-sm text-muted-foreground max-w-sm">
-                Describe your application and I'll generate a production-ready
+                Describe your application and I will generate a production-ready
                 database schema with proper relationships, indexes, and
                 constraints.
               </p>
