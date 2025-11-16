@@ -91,13 +91,13 @@ export function useProjectManager({
         return nanoId as string;
       }
     } catch (error) {
-      console.error("[handleSave] Error saving project:", error);
+      // console.error("[handleSave] Error saving project:", error);
       toast.error("Failed to save project. Please try again.");
       return undefined;
     } finally {
       setIsSaving(false);
     }
-  }, [currentProject, projectName, dbml, nodes, edges, isSaving, nanoId]);
+  }, [currentProject, projectName, dbml, nodes, edges, isSaving]);
 
   // Create new project
   const handleNew = async () => {

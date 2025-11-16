@@ -83,9 +83,6 @@ export async function saveTechStack(
 
     // Put it back (replaces the entire record)
     await db.projects.put(project);
-
-    // Verify it saved
-    const verify = await db.projects.get(projectId);
   } catch (error) {
     console.error("Failed to save tech stack:", error);
     throw error;
