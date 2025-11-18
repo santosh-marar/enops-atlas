@@ -2,7 +2,7 @@
 
 ## [Enops.dev](https://enops.dev) - AI-powered IDE to design, visualize, and optimize database schemas.
 
-<img width="1920" height="1080" alt="Screenshot from 2025-11-06 22-40-46" src="https://github.com/user-attachments/assets/77fa5e34-f2d9-4cf9-8751-2644433a642a" />
+<img width="1919" height="966" alt="Screenshot from 2025-11-18 16-59-36" src="https://github.com/user-attachments/assets/bed2deb1-2802-4500-9db2-770d2c17fe35" />
 
 ## ✨ Project Overview
 
@@ -41,7 +41,6 @@ For issues and questions:
 
 - Open an issue on GitHub
 - Follow [@santosh_marar](https://x.com/santosh_marar) on X/Twitter
-
 ---
 
 **Built with ❤️ for developers, by developers**
