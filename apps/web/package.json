@@ -2,6 +2,10 @@
   "name": "enops.dev",
   "version": "0.1.0",
   "private": true,
+  "author": {
+    "name": "santosh marar",
+    "url": "https://x.com/santosh_marar"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
