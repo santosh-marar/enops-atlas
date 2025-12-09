@@ -4,8 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 import { SAMPLE_DBML } from "@/data/sample-dbml";
-import { ValidationError } from "next/dist/compiled/amphtml-validator";
-import { validateDBML } from "@/validation/dbml-editor";
+import { validateDBML, ValidationError } from "@/validation/dbml-editor";
 import { useSchemaStore } from "@/store/use-schema-store";
 
 export default function DBMLEditor() {
@@ -22,18 +21,16 @@ export default function DBMLEditor() {
 
   const { updateFromDBML, dbml } = useSchemaStore();
 
-  // Initial sync: Load SAMPLE_DBML on first mount if store is empty AND no project to restore
+  // Loading SAMPLE_DBML on first mount if store is empty
   useEffect(() => {
-    // Check if there's a project ID stored (will be restored by TopToolbar)
     const hasProjectToRestore = localStorage.getItem(
       "enops-dev-last-project-id",
     );
 
-    // Only load sample if store is empty AND no project to restore
     if (!hasProjectToRestore && (!dbml || dbml.trim() === "")) {
       updateFromDBML(SAMPLE_DBML);
     }
-  }, []); // Run only once on mount
+  }, []);
 
   // Sync editor with store when DBML changes externally
   useEffect(() => {
@@ -44,9 +41,8 @@ export default function DBMLEditor() {
         setIsValid(true);
       }
     }
-  }, [dbml]);
+  }, [dbml, localDBML]);
 
-  // If any errors, show them in editor after 1 second
   useEffect(() => {
     const timer = setTimeout(async () => {
       setIsValidating(true);
@@ -82,7 +78,7 @@ export default function DBMLEditor() {
       } finally {
         setIsValidating(false);
       }
-    }, 1000); // 1s debounce for better performance
+    }, 1000); // 1s debounce
 
     return () => clearTimeout(timer);
   }, [localDBML]);
@@ -93,16 +89,14 @@ export default function DBMLEditor() {
 
     const handler = setTimeout(async () => {
       try {
-        // Preserve positions when updating from editor
         updateFromDBML(localDBML, true);
       } catch (err) {
         console.error("Failed to apply DBML:", err);
       }
-    }, 1000); // debounce: 1 seconds after last change
+    }, 1000); // debounce: 1 seconds
 
-    // Clear timeout if localDBML changes again within 5s
     return () => clearTimeout(handler);
-  }, [localDBML, isValid]);
+  }, [localDBML, isValid, updateFromDBML]);
 
   // Monaco editor setup with DBML language support
   const handleEditorDidMount = (editor: any, monaco: any) => {
