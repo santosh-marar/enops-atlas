@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { db } from "@/lib/db";
 import DBMLEditor from "@/components/custom/dbml-editor";
 import XYFlows from "@/components/custom/xyflows";
