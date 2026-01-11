@@ -11,6 +11,7 @@ import {
   Moon,
   Sun,
   Settings,
+  Crown,
 } from "lucide-react";
 import Image from "next/image";
 import { CommandPalette } from "./command-palette";
@@ -26,6 +27,7 @@ import { ProjectDialogs } from "./toolbar/project-dialogs";
 import { APISettingsDialog } from "./api-settings-dialog";
 import { AIExportDialog } from "./ai-export-dialog";
 import { Button } from "../ui/button";
+import Link from "next/link";
 
 interface TopToolbarProps {
   flowContainerRef?: React.RefObject<HTMLDivElement | null>;
@@ -288,6 +290,19 @@ export function TopToolbar({
               AI Settings
             </Button>
           </APISettingsDialog>
+
+          <Button
+            className="text-yellow-600 hover:bg-yellow-600/60!"
+            size="sm"
+            variant="ghost"
+          >
+            <Link
+              className="flex items-center justify-center gap-1"
+              href={"https://cloud.enops.dev/pricing"}
+            >
+              <Crown className="size-4" /> Try Pro
+            </Link>
+          </Button>
 
           <AIExportDialog nodes={nodes} edges={edges} />
         </div>
