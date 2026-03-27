@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
@@ -35,15 +37,9 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
-  --font-sans: Space Grotesk, ui-sans-serif, sans-serif, system-ui;
-  --font-serif: Geist Mono, monospace;
-  --font-mono: Geist Mono, monospace;
+
   --radius: 0.45rem;
-  --shadow-x: 0px;
-  --shadow-y: 1px;
-  --shadow-blur: 0px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 0;
+
   --shadow-color: #1a1a1a;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 10.1961% / 0);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 10.1961% / 0);
@@ -63,10 +59,9 @@
     0px 1px 0px 0px hsl(0 0% 10.1961% / 0),
     0px 8px 10px -1px hsl(0 0% 10.1961% / 0);
   --shadow-2xl: 0px 1px 0px 0px hsl(0 0% 10.1961% / 0);
+
   --tracking-normal: 0.025em;
   --spacing: 0.25rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
 }
 
 .dark {
@@ -102,15 +97,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
-  --font-sans: Space Grotesk, ui-sans-serif, sans-serif, system-ui;
-  --font-serif: Geist Mono, monospace;
-  --font-mono: Geist Mono, monospace;
+
   --radius: 0.25rem;
-  --shadow-x: 0px;
-  --shadow-y: 1px;
-  --shadow-blur: 0px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 0;
+
   --shadow-color: #1a1a1a;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 10.1961% / 0);
   --shadow-xs: 0px 1px 0px 0px hsl(0 0% 10.1961% / 0);
@@ -166,14 +155,18 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
+  --font-sans: var(--font-sans, Geist, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-geist-mono, ui-monospace, monospace);
+  --font-serif: var(--font-geist-mono, ui-monospace, monospace);
+  --font-heading: var(--font-sans, Geist, ui-sans-serif, system-ui, sans-serif);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -190,24 +183,17 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
-  --font-heading: var(--font-sans);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-body {
-  letter-spacing: var(--tracking-normal);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    letter-spacing: var(--tracking-normal);
   }
 }

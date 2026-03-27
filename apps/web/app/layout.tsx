@@ -1,21 +1,16 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Space_Grotesk, Geist } from "next/font/google";
+import { Geist_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { ThemeProviders } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-});
-
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
@@ -32,13 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body
-        className={`${spaceGrotesk.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={cn(geist.variable, geistMono.variable)}>
+      <body className={cn("font-sans antialiased")}>
         <ThemeProviders>
           <Toaster richColors position="top-right" />
-          {children}
+          <TooltipProvider>{children}</TooltipProvider>
         </ThemeProviders>
         <Analytics />
       </body>
