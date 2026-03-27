@@ -103,6 +103,58 @@ export default function DBMLEditor() {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
+    // Zinc theme
+    monaco.editor.defineTheme("zinc", {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        // comments — // and /* */
+        { token: "comment", foreground: "71717a", fontStyle: "italic" },
+
+        // keywords: Table, Ref, Enum, pk, null, unique, etc.
+        { token: "keyword", foreground: "c084fc" }, // purple-400
+
+        // typeKeywords: integer, varchar, boolean, uuid, etc.
+        { token: "type", foreground: "67e8f9" }, // cyan-300
+
+        // identifiers: table names, column names
+        { token: "identifier", foreground: "e4e4e7" }, // zinc-200
+
+        // strings: "...", '...'
+        { token: "string", foreground: "86efac" }, // green-300
+
+        // backtick strings: `...`
+        { token: "string.escape", foreground: "86efac" }, // green-300
+
+        // numbers
+        { token: "number", foreground: "fb923c" }, // orange-400
+
+        // operators: < > - <>
+        { token: "operator", foreground: "94a3b8" }, // slate-400
+
+        // brackets: {} () []
+        { token: "delimiter.bracket", foreground: "e4e4e7" },
+        { token: "", foreground: "e4e4e7" }, // fallback
+      ],
+      colors: {
+        "editor.background": "#27272a",
+        "editor.foreground": "#e4e4e7",
+        "editor.lineHighlightBackground": "#3f3f46",
+        "editor.selectionBackground": "#52525b",
+        "editorCursor.foreground": "#e4e4e7",
+        "editorLineNumber.foreground": "#52525b",
+        "editorLineNumber.activeForeground": "#a1a1aa",
+        "editorIndentGuide.background1": "#3f3f46",
+        "editorIndentGuide.activeBackground1": "#52525b",
+        "editorBracketMatch.background": "#3f3f46",
+        "editorBracketMatch.border": "#71717a",
+        "scrollbarSlider.background": "#3f3f4680",
+        "scrollbarSlider.hoverBackground": "#52525b80",
+      },
+    });
+    monaco.editor.setTheme("zinc");
+    monaco.editor.setTheme("zinc");
+
     // Register DBML as a language
     monaco.languages.register({ id: "dbml" });
 
@@ -299,7 +351,7 @@ export default function DBMLEditor() {
         <Editor
           height="100%"
           defaultLanguage="dbml"
-          theme={theme === "dark" ? "vs-dark" : "vs"}
+          theme={theme === "dark" ? "zinc" : "vs"}
           value={localDBML}
           onChange={(value) => value !== undefined && setLocalDBML(value)}
           options={{
