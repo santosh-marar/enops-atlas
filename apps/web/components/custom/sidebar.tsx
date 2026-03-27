@@ -21,7 +21,7 @@ export function Sidebar({
   isAIOpen,
 }: SidebarProps) {
   return (
-    <div className="flex h-full min-w-16 flex-col items-center border-r border-border bg-background py-4 relative z-50">
+    <div className="flex h-full min-w-16 flex-col items-center bg-background py-4 relative z-50">
       {/* Top Section - Actions */}
       <div className="flex flex-col gap-2">
         <button

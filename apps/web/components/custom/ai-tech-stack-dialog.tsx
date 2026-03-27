@@ -143,7 +143,7 @@ export function AITechStackDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="py-6 min-w-xl max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Generate Schema with AI</DialogTitle>
           <DialogDescription>

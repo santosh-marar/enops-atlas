@@ -52,15 +52,15 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
     const schema = nodeData.schema || "public";
     const colors = {
       public: {
-        from: "from-emerald-600",
-        to: "to-emerald-700",
-        border: "border-emerald-500/60",
-        shadow: "shadow-emerald-500/20",
+        from: "from-background",
+        to: "to-background",
+        border: "border",
+        shadow: "shadow-background/20",
       },
       ecommerce: {
         from: "from-emerald-600",
         to: "to-emerald-700",
-        border: "border-emerald-500/60",
+        border: "border",
         shadow: "shadow-emerald-500/20",
       },
       auth: {
@@ -135,31 +135,26 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div
-        className={`relative min-w-[260px] rounded-lg border ${schemaColor.border} bg-card/95 text-foreground shadow-[0_18px_30px_-24px_rgba(15,23,42,0.65)] ${schemaColor.shadow} backdrop-blur-sm`}
-      >
+      <div className={`relative min-w-65 rounded-xl border bg-card`}>
         <div
-          className={`flex items-center justify-between gap-3 border-b border-border/60 bg-linear-to-r ${schemaColor.from} ${schemaColor.to} px-4 py-3 text-sm font-semibold text-primary-foreground rounded-t-lg`}
+          className={`flex items-center justify-between border-border/60 px-4 py-2 text-sm font-medium text-primary bg-background rounded-xl`}
         >
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-primary-foreground/70">
-                {schemaTag}
-              </span>
-              <span className="text-[15px] font-semibold tracking-[0.04em]">
+          <div className="flex items-center">
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium tracking-[0.04em]">
                 {nodeData.label}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {schemaTag}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div>
             {aliasTag ? (
-              <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
-                AS {aliasTag}
+              <span className="rounded-full border  px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
+                as {aliasTag}
               </span>
             ) : null}
-            <span className="rounded-full border border-primary-foreground/30 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
-              TABLE
-            </span>
           </div>
         </div>
 
@@ -204,7 +199,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
             return (
               <div
                 key={`${column.name}-${index}`}
-                className="group relative flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-muted/40"
+                className="group relative flex items-center gap-3 px-4 py-1.5 text-sm transition-colors hover:bg-muted/40"
               >
                 {isForeignKey ? (
                   <Handle
@@ -215,7 +210,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                   />
                 ) : null}
 
-                <div className="flex flex-1 flex-col gap-1.5">
+                <div className="flex flex-1 flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium tracking-wide text-foreground">
                       {column.name}
@@ -230,7 +225,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     ) : null}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                     {badges.map((badge) => (
                       <span
                         key={`${column.name}-${badge}`}
@@ -264,7 +259,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs">
                           <div className="space-y-1">
-                            <p className="font-semibold text-xs">
+                            <p className="font-medium text-xs">
                               Enum Values:
                             </p>
                             <div className="flex flex-wrap gap-1">
@@ -294,7 +289,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs">
                           <div className="space-y-1">
-                            <p className="font-semibold text-xs">References:</p>
+                            <p className="font-medium text-xs">References:</p>
                             {fkTargets.map((target, idx) => (
                               <p
                                 key={idx}
@@ -317,7 +312,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-xs">
                           <div className="space-y-1">
-                            <p className="font-semibold text-xs">Note:</p>
+                            <p className="font-medium text-xs">Note:</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
                               {column.note}
                             </p>
@@ -340,8 +335,6 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
             );
           })}
         </div>
-
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-linear-to-r from-transparent via-primary/40 to-transparent" />
       </div>
     </TooltipProvider>
   );

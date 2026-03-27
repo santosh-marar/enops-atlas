@@ -254,7 +254,7 @@ export function TopToolbar({
         onCancel={handleCancelExport}
       />
 
-      <div className="flex h-12 items-center justify-between border-b border-border bg-card px-4 shadow-sm">
+      <div className="flex h-12 items-center justify-between bg-background px-4 shadow-sm">
         {/* Left Section */}
         <div className="flex items-center gap-4">
           <div className="flex items-center">
@@ -265,7 +265,7 @@ export function TopToolbar({
               height={48}
               className="rounded-full"
             />
-            <span className="text-sm font-bold">Enops.dev</span>
+            <span className="text-sm font-bold">Enops</span>
           </div>
 
           <ActionMenu
@@ -276,24 +276,25 @@ export function TopToolbar({
             hasCurrentProject={!!currentProject}
           />
 
-          <button
+          <Button
+          variant={"ghost"}
             onClick={() => setShowHelpDialog(true)}
-            className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
           >
             <HelpCircle className="h-4 w-4" />
             Help
-          </button>
+          </Button>
 
           <APISettingsDialog>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost">
               <Settings className="h-4 w-4" />
               AI Settings
             </Button>
           </APISettingsDialog>
 
+          <AIExportDialog nodes={nodes} edges={edges} />
+
           <Button
             className="text-yellow-600 hover:bg-yellow-600/60!"
-            size="sm"
             variant="ghost"
           >
             <Link
@@ -303,8 +304,6 @@ export function TopToolbar({
               <Crown className="size-4" /> Try Pro
             </Link>
           </Button>
-
-          <AIExportDialog nodes={nodes} edges={edges} />
         </div>
 
         {/* Middle Section - Project Name */}
@@ -319,11 +318,7 @@ export function TopToolbar({
           <span className="text-xs text-muted-foreground">
             Saved: {formatLastSaved()}
           </span>
-          <button
-            onClick={handleSaveWithReset}
-            disabled={isSaving}
-            className="flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button onClick={handleSaveWithReset} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -335,26 +330,27 @@ export function TopToolbar({
                 Save
               </>
             )}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={"ghost"}
             onClick={toggleTheme}
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
-            title={`Toggle theme (${SHORTCUT_CONFIGS.TOGGLE_THEME.key.toUpperCase()} + Ctrl + Shift)`}
+            title={`Toggle theme (Ctrl + Shift + ${SHORTCUT_CONFIGS.TOGGLE_THEME.key.toUpperCase()})`}
           >
             {theme === "dark" ? (
               <Sun className="h-4 w-4" />
             ) : (
               <Moon className="h-4 w-4" />
             )}
-          </button>
-          <a
-            href="https://github.com/santosh-marar/enops.dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
-          >
-            <Github className="h-4 w-4" />
-          </a>
+          </Button>
+          <Button asChild variant={"link"}>
+            <Link
+              href="https://github.com/santosh-marar/enops.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Github className="h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </div>
 
