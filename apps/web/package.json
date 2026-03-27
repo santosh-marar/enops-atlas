@@ -1,5 +1,5 @@
 {
-  "name": "enops.dev",
+  "name": "enops",
   "version": "0.1.0",
   "private": true,
   "author": {
@@ -14,7 +14,7 @@
     "lint:fix": "eslint --fix",
     "format": "prettier --write .",
     "test": "tsc -p tsconfig.test.json && node .test-dist/tests/schema-transformer.test.js && node -e \"require('fs').rmSync('.test-dist', { recursive: true, force: true });\"",
-    "prepare": "husky"
+    "prepare":"husky install && chmod +x .husky/_/*"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.63",
