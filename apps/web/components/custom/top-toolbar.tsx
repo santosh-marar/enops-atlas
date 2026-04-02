@@ -277,7 +277,8 @@ export function TopToolbar({
           />
 
           <Button
-          variant={"ghost"}
+            variant={"ghost"}
+            size={"sm"}
             onClick={() => setShowHelpDialog(true)}
           >
             <HelpCircle className="h-4 w-4" />
@@ -285,7 +286,7 @@ export function TopToolbar({
           </Button>
 
           <APISettingsDialog>
-            <Button variant="ghost">
+            <Button variant="ghost" size={"sm"}>
               <Settings className="h-4 w-4" />
               AI Settings
             </Button>
@@ -293,10 +294,7 @@ export function TopToolbar({
 
           <AIExportDialog nodes={nodes} edges={edges} />
 
-          <Button
-            className="text-yellow-600 hover:bg-yellow-600/60!"
-            variant="ghost"
-          >
+          <Button variant="outline" size={"sm"}>
             <Link
               className="flex items-center justify-center gap-1"
               href={"https://cloud.enops.dev/pricing"}
@@ -318,7 +316,7 @@ export function TopToolbar({
           <span className="text-xs text-muted-foreground">
             Saved: {formatLastSaved()}
           </span>
-          <Button onClick={handleSaveWithReset} disabled={isSaving}>
+          <Button onClick={handleSaveWithReset} disabled={isSaving} size={"sm"}>
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -333,6 +331,7 @@ export function TopToolbar({
           </Button>
           <Button
             variant={"ghost"}
+            size={"icon-sm"}
             onClick={toggleTheme}
             title={`Toggle theme (Ctrl + Shift + ${SHORTCUT_CONFIGS.TOGGLE_THEME.key.toUpperCase()})`}
           >
@@ -342,7 +341,7 @@ export function TopToolbar({
               <Moon className="h-4 w-4" />
             )}
           </Button>
-          <Button asChild variant={"link"}>
+          <Button asChild variant={"link"} size={"icon-sm"}>
             <Link
               href="https://github.com/santosh-marar/enops.dev"
               target="_blank"

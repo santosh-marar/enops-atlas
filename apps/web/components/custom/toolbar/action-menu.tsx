@@ -8,6 +8,7 @@ import {
   ImageIcon,
   Code2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ActionMenuProps {
   onNew: () => void;
@@ -60,13 +61,14 @@ export function ActionMenu({
 
   return (
     <div className="relative" ref={actionMenuRef}>
-      <button
+      <Button
         onClick={() => setShowActionMenu(!showActionMenu)}
-        className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+        size={"sm"}
+        variant={"ghost"}
       >
-        Action
         <ChevronDown className="h-4 w-4" />
-      </button>
+        Action
+      </Button>
 
       {showActionMenu && (
         <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-lg">

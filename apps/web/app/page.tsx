@@ -249,14 +249,14 @@ export default function Home() {
             <Button
               onClick={handleToggleEditor}
               title={showIde ? "Close IDE" : "Open IDE"}
-              className={`absolute h-12 w-4 top-13 z-10 transition-all rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm hover:bg-accent ${
+              className={`absolute h-14 w-2 top-14 z-10 transition-all bg-card px-4 py-2 backdrop-blur-sm hover:bg-accent ${
                 showIde ? "left-[576px]" : "left-0"
               }`}
             >
               {showIde ? (
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-5 w-5 text-primary" />
               ) : (
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-5 w-5 text-primary" />
               )}
             </Button>
           )}

@@ -243,7 +243,7 @@ Please provide complete, production-ready code with:
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children || (
-          <Button variant="ghost">
+          <Button variant="ghost" size={"sm"}>
             <Download className="h-4 w-4 mr-2" />
             Export Schema
           </Button>
