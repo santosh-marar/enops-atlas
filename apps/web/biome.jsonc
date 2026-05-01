@@ -4,5 +4,80 @@
     "ultracite/biome/core",
     "ultracite/biome/react",
     "ultracite/biome/next"
-  ]
+  ],
+  "files": {
+    "includes": ["!components/ui", "!README.md"]
+  },
+  "linter": {
+    "rules": {
+      "style": {
+        "noEnum": "off",
+        "useBlockStatements": "off",
+        "noNonNullAssertion": "off",
+        "noExportedImports": "off",
+        "noParameterProperties": "off",
+        "useConsistentMemberAccessibility": "off",
+        "useConsistentTypeDefinitions": "off",
+        "useAtIndex": "off",
+        "noNestedTernary": "off",
+        "useTemplate": "off",
+        "useConsistentBuiltinInstantiation": "off",
+        "noSubstr": "off",
+        "useDefaultSwitchClause": "off",
+        "useThrowNewError": "off"
+      },
+      "performance": {
+        "noBarrelFile": "off",
+        "noNamespaceImport": "off",
+        "useTopLevelRegex": "off",
+        "noDelete": "off"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "off",
+        "useButtonType": "off"
+      },
+      "nursery": {
+        "noShadow": "off",
+        "noLeakedRender": "off",
+        "noIncrementDecrement": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noTemplateCurlyInString": "off",
+        "noArrayIndexKey": "off",
+        "noEmptyBlockStatements": "off",
+        "useAwait": "off",
+        "noEvolvingTypes": "off",
+        "noAlert": "off",
+        "noCommentText": "off",
+        "noGlobalIsNan": "off",
+        "noAssignInExpressions": "off",
+        "noVar": "off",
+        "noImplicitAnyLet": "off",
+        "noReactForwardRef": "off"
+      },
+      "correctness": {
+        "noUnusedVariables": "off",
+        "useExhaustiveDependencies": "off",
+        "noUnusedFunctionParameters": "off",
+        "useParseIntRadix": "off",
+        "noUndeclaredVariables": "off",
+        "noUnreachable": "off",
+        "noConstantCondition": "off"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off",
+        "noForEach": "off",
+        "useOptionalChain": "off",
+        "noUselessSwitchCase": "off",
+        "noBannedTypes": "off",
+        "useLiteralKeys": "off",
+        "noCommaOperator": "off",
+        "noUselessCatchBinding": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      }
+    }
+  }
 }

@@ -1,8 +1,8 @@
 "use client";
 
+import { Panel, useReactFlow, useStore } from "@xyflow/react";
 import { memo, useEffect } from "react";
 import { useSchemaStore } from "@/store/use-schema-store";
-import { Panel, useReactFlow, useStore } from "@xyflow/react";
 
 export const FlowToolbar = memo(function FlowToolbar() {
   const { canUndo, canRedo, undo, redo, warnings, isLocked, toggleLock } =
@@ -16,7 +16,9 @@ export const FlowToolbar = memo(function FlowToolbar() {
       // Undo: Ctrl+Z / Cmd+Z
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        if (canUndo) undo();
+        if (canUndo) {
+          undo();
+        }
       }
 
       // Redo: Ctrl+Shift+Z / Cmd+Shift+Z or Ctrl+Y / Cmd+Y
@@ -25,7 +27,9 @@ export const FlowToolbar = memo(function FlowToolbar() {
         ((e.ctrlKey || e.metaKey) && e.key === "y")
       ) {
         e.preventDefault();
-        if (canRedo) redo();
+        if (canRedo) {
+          redo();
+        }
       }
     };
 
@@ -36,32 +40,32 @@ export const FlowToolbar = memo(function FlowToolbar() {
   return (
     <>
       <Panel
-        position="bottom-center"
         className="flex gap-2 rounded-lg border border-border/60 bg-card/90 p-2 shadow-lg backdrop-blur-sm"
+        position="bottom-center"
       >
         <button
+          className="rounded-md bg-background px-3 py-1.5 font-medium text-foreground text-xs transition-colors hover:bg-muted"
           onClick={() => zoomIn()}
-          className="rounded-md bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           title="Zoom In"
         >
           +
         </button>
 
-        <div className="flex items-center rounded-md bg-background px-3 py-1.5 text-xs font-medium text-foreground">
+        <div className="flex items-center rounded-md bg-background px-3 py-1.5 font-medium text-foreground text-xs">
           {Math.round(zoom * 100)}%
         </div>
 
         <button
+          className="rounded-md bg-background px-3 py-1.5 font-medium text-foreground text-xs transition-colors hover:bg-muted"
           onClick={() => zoomOut()}
-          className="rounded-md bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           title="Zoom Out"
         >
           −
         </button>
 
         <button
+          className="rounded-md bg-background px-3 py-1.5 font-medium text-foreground text-xs transition-colors hover:bg-muted"
           onClick={() => fitView()}
-          className="rounded-md bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
           title="Fit View"
         >
           ⊡
@@ -70,12 +74,12 @@ export const FlowToolbar = memo(function FlowToolbar() {
         <div className="mx-1 w-px bg-border" />
 
         <button
-          onClick={toggleLock}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted ${
+          className={`rounded-md px-3 py-1.5 font-medium text-xs transition-colors hover:bg-muted ${
             isLocked
               ? "bg-primary text-primary-foreground hover:bg-primary/90"
               : "bg-background text-foreground"
           }`}
+          onClick={toggleLock}
           title={
             isLocked ? "Unlock (Enable Dragging)" : "Lock (Disable Dragging)"
           }
@@ -86,18 +90,18 @@ export const FlowToolbar = memo(function FlowToolbar() {
         <div className="mx-1 w-px bg-border" />
 
         <button
-          onClick={undo}
+          className="rounded-md bg-background px-3 py-1.5 font-medium text-foreground text-xs transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           disabled={!canUndo}
-          className="rounded-md bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={undo}
           title="Undo (Ctrl+Z)"
         >
           ↶ Undo
         </button>
 
         <button
-          onClick={redo}
+          className="rounded-md bg-background px-3 py-1.5 font-medium text-foreground text-xs transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
           disabled={!canRedo}
-          className="rounded-md bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={redo}
           title="Redo (Ctrl+Shift+Z)"
         >
           ↷ Redo
@@ -106,15 +110,15 @@ export const FlowToolbar = memo(function FlowToolbar() {
 
       {warnings.length > 0 && (
         <Panel
-          position="bottom-left"
           className="max-w-md rounded-lg border border-warning/60 bg-warning/10 p-3 shadow-lg backdrop-blur-sm"
+          position="bottom-left"
         >
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-warning">
+          <div className="mb-2 flex items-center gap-2 font-semibold text-sm text-warning">
             Warnings ({warnings.length})
           </div>
-          <div className="max-h-32 space-y-1 overflow-y-auto text-xs text-muted-foreground">
+          <div className="max-h-32 space-y-1 overflow-y-auto text-muted-foreground text-xs">
             {warnings.slice(0, 5).map((warning, idx) => (
-              <div key={idx} className="rounded bg-background/50 p-1.5">
+              <div className="rounded bg-background/50 p-1.5" key={idx}>
                 <div className="font-medium">{warning.message}</div>
                 {warning.context && (
                   <div className="text-[10px] opacity-70">

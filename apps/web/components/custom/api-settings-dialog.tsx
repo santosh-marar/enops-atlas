@@ -1,35 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Check, Eye, EyeOff, Settings, Shield, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Settings,
-  Eye,
-  EyeOff,
-  Check,
-  AlertCircle,
-  Sparkles,
-  Shield,
-} from "lucide-react";
-import { db, AISettings as DBAISettings } from "@/lib/db";
-import { toast } from "sonner";
+import { type AISettings as DBAISettings, db } from "@/lib/db";
 
 interface APISettingsDialogProps {
   children?: React.ReactNode;
-  open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  open?: boolean;
 }
 
 export function APISettingsDialog({
@@ -38,7 +30,7 @@ export function APISettingsDialog({
   onOpenChange,
 }: APISettingsDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const open = controlledOpen === undefined ? internalOpen : controlledOpen;
   const setOpen = (value: boolean) => {
     if (onOpenChange) {
       onOpenChange(value);
@@ -117,12 +109,14 @@ export function APISettingsDialog({
   };
 
   const maskKey = (key: string) => {
-    if (!key || key.length < 8) return key;
+    if (!key || key.length < 8) {
+      return key;
+    }
     return key.slice(0, 4) + "•".repeat(key.length - 8) + key.slice(-4);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog onOpenChange={setOpen} open={open}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="max-w-lg">
         <DialogHeader>
@@ -139,28 +133,28 @@ export function APISettingsDialog({
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-primary border-b-2" />
           </div>
         ) : (
           <Tabs
-            value={provider}
-            onValueChange={(v) => setProvider(v as "claude" | "gpt")}
             className="w-full"
+            onValueChange={(v) => setProvider(v as "claude" | "gpt")}
+            value={provider}
           >
             <div className="flex items-center justify-center pb-4">
               <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="claude" className="gap-2">
+                <TabsTrigger className="gap-2" value="claude">
                   <Sparkles className="h-4 w-4" />
                   Claude Sonnet 4.5
                 </TabsTrigger>
-                <TabsTrigger value="gpt" className="gap-2">
+                <TabsTrigger className="gap-2" value="gpt">
                   <Sparkles className="h-4 w-4" />
                   GPT-4 Turbo
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="claude" className="space-y-4 mt-0">
+            <TabsContent className="mt-0 space-y-4" value="claude">
               <div className="rounded-lg border bg-linear-to-br from-primary/5 to-primary/10 p-4">
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
@@ -171,7 +165,7 @@ export function APISettingsDialog({
                       <h3 className="font-semibold text-sm">
                         Anthropic Claude
                       </h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="mt-0.5 text-muted-foreground text-xs">
                         Claude 3.5 Sonnet - Advanced reasoning and code
                         generation
                       </p>
@@ -181,23 +175,23 @@ export function APISettingsDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="claude-key" className="text-sm font-medium">
+                <Label className="font-medium text-sm" htmlFor="claude-key">
                   API Key
-                  <span className="text-destructive ml-1">*</span>
+                  <span className="ml-1 text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Input
-                    id="claude-key"
-                    type={showClaudeKey ? "text" : "password"}
-                    placeholder="sk-ant-api..."
-                    value={claudeKey}
-                    onChange={(e) => setClaudeKey(e.target.value)}
                     className="pr-10 font-mono text-sm"
+                    id="claude-key"
+                    onChange={(e) => setClaudeKey(e.target.value)}
+                    placeholder="sk-ant-api..."
+                    type={showClaudeKey ? "text" : "password"}
+                    value={claudeKey}
                   />
                   <button
-                    type="button"
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                     onClick={() => setShowClaudeKey(!showClaudeKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    type="button"
                   >
                     {showClaudeKey ? (
                       <EyeOff className="h-4 w-4" />
@@ -206,13 +200,13 @@ export function APISettingsDialog({
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Get your API key from{" "}
                   <a
+                    className="font-medium text-primary hover:underline"
                     href="https://console.anthropic.com/"
-                    target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline font-medium"
+                    target="_blank"
                   >
                     console.anthropic.com
                   </a>
@@ -220,7 +214,7 @@ export function APISettingsDialog({
               </div>
             </TabsContent>
 
-            <TabsContent value="gpt" className="space-y-4 mt-0">
+            <TabsContent className="mt-0 space-y-4" value="gpt">
               <div className="rounded-lg border bg-linear-to-br from-green-500/5 to-green-500/10 p-4">
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
@@ -229,7 +223,7 @@ export function APISettingsDialog({
                     </div>
                     <div>
                       <h3 className="font-semibold text-sm">OpenAI GPT</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="mt-0.5 text-muted-foreground text-xs">
                         GPT-4 Turbo - Powerful language model with broad
                         knowledge
                       </p>
@@ -239,23 +233,23 @@ export function APISettingsDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="openai-key" className="text-sm font-medium">
+                <Label className="font-medium text-sm" htmlFor="openai-key">
                   API Key
-                  <span className="text-destructive ml-1">*</span>
+                  <span className="ml-1 text-destructive">*</span>
                 </Label>
                 <div className="relative">
                   <Input
-                    id="openai-key"
-                    type={showOpenaiKey ? "text" : "password"}
-                    placeholder="sk-..."
-                    value={openaiKey}
-                    onChange={(e) => setOpenaiKey(e.target.value)}
                     className="pr-10 font-mono text-sm"
+                    id="openai-key"
+                    onChange={(e) => setOpenaiKey(e.target.value)}
+                    placeholder="sk-..."
+                    type={showOpenaiKey ? "text" : "password"}
+                    value={openaiKey}
                   />
                   <button
-                    type="button"
+                    className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                     onClick={() => setShowOpenaiKey(!showOpenaiKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    type="button"
                   >
                     {showOpenaiKey ? (
                       <EyeOff className="h-4 w-4" />
@@ -264,13 +258,13 @@ export function APISettingsDialog({
                     )}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Get your API key from{" "}
                   <a
+                    className="font-medium text-primary hover:underline"
                     href="https://platform.openai.com/api-keys"
-                    target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline font-medium"
+                    target="_blank"
                   >
                     platform.openai.com
                   </a>
@@ -278,10 +272,10 @@ export function APISettingsDialog({
               </div>
             </TabsContent>
 
-            <div className="rounded-lg border p-3 bg-muted/50 mt-4">
+            <div className="mt-4 rounded-lg border bg-muted/50 p-3">
               <div className="flex gap-2.5">
-                <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                <div className="text-xs text-muted-foreground space-y-1">
+                <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div className="space-y-1 text-muted-foreground text-xs">
                   <p className="font-medium text-foreground">
                     Privacy & Security
                   </p>
@@ -298,26 +292,26 @@ export function APISettingsDialog({
 
         <DialogFooter className="gap-2">
           <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={isSaving}
             className="flex-1 sm:flex-none"
+            disabled={isSaving}
+            onClick={() => setOpen(false)}
+            variant="outline"
           >
             Cancel
           </Button>
           <Button
-            onClick={handleSave}
-            disabled={isSaving || isLoading}
             className="flex-1 sm:flex-none"
+            disabled={isSaving || isLoading}
+            onClick={handleSave}
           >
             {isSaving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2" />
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-primary-foreground border-b-2" />
                 Saving...
               </>
             ) : (
               <>
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="mr-2 h-4 w-4" />
                 Save Changes
               </>
             )}
@@ -329,17 +323,21 @@ export function APISettingsDialog({
 }
 
 export interface AISettings {
-  provider: "claude" | "gpt";
   claudeApiKey: string;
   openaiApiKey: string;
+  provider: "claude" | "gpt";
 }
 
 export async function getAISettings(): Promise<AISettings | null> {
-  if (typeof window === "undefined") return null;
+  if (typeof window === "undefined") {
+    return null;
+  }
 
   try {
     const saved = await db.aiSettings.toCollection().first();
-    if (!saved) return null;
+    if (!saved) {
+      return null;
+    }
 
     return {
       provider: saved.provider,

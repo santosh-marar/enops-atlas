@@ -1,27 +1,27 @@
 "use client";
 
 import {
-  ReactFlow,
   Background,
+  BackgroundVariant,
+  MarkerType,
   MiniMap,
   Panel,
-  MarkerType,
-  BackgroundVariant,
+  ReactFlow,
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useSchemaStore } from "@/store/use-schema-store";
-import { TableNode } from "./table-node";
-import { FlowToolbar } from "./flow-toolbar";
-import { TableSearch } from "./table-search";
 import { useTheme } from "next-themes";
-import { ErrorBoundary } from "./error-boundary";
-import { useState, useRef } from "react";
-import { useTableFilter } from "@/hooks/use-table-filter";
+import { useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useNodeZoom } from "@/hooks/use-node-zoom";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useNodeZoom } from "@/hooks/use-node-zoom";
+import { useTableFilter } from "@/hooks/use-table-filter";
 import { SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
+import { useSchemaStore } from "@/store/use-schema-store";
+import { ErrorBoundary } from "./error-boundary";
+import { FlowToolbar } from "./flow-toolbar";
+import { TableNode } from "./table-node";
+import { TableSearch } from "./table-search";
 
 const nodeTypes = {
   table: TableNode as any,
@@ -61,7 +61,7 @@ function XYFlowsInner() {
   const { filteredNodes, filteredEdges } = useTableFilter(
     nodes,
     edges,
-    debouncedSearchQuery,
+    debouncedSearchQuery
   );
 
   const { handleNodeDoubleClick, isZoomed } = useNodeZoom({
@@ -95,24 +95,29 @@ function XYFlowsInner() {
             </div>
           ) : (
             <ReactFlow
-              nodes={filteredNodes}
-              edges={filteredEdges}
-              nodeTypes={nodeTypes}
-              defaultEdgeOptions={defaultEdgeOptions}
-              fitView
               attributionPosition="bottom-right"
-              minZoom={0.2}
-              maxZoom={2}
-              nodesDraggable={!isLocked}
-              nodesConnectable={!isLocked}
-              nodesFocusable={!isLocked}
+              className={`bg-transparent dark:bg-transparent ${
+                isLocked
+                  ? "[&_.react-flow__edge]:pointer-events-none [&_.react-flow__node]:pointer-events-none"
+                  : ""
+              }`}
+              defaultEdgeOptions={defaultEdgeOptions}
+              edges={filteredEdges}
               edgesFocusable={!isLocked}
               elementsSelectable={!isLocked}
-              panOnDrag={!isLocked ? [1, 2] : true}
-              selectNodesOnDrag={!isLocked}
-              onNodesChange={isLocked ? undefined : onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onNodeDoubleClick={isLocked ? undefined : handleNodeDoubleClick}
+              fitView
+              maxZoom={2}
+              minZoom={0.2}
+              nodes={filteredNodes}
+              nodesConnectable={!isLocked}
+              nodesDraggable={!isLocked}
+              nodesFocusable={!isLocked}
+              nodeTypes={nodeTypes}
+              onEdgeClick={
+                isLocked
+                  ? undefined
+                  : (_, edge) => setEdgeAnimated(edge.id, true)
+              }
               onEdgeMouseEnter={
                 isLocked
                   ? undefined
@@ -123,16 +128,11 @@ function XYFlowsInner() {
                   ? undefined
                   : (_, edge) => setEdgeAnimated(edge.id, false)
               }
-              onEdgeClick={
-                isLocked
-                  ? undefined
-                  : (_, edge) => setEdgeAnimated(edge.id, true)
-              }
-              className={`bg-transparent dark:bg-transparent ${
-                isLocked
-                  ? "[&_.react-flow__node]:pointer-events-none [&_.react-flow__edge]:pointer-events-none"
-                  : ""
-              }`}
+              onEdgesChange={onEdgesChange}
+              onNodeDoubleClick={isLocked ? undefined : handleNodeDoubleClick}
+              onNodesChange={isLocked ? undefined : onNodesChange}
+              panOnDrag={isLocked ? true : [1, 2]}
+              selectNodesOnDrag={!isLocked}
             >
               <Background
                 color={isDark ? "oklch(0.985 0 0)" : "oklch(0.145 0 0)"}
@@ -144,8 +144,8 @@ function XYFlowsInner() {
                 nodeBorderRadius={3}
               />
               <Panel
+                className="rounded-lg border border-border/60 bg-card/75 px-4 py-2 font-medium text-muted-foreground text-xs uppercase tracking-[0.18em] shadow-lg backdrop-blur-sm"
                 position="top-left"
-                className="rounded-lg border border-border/60 bg-card/75 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground shadow-lg backdrop-blur-sm"
               >
                 <div className="flex items-center gap-4 text-foreground/80">
                   <span className="text-foreground">
@@ -157,12 +157,12 @@ function XYFlowsInner() {
 
               {/* Search Panel */}
               <TableSearch
-                ref={searchInputRef}
-                searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                ref={searchInputRef}
                 resultCount={
                   debouncedSearchQuery ? filteredNodes.length : nodes.length
                 }
+                searchQuery={searchQuery}
                 totalCount={nodes.length}
               />
 

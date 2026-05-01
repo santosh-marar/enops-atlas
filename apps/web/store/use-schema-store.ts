@@ -1,20 +1,20 @@
-import { create } from "zustand";
 import {
-  Node,
-  Edge,
-  NodeChange,
-  EdgeChange,
-  MarkerType,
-  applyNodeChanges,
   applyEdgeChanges,
+  applyNodeChanges,
+  type Edge,
+  type EdgeChange,
+  MarkerType,
+  type Node,
+  type NodeChange,
 } from "@xyflow/react";
-import {
-  transformDbml,
-  Column,
-  Table as ParsedTable,
-  TransformWarning,
-} from "@/lib/schema-transformer";
+import { create } from "zustand";
 import { getLayoutedElements } from "@/lib/layout";
+import {
+  type Column,
+  type Table as ParsedTable,
+  type TransformWarning,
+  transformDbml,
+} from "@/lib/schema-transformer";
 
 interface FlowTable extends ParsedTable {
   id: string;
@@ -27,32 +27,32 @@ interface HistoryState {
 }
 
 interface SchemaState {
+  addToHistory: (nodes: Node[]) => void;
+  canRedo: boolean;
+  canUndo: boolean;
   dbml: string;
-  sql: string;
-  tables: FlowTable[];
-  nodes: Node[];
   edges: Edge[];
-  warnings: TransformWarning[];
   error: string | null;
-  isUpdating: boolean;
-  isLoading: boolean;
   history: HistoryState[];
   historyIndex: number;
-  canUndo: boolean;
-  canRedo: boolean;
+  isLoading: boolean;
   isLocked: boolean;
-  showIde: boolean;
-  setNodes: (nodes: Node[]) => void;
-  setEdges: (edges: Edge[]) => void;
-  onNodesChange: (changes: NodeChange[]) => void;
+  isUpdating: boolean;
+  nodes: Node[];
   onEdgesChange: (changes: EdgeChange[]) => void;
-  setEdgeAnimated: (id: string, animated: boolean) => void;
-  updateFromDBML: (dbml: string, preservePositions?: boolean) => Promise<void>;
-  undo: () => void;
+  onNodesChange: (changes: NodeChange[]) => void;
   redo: () => void;
-  addToHistory: (nodes: Node[]) => void;
-  toggleLock: () => void;
+  setEdgeAnimated: (id: string, animated: boolean) => void;
+  setEdges: (edges: Edge[]) => void;
+  setNodes: (nodes: Node[]) => void;
+  showIde: boolean;
+  sql: string;
+  tables: FlowTable[];
   toggleIde: () => void;
+  toggleLock: () => void;
+  undo: () => void;
+  updateFromDBML: (dbml: string, preservePositions?: boolean) => Promise<void>;
+  warnings: TransformWarning[];
 }
 
 const DEFAULT_STROKE = "var(--muted-foreground)";
@@ -116,7 +116,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
     // Only add to history for position changes (drag)
     const hasPositionChange = changes.some(
-      (change) => change.type === "position" && change.dragging === false,
+      (change) => change.type === "position" && change.dragging === false
     );
 
     set({ nodes: newNodes });
@@ -135,7 +135,9 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       const updatedEdges = state.edges.map((edge) => {
         if (edge.id === id) {
           // Target edge being hovered
-          if (edge.animated === isHovered) return edge; // No change needed
+          if (edge.animated === isHovered) {
+            return edge; // No change needed
+          }
 
           return {
             ...edge,
@@ -179,7 +181,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       return { edges: updatedEdges };
     }),
 
-  updateFromDBML: async (dbml: string, preservePositions: boolean = false) => {
+  updateFromDBML: async (dbml: string, preservePositions = false) => {
     if (get().isUpdating) {
       console.warn("Schema update already in progress");
       return;
@@ -210,7 +212,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       // Get existing node positions if preserving
       const existingNodes = preservePositions ? get().nodes : [];
       const existingPositions = new Map(
-        existingNodes.map((node) => [node.id, node.position]),
+        existingNodes.map((node) => [node.id, node.position])
       );
 
       const flowTables: FlowTable[] = result.tables.map(
@@ -225,7 +227,7 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
               y: 120 + Math.floor(index / 4) * 220,
             },
           };
-        },
+        }
       );
 
       const tableRegistry = new Map<string, FlowTable>();
@@ -249,17 +251,17 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
         const parentTable = tableRegistry.get(
           makeTableLookupKey(
             relationship.parent.schema,
-            relationship.parent.table,
-          ),
+            relationship.parent.table
+          )
         );
         const childTable = tableRegistry.get(
           makeTableLookupKey(
             relationship.child.schema,
-            relationship.child.table,
-          ),
+            relationship.child.table
+          )
         );
 
-        if (!parentTable || !childTable) {
+        if (!(parentTable && childTable)) {
           derivedWarnings.push({
             message: "Relationship references unknown table",
             context: `${relationship.parent.schema}.${relationship.parent.table} -> ${relationship.child.schema}.${relationship.child.table}`,
@@ -268,13 +270,13 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
         }
 
         const parentColumn = parentTable.columns.find(
-          (column) => column.name === relationship.parent.column,
+          (column) => column.name === relationship.parent.column
         );
         const childColumn = childTable.columns.find(
-          (column) => column.name === relationship.child.column,
+          (column) => column.name === relationship.child.column
         );
 
-        if (!parentColumn || !childColumn) {
+        if (!(parentColumn && childColumn)) {
           derivedWarnings.push({
             message: "Relationship references unknown column",
             context: `${parentTable.displayLabel}.${relationship.parent.column} -> ${childTable.displayLabel}.${relationship.child.column}`,

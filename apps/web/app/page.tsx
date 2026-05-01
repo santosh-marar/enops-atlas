@@ -1,23 +1,23 @@
 "use client";
-import { useRef, useState } from "react";
-import { db } from "@/lib/db";
-import DBMLEditor from "@/components/custom/dbml-editor";
-import XYFlows from "@/components/custom/xyflows";
-import { TopToolbar } from "@/components/custom/top-toolbar";
-import { Sidebar } from "@/components/custom/sidebar";
-import { useSchemaStore } from "@/store/use-schema-store";
-import { useProjectManager } from "@/hooks/use-project-manager";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { ProjectDialogs } from "@/components/custom/toolbar/project-dialogs";
 import { AIChat } from "@/components/custom/ai-chat";
 import {
   AITechStackDialog,
-  TechStack,
   getSavedTechStack,
+  type TechStack,
 } from "@/components/custom/ai-tech-stack-dialog";
 import { APISettingsDialog } from "@/components/custom/api-settings-dialog";
+import DBMLEditor from "@/components/custom/dbml-editor";
+import { Sidebar } from "@/components/custom/sidebar";
+import { ProjectDialogs } from "@/components/custom/toolbar/project-dialogs";
+import { TopToolbar } from "@/components/custom/top-toolbar";
+import XYFlows from "@/components/custom/xyflows";
+import { Button } from "@/components/ui/button";
+import { useProjectManager } from "@/hooks/use-project-manager";
+import { db } from "@/lib/db";
+import { useSchemaStore } from "@/store/use-schema-store";
 
 export default function Home() {
   const flowContainerRef = useRef<HTMLDivElement>(null);
@@ -223,35 +223,35 @@ export default function Home() {
   return (
     <div className="flex h-screen w-full flex-col">
       <TopToolbar
+        confirmNewProject={confirmNewProject}
         flowContainerRef={flowContainerRef}
         handleNewWithConfirmation={handleNewWithConfirmation}
-        confirmNewProject={confirmNewProject}
-        showNewProjectDialog={showNewProjectDialog}
-        onNewProjectDialogChange={setShowNewProjectDialog}
-        onConfirmNew={confirmNewProject}
         onBrowse={handleBrowse}
+        onConfirmNew={confirmNewProject}
+        onNewProjectDialogChange={setShowNewProjectDialog}
+        showNewProjectDialog={showNewProjectDialog}
       />
       <div className="flex h-[calc(100vh-3rem)] w-full overflow-hidden">
-        <aside className="shrink-0 border-r border-border bg-background">
+        <aside className="shrink-0 border-border border-r bg-background">
           <Sidebar
-            onNew={handleNewWithConfirmation}
-            onBrowse={handleBrowse}
-            onAI={handleAIClick}
-            onToggleEditor={handleToggleEditor}
-            isEditorOpen={showIde}
             isAIOpen={showAIChat}
+            isEditorOpen={showIde}
+            onAI={handleAIClick}
+            onBrowse={handleBrowse}
+            onNew={handleNewWithConfirmation}
+            onToggleEditor={handleToggleEditor}
           />
         </aside>
 
-        <main className="flex flex-1 overflow-hidden relative">
+        <main className="relative flex flex-1 overflow-hidden">
           {/* Toggle button for IDE/AI Chat */}
           {!showAIChat && (
             <Button
-              onClick={handleToggleEditor}
-              title={showIde ? "Close IDE" : "Open IDE"}
-              className={`absolute h-14 w-2 top-14 z-10 transition-all bg-card px-4 py-2 backdrop-blur-sm hover:bg-accent ${
+              className={`absolute top-14 z-10 h-14 w-2 bg-card px-4 py-2 backdrop-blur-sm transition-all hover:bg-accent ${
                 showIde ? "left-[576px]" : "left-0"
               }`}
+              onClick={handleToggleEditor}
+              title={showIde ? "Close IDE" : "Open IDE"}
             >
               {showIde ? (
                 <ChevronLeft className="h-5 w-5 text-primary" />
@@ -264,9 +264,9 @@ export default function Home() {
           {/* AI Chat toggle button */}
           {showAIChat && (
             <Button
+              className="absolute top-13 left-[576px] z-10 h-12 w-4 rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm transition-all hover:bg-accent"
               onClick={() => setShowAIChat(false)}
               title="Close AI Chat"
-              className="absolute h-12 w-4 top-13 left-[576px] z-10 transition-all rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm hover:bg-accent"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -274,42 +274,42 @@ export default function Home() {
 
           {/* Show either IDE or AI Chat, not both */}
           {showIde && !showAIChat && (
-            <div className="min-w-xl max-w-xl shrink-0 border-r border-border bg-background relative z-10">
+            <div className="relative z-10 min-w-xl max-w-xl shrink-0 border-border border-r bg-background">
               <DBMLEditor />
             </div>
           )}
 
           {showAIChat && currentProject?.id && (
-            <div className="min-w-xl max-w-xl shrink-0 border-r border-border bg-background relative z-10">
+            <div className="relative z-10 min-w-xl max-w-xl shrink-0 border-border border-r bg-background">
               <AIChat
-                key={`ai-chat-${currentProject.id}`}
                 isOpen={showAIChat}
+                key={`ai-chat-${currentProject.id}`}
                 onClose={() => setShowAIChat(false)}
-                onSchemaGenerated={handleSchemaGenerated}
                 onOpenSettings={() => setShowAISettings(true)}
                 onOpenTechStack={() => setShowTechStackDialog(true)}
+                onSchemaGenerated={handleSchemaGenerated}
                 projectId={currentProject.id as string}
               />
             </div>
           )}
 
-          <div className="flex-1 h-full" ref={flowContainerRef}>
+          <div className="h-full flex-1" ref={flowContainerRef}>
             <XYFlows />
           </div>
         </main>
 
         <ProjectDialogs
-          showProjectBrowser={showProjectBrowser}
-          onProjectBrowserChange={setShowProjectBrowser}
-          projects={projects}
-          onOpenProject={handleOpenProjectWithClose}
-          showNewProjectDialog={showNewProjectDialog}
-          onNewProjectDialogChange={setShowNewProjectDialog}
-          onConfirmNew={confirmNewProject}
-          showDeleteDialog={false}
-          onDeleteDialogChange={() => {}}
           onConfirmDelete={async () => {}}
+          onConfirmNew={confirmNewProject}
+          onDeleteDialogChange={() => {}}
+          onNewProjectDialogChange={setShowNewProjectDialog}
+          onOpenProject={handleOpenProjectWithClose}
+          onProjectBrowserChange={setShowProjectBrowser}
           projectName={projectName}
+          projects={projects}
+          showDeleteDialog={false}
+          showNewProjectDialog={showNewProjectDialog}
+          showProjectBrowser={showProjectBrowser}
         />
 
         {/* AI Dialogs */}
@@ -321,8 +321,8 @@ export default function Home() {
         />
 
         <APISettingsDialog
-          open={showAISettings}
           onOpenChange={setShowAISettings}
+          open={showAISettings}
         />
       </div>
     </div>

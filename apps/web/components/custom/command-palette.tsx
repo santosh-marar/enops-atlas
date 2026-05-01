@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
 import { Search } from "lucide-react";
-import { formatShortcut } from "@/hooks/use-keyboard-shortcuts";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatShortcut } from "@/hooks/use-keyboard-shortcuts";
 
 interface Command {
-  id: string;
-  label: string;
+  action: () => void;
+  category: string;
   description?: string;
   icon: React.ComponentType<{ className?: string }>;
+  id: string;
+  label: string;
   shortcut?: {
     key: string;
     ctrl?: boolean;
@@ -19,14 +21,12 @@ interface Command {
     description: string;
     category: string;
   };
-  action: () => void;
-  category: string;
 }
 
 interface CommandPaletteProps {
+  commands: Command[];
   isOpen: boolean;
   onClose: () => void;
-  commands: Command[];
 }
 
 export function CommandPalette({
@@ -38,14 +38,16 @@ export function CommandPalette({
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const filteredCommands = useMemo(() => {
-    if (!search) return commands;
+    if (!search) {
+      return commands;
+    }
 
     const searchLower = search.toLowerCase();
     return commands.filter(
       (cmd) =>
         cmd.label.toLowerCase().includes(searchLower) ||
         cmd.description?.toLowerCase().includes(searchLower) ||
-        cmd.category.toLowerCase().includes(searchLower),
+        cmd.category.toLowerCase().includes(searchLower)
     );
   }, [commands, search]);
 
@@ -68,13 +70,15 @@ export function CommandPalette({
 
   // Handle keyboard navigation
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < filteredCommands.length - 1 ? prev + 1 : prev,
+          prev < filteredCommands.length - 1 ? prev + 1 : prev
         );
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
@@ -103,34 +107,34 @@ export function CommandPalette({
   let currentIndex = 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog onOpenChange={onClose} open={isOpen}>
       <DialogContent
-        className="min-w-xl max-w-2xl p-0 gap-0 top-[20vh] translate-y-0"
+        className="top-[20vh] min-w-xl max-w-2xl translate-y-0 gap-0 p-0"
         showCloseButton={false}
       >
         {/* Search Input */}
-        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <div className="flex items-center gap-3 border-border border-b px-4 py-3">
           <Search className="h-5 w-5 text-muted-foreground" />
           <Input
-            type="text"
-            placeholder="Search commands..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 p-1 h-auto "
             autoFocus
+            className="h-auto flex-1 border-0 bg-transparent p-1 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search commands..."
+            type="text"
+            value={search}
           />
         </div>
 
         {/* Commands List */}
         <div className="max-h-96 overflow-y-auto p-2">
           {Object.keys(groupedCommands).length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
+            <div className="py-8 text-center text-muted-foreground text-sm">
               No commands found
             </div>
           ) : (
             Object.entries(groupedCommands).map(([category, cmds]) => (
-              <div key={category} className="mb-4 last:mb-0">
-                <div className="mb-1 px-2 text-xs font-semibold text-muted-foreground">
+              <div className="mb-4 last:mb-0" key={category}>
+                <div className="mb-1 px-2 font-semibold text-muted-foreground text-xs">
                   {category}
                 </div>
                 {cmds.map((cmd) => {
@@ -139,16 +143,16 @@ export function CommandPalette({
 
                   return (
                     <button
-                      key={cmd.id}
-                      onClick={() => {
-                        cmd.action();
-                        onClose();
-                      }}
                       className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors ${
                         isSelected
                           ? "bg-primary text-primary-foreground"
                           : "hover:bg-muted"
                       }`}
+                      key={cmd.id}
+                      onClick={() => {
+                        cmd.action();
+                        onClose();
+                      }}
                       onMouseEnter={() => setSelectedIndex(index)}
                     >
                       <div className="flex items-center gap-3">
@@ -174,7 +178,7 @@ export function CommandPalette({
                       </div>
                       {cmd.shortcut && (
                         <kbd
-                          className={`rounded border px-2 py-0.5 text-xs font-mono ${
+                          className={`rounded border px-2 py-0.5 font-mono text-xs ${
                             isSelected
                               ? "border-primary-foreground/30 bg-primary-foreground/20"
                               : "border-border bg-muted"
@@ -192,7 +196,7 @@ export function CommandPalette({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border px-4 py-4 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between border-border border-t px-4 py-4 text-muted-foreground text-xs">
           <div className="flex gap-4">
             <span>
               <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono">

@@ -1,4 +1,5 @@
 import { FolderOpen } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,35 +9,34 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 
 interface Project {
+  createdAt: Date;
+  dbml: string;
+  edges?: any[];
   id?: string;
   name: string;
-  dbml: string;
   nodes?: any[];
-  edges?: any[];
-  createdAt: Date;
   updatedAt: Date;
 }
 
 interface ProjectDialogsProps {
-  // Browser dialog
-  showProjectBrowser: boolean;
-  onProjectBrowserChange: (show: boolean) => void;
-  projects: Project[];
-  onOpenProject: (project: Project) => void;
-
-  // New project dialog
-  showNewProjectDialog: boolean;
-  onNewProjectDialogChange: (show: boolean) => void;
+  onConfirmDelete: () => void;
   onConfirmNew: () => void;
+  onDeleteDialogChange: (show: boolean) => void;
+  onNewProjectDialogChange: (show: boolean) => void;
+  onOpenProject: (project: Project) => void;
+  onProjectBrowserChange: (show: boolean) => void;
+  projectName: string;
+  projects: Project[];
 
   // Delete dialog
   showDeleteDialog: boolean;
-  onDeleteDialogChange: (show: boolean) => void;
-  onConfirmDelete: () => void;
-  projectName: string;
+
+  // New project dialog
+  showNewProjectDialog: boolean;
+  // Browser dialog
+  showProjectBrowser: boolean;
 }
 
 export function ProjectDialogs({
@@ -55,7 +55,7 @@ export function ProjectDialogs({
   return (
     <>
       {/* Project Browser Modal */}
-      <Dialog open={showProjectBrowser} onOpenChange={onProjectBrowserChange}>
+      <Dialog onOpenChange={onProjectBrowserChange} open={showProjectBrowser}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Browse Projects</DialogTitle>
@@ -64,19 +64,19 @@ export function ProjectDialogs({
 
           <div className="max-h-96 space-y-2 overflow-y-auto">
             {projects.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
+              <p className="py-8 text-center text-muted-foreground text-sm">
                 No projects found. Create your first project!
               </p>
             ) : (
               projects.map((project) => (
                 <button
+                  className="flex w-full items-center justify-between rounded-md border border-border p-3 text-left transition-colors hover:bg-muted"
                   key={project.id}
                   onClick={() => onOpenProject(project)}
-                  className="flex w-full items-center justify-between rounded-md border border-border p-3 text-left transition-colors hover:bg-muted"
                 >
                   <div>
                     <div className="font-medium">{project.name}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-muted-foreground text-xs">
                       Updated: {new Date(project.updatedAt).toLocaleString()}
                     </div>
                   </div>
@@ -90,8 +90,8 @@ export function ProjectDialogs({
 
       {/* New Project Confirmation Dialog */}
       <Dialog
-        open={showNewProjectDialog}
         onOpenChange={onNewProjectDialogChange}
+        open={showNewProjectDialog}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -106,11 +106,11 @@ export function ProjectDialogs({
 
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => {
                 toast.info("Canceled creating new project");
                 onNewProjectDialogChange(false);
               }}
+              variant="outline"
             >
               Cancel
             </Button>
@@ -120,7 +120,7 @@ export function ProjectDialogs({
       </Dialog>
 
       {/* Delete Project Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={onDeleteDialogChange}>
+      <Dialog onOpenChange={onDeleteDialogChange} open={showDeleteDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-destructive">
@@ -134,12 +134,12 @@ export function ProjectDialogs({
 
           <DialogFooter>
             <Button
-              variant="outline"
               onClick={() => onDeleteDialogChange(false)}
+              variant="outline"
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={onConfirmDelete}>
+            <Button onClick={onConfirmDelete} variant="destructive">
               Delete Project
             </Button>
           </DialogFooter>

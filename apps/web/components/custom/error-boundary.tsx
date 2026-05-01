@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, ErrorInfo, ReactNode } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface Props {
   children: ReactNode;
@@ -9,8 +9,8 @@ interface Props {
 }
 
 interface State {
-  hasError: boolean;
   error: Error | null;
+  hasError: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -39,17 +39,17 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-md space-y-4 rounded-lg border border-destructive/50 bg-destructive/10 p-6">
             <div className="flex items-center gap-2">
               <span className="text-2xl">⚠️</span>
-              <h2 className="text-lg font-semibold text-destructive">
+              <h2 className="font-semibold text-destructive text-lg">
                 Something went wrong
               </h2>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {this.state.error?.message ||
                 "An unexpected error occurred while rendering this component."}
             </p>
             <button
+              className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm hover:bg-primary/90"
               onClick={() => this.setState({ hasError: false, error: null })}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Try again
             </button>

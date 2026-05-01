@@ -1,31 +1,30 @@
 import {
+  FolderOpen,
+  Github,
+  HelpCircle,
+  ImageIcon,
+  Moon,
   Plus,
   Save,
-  FolderOpen,
-  Trash2,
-  ImageIcon,
-  HelpCircle,
-  Github,
-  Search,
-  Moon,
   Sun,
+  Trash2,
 } from "lucide-react";
 
 export interface ShortcutConfig {
-  key: string;
-  ctrl?: boolean;
-  shift?: boolean;
   alt?: boolean;
-  description: string;
   category: string;
+  ctrl?: boolean;
+  description: string;
+  key: string;
+  shift?: boolean;
 }
 
 export interface CommandConfig {
-  id: string;
-  label: string;
+  category: string;
   description: string;
   icon: any;
-  category: string;
+  id: string;
+  label: string;
   shortcut?: ShortcutConfig;
 }
 
@@ -97,7 +96,7 @@ export function createCommands(
   handleBrowse: () => void,
   handleDelete: () => void,
   handleExportImage: (format: "png" | "jpeg" | "svg") => void,
-  setShowHelpDialog: (show: boolean) => void,
+  setShowHelpDialog: (show: boolean) => void
 ): CommandConfig[] {
   return [
     {

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,19 +11,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
 import { db } from "@/lib/db";
 
 export interface TechStack {
-  database: string;
-  orm: string;
-  language: string;
-  backendFramework: string;
   authLibrary: string;
+  backendFramework: string;
   billingLibrary: string;
+  database: string;
   description?: string;
+  language: string;
+  orm: string;
 }
 
 interface AITechStackDialogProps {
@@ -52,12 +52,12 @@ export async function getSavedTechStack(): Promise<TechStack | null> {
 
 export async function saveTechStack(
   techStack: TechStack,
-  projectId: string,
+  projectId: string
 ): Promise<void> {
   try {
     if (!projectId) {
       throw new Error(
-        "Cannot save tech stack without a project ID. Please save the project first.",
+        "Cannot save tech stack without a project ID. Please save the project first."
       );
     }
 
@@ -142,8 +142,8 @@ export function AITechStackDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="py-6 min-w-xl max-w-2xl overflow-y-auto">
+    <Dialog onOpenChange={onClose} open={isOpen}>
+      <DialogContent className="min-w-xl max-w-2xl overflow-y-auto py-6">
         <DialogHeader>
           <DialogTitle>Generate Schema with AI</DialogTitle>
           <DialogDescription>
@@ -158,10 +158,10 @@ export function AITechStackDialog({
             <div className="space-y-2">
               <Label htmlFor="database">Database</Label>
               <select
-                id="database"
-                value={techStack.database}
-                onChange={(e) => handleChange("database", e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                id="database"
+                onChange={(e) => handleChange("database", e.target.value)}
+                value={techStack.database}
               >
                 <option value="postgresql">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
@@ -172,10 +172,10 @@ export function AITechStackDialog({
             <div className="space-y-2">
               <Label htmlFor="orm">ORM</Label>
               <select
-                id="orm"
-                value={techStack.orm}
-                onChange={(e) => handleChange("orm", e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                id="orm"
+                onChange={(e) => handleChange("orm", e.target.value)}
+                value={techStack.orm}
               >
                 <option value="prisma">Prisma</option>
                 <option value="drizzle">Drizzle ORM</option>
@@ -186,10 +186,10 @@ export function AITechStackDialog({
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
               <select
-                id="language"
-                value={techStack.language}
-                onChange={(e) => handleChange("language", e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                id="language"
+                onChange={(e) => handleChange("language", e.target.value)}
+                value={techStack.language}
               >
                 <option value="typescript">TypeScript</option>
               </select>
@@ -199,12 +199,12 @@ export function AITechStackDialog({
             <div className="space-y-2">
               <Label htmlFor="backend">Backend Framework</Label>
               <select
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 id="backend"
-                value={techStack.backendFramework}
                 onChange={(e) =>
                   handleChange("backendFramework", e.target.value)
                 }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                value={techStack.backendFramework}
               >
                 <option value="nextjs">Next.js</option>
               </select>
@@ -214,10 +214,10 @@ export function AITechStackDialog({
             <div className="space-y-2">
               <Label htmlFor="auth">Auth Library</Label>
               <select
-                id="auth"
-                value={techStack.authLibrary}
-                onChange={(e) => handleChange("authLibrary", e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                id="auth"
+                onChange={(e) => handleChange("authLibrary", e.target.value)}
+                value={techStack.authLibrary}
               >
                 <option value="clerk">Clerk</option>
                 <option value="next-auth">NextAuth.js</option>
@@ -235,10 +235,10 @@ export function AITechStackDialog({
             <div className="space-y-2">
               <Label htmlFor="billing">Payment Provider</Label>
               <select
-                id="billing"
-                value={techStack.billingLibrary}
-                onChange={(e) => handleChange("billingLibrary", e.target.value)}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                id="billing"
+                onChange={(e) => handleChange("billingLibrary", e.target.value)}
+                value={techStack.billingLibrary}
               >
                 <option value="stripe">Stripe</option>
                 <option value="paddle">Paddle</option>
@@ -257,21 +257,21 @@ export function AITechStackDialog({
           <div className="space-y-2">
             <Label htmlFor="description">Project Description (optional)</Label>
             <Textarea
+              className="resize-none"
               id="description"
-              value={techStack.description}
               onChange={(e) => handleChange("description", e.target.value)}
               placeholder="Describe your project... e.g., 'A social media platform for developers with posts, comments, likes, user profiles, and direct messaging'"
               rows={6}
-              className="resize-none"
+              value={techStack.description}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Provide a detailed description of your project, including key
               features and relationships.
             </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
+            <Button onClick={onClose} variant="outline">
               Cancel
             </Button>
             <Button onClick={handleGenerate}>Save</Button>

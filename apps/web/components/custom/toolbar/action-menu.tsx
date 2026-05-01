@@ -1,22 +1,22 @@
-import { useState, useRef, useEffect } from "react";
 import {
   ChevronDown,
-  Plus,
-  FolderOpen,
-  Trash2,
-  Download,
-  ImageIcon,
   Code2,
+  Download,
+  FolderOpen,
+  ImageIcon,
+  Plus,
+  Trash2,
 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ActionMenuProps {
-  onNew: () => void;
+  hasCurrentProject: boolean;
   onBrowse: () => void;
   onDelete: () => void;
   onExport: (format: "png" | "jpeg" | "svg") => void;
   onExportSchema?: () => void;
-  hasCurrentProject: boolean;
+  onNew: () => void;
 }
 
 export function ActionMenu({
@@ -71,31 +71,31 @@ export function ActionMenu({
       </Button>
 
       {showActionMenu && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-lg">
+        <div className="absolute top-full left-0 z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-lg">
           <button
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
             onClick={() => {
               onNew();
               setShowActionMenu(false);
             }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
           >
             <Plus className="h-4 w-4" />
             New Project
           </button>
           <button
-            onClick={onBrowse}
             className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+            onClick={onBrowse}
           >
             <FolderOpen className="h-4 w-4" />
             Browse Projects
           </button>
           <button
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!hasCurrentProject}
             onClick={() => {
               onDelete();
               setShowActionMenu(false);
             }}
-            disabled={!hasCurrentProject}
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
             Delete Project
@@ -103,8 +103,8 @@ export function ActionMenu({
           <div className="h-px bg-border" />
           <div className="relative">
             <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
               className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+              onClick={() => setShowExportMenu(!showExportMenu)}
             >
               <div className="flex items-center gap-2">
                 <Download className="h-4 w-4" />
@@ -115,44 +115,44 @@ export function ActionMenu({
 
             {showExportMenu && (
               <div
-                className="absolute left-full top-0 ml-1 w-56 rounded-md border border-border bg-card shadow-lg"
+                className="absolute top-0 left-full ml-1 w-56 rounded-md border border-border bg-card shadow-lg"
                 ref={exportMenuRef}
               >
-                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+                <div className="px-2 py-1 font-semibold text-muted-foreground text-xs">
                   Export Diagram
                 </div>
                 <button
-                  onClick={() => handleExport("png")}
                   className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+                  onClick={() => handleExport("png")}
                 >
                   <ImageIcon className="h-4 w-4" />
                   Export as PNG
                 </button>
                 <button
-                  onClick={() => handleExport("jpeg")}
                   className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+                  onClick={() => handleExport("jpeg")}
                 >
                   <ImageIcon className="h-4 w-4" />
                   Export as JPEG
                 </button>
                 <button
-                  onClick={() => handleExport("svg")}
                   className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+                  onClick={() => handleExport("svg")}
                 >
                   <ImageIcon className="h-4 w-4" />
                   Export as SVG
                 </button>
-                <div className="h-px bg-border my-1" />
-                <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+                <div className="my-1 h-px bg-border" />
+                <div className="px-2 py-1 font-semibold text-muted-foreground text-xs">
                   Export Schema
                 </div>
                 <button
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
                   onClick={() => {
                     onExportSchema?.();
                     setShowExportMenu(false);
                     setShowActionMenu(false);
                   }}
-                  className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
                 >
                   <Code2 className="h-4 w-4" />
                   Export for ORM/DB

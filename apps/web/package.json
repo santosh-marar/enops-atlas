@@ -1,19 +1,19 @@
 {
   "name": "enops",
+  "version": "0.1.0",
+  "private": false,
+  "author": {
+    "name": "santosh marar",
+    "url": "https://x.com/santosh_marar"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "test": "tsc -p tsconfig.test.json && node .test-dist/tests/schema-transformer.test.js && node -e \"require('fs').rmSync('.test-dist', { recursive: true, force: true });\"",
-    "prepare": "husky",
     "check": "ultracite check",
-    "lint:fix": "ultracite fix"
-  },
-  "version": "0.1.0",
-  "private": true,
-  "author": {
-    "name": "santosh marar",
-    "url": "https://x.com/santosh_marar"
+    "lint:fix": "ultracite fix",
+    "prepare": "husky install && chmod +x .husky/_/*"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.63",

@@ -1,42 +1,42 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useSchemaStore } from "@/store/use-schema-store";
-import { useTheme } from "next-themes";
 import {
-  Save,
+  Crown,
   Github,
   HelpCircle,
   Loader2,
   Moon,
-  Sun,
+  Save,
   Settings,
-  Crown,
+  Sun,
 } from "lucide-react";
 import Image from "next/image";
-import { CommandPalette } from "./command-palette";
-import { HelpDialog } from "./help-dialog";
+import Link from "next/link";
+import { useTheme } from "next-themes";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useImageExport } from "@/hooks/use-image-export";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useProjectManager } from "@/hooks/use-project-manager";
-import { useImageExport } from "@/hooks/use-image-export";
-import { SHORTCUT_CONFIGS, createCommands } from "@/lib/shortcuts-config";
-import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
-import { ActionMenu } from "./toolbar/action-menu";
-import { ProjectNameEditor } from "./toolbar/project-name-editor";
-import { ProjectDialogs } from "./toolbar/project-dialogs";
-import { APISettingsDialog } from "./api-settings-dialog";
-import { AIExportDialog } from "./ai-export-dialog";
+import { createCommands, SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
+import { useSchemaStore } from "@/store/use-schema-store";
 import { Button } from "../ui/button";
-import Link from "next/link";
+import { AIExportDialog } from "./ai-export-dialog";
+import { APISettingsDialog } from "./api-settings-dialog";
+import { CommandPalette } from "./command-palette";
+import { HelpDialog } from "./help-dialog";
+import { ActionMenu } from "./toolbar/action-menu";
+import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
+import { ProjectDialogs } from "./toolbar/project-dialogs";
+import { ProjectNameEditor } from "./toolbar/project-name-editor";
 
 interface TopToolbarProps {
+  confirmNewProject: () => void;
   flowContainerRef?: React.RefObject<HTMLDivElement | null>;
   handleNewWithConfirmation: () => void;
-  confirmNewProject: () => void;
-  showNewProjectDialog: boolean;
-  onNewProjectDialogChange: (show: boolean) => void;
-  onConfirmNew: () => void;
   onBrowse: () => void;
+  onConfirmNew: () => void;
+  onNewProjectDialogChange: (show: boolean) => void;
+  showNewProjectDialog: boolean;
 }
 
 export function TopToolbar({
@@ -146,7 +146,9 @@ export function TopToolbar({
     shortcuts: shortcuts.map((s) => ({
       ...s,
       action: () => {
-        if (showCommandPalette || showHelpDialog || showProjectBrowser) return;
+        if (showCommandPalette || showHelpDialog || showProjectBrowser) {
+          return;
+        }
         s.action();
       },
     })),
@@ -162,7 +164,7 @@ export function TopToolbar({
     onBrowse,
     handleDeleteWithDialog,
     handleExportImage,
-    setShowHelpDialog,
+    setShowHelpDialog
   ).map((cmd) => ({
     ...cmd,
     action: () => {
@@ -216,7 +218,7 @@ export function TopToolbar({
       autoSaveTimerRef.current = setTimeout(() => {
         handleSave();
         lastSavedContentRef.current = dbml;
-      }, 30000); // 30 seconds
+      }, 30_000); // 30 seconds
     }
 
     return () => {
@@ -236,21 +238,29 @@ export function TopToolbar({
 
   // Format last saved time
   const formatLastSaved = () => {
-    if (!lastSaved) return "Never";
+    if (!lastSaved) {
+      return "Never";
+    }
     const now = new Date();
     const diff = Math.floor((now.getTime() - lastSaved.getTime()) / 1000);
 
-    if (diff < 60) return "Just now";
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 60) {
+      return "Just now";
+    }
+    if (diff < 3600) {
+      return `${Math.floor(diff / 60)}m ago`;
+    }
+    if (diff < 86_400) {
+      return `${Math.floor(diff / 3600)}h ago`;
+    }
     return lastSaved.toLocaleDateString();
   };
 
   return (
     <>
       <ExportLoadingOverlay
-        isExporting={isExporting}
         isCancelling={isCancelling}
+        isExporting={isExporting}
         onCancel={handleCancelExport}
       />
 
@@ -259,42 +269,42 @@ export function TopToolbar({
         <div className="flex items-center gap-4">
           <div className="flex items-center">
             <Image
-              src="/logo.png"
               alt="Enops.dev Logo"
-              width={48}
-              height={48}
               className="rounded-full"
+              height={48}
+              src="/logo.png"
+              width={48}
             />
-            <span className="text-sm font-bold">Enops</span>
+            <span className="font-bold text-sm">Enops</span>
           </div>
 
           <ActionMenu
-            onNew={handleNewWithConfirmation}
+            hasCurrentProject={!!currentProject}
             onBrowse={onBrowse}
             onDelete={handleDeleteWithDialog}
             onExport={handleExportImage}
-            hasCurrentProject={!!currentProject}
+            onNew={handleNewWithConfirmation}
           />
 
           <Button
-            variant={"ghost"}
-            size={"sm"}
             onClick={() => setShowHelpDialog(true)}
+            size={"sm"}
+            variant={"ghost"}
           >
             <HelpCircle className="h-4 w-4" />
             Help
           </Button>
 
           <APISettingsDialog>
-            <Button variant="ghost" size={"sm"}>
+            <Button size={"sm"} variant="ghost">
               <Settings className="h-4 w-4" />
               AI Settings
             </Button>
           </APISettingsDialog>
 
-          <AIExportDialog nodes={nodes} edges={edges} />
+          <AIExportDialog edges={edges} nodes={nodes} />
 
-          <Button variant="outline" size={"sm"}>
+          <Button size={"sm"} variant="outline">
             <Link
               className="flex items-center justify-center gap-1"
               href={"https://cloud.enops.dev/pricing"}
@@ -306,17 +316,17 @@ export function TopToolbar({
 
         {/* Middle Section - Project Name */}
         <ProjectNameEditor
-          projectName={projectName}
-          onNameChange={setProjectName}
           onEditingChange={setIsEditingName}
+          onNameChange={setProjectName}
+          projectName={projectName}
         />
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             Saved: {formatLastSaved()}
           </span>
-          <Button onClick={handleSaveWithReset} disabled={isSaving} size={"sm"}>
+          <Button disabled={isSaving} onClick={handleSaveWithReset} size={"sm"}>
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -330,10 +340,10 @@ export function TopToolbar({
             )}
           </Button>
           <Button
-            variant={"ghost"}
-            size={"icon-sm"}
             onClick={toggleTheme}
+            size={"icon-sm"}
             title={`Toggle theme (Ctrl + Shift + ${SHORTCUT_CONFIGS.TOGGLE_THEME.key.toUpperCase()})`}
+            variant={"ghost"}
           >
             {theme === "dark" ? (
               <Sun className="h-4 w-4" />
@@ -341,11 +351,11 @@ export function TopToolbar({
               <Moon className="h-4 w-4" />
             )}
           </Button>
-          <Button asChild variant={"link"} size={"icon-sm"}>
+          <Button asChild size={"icon-sm"} variant={"link"}>
             <Link
               href="https://github.com/santosh-marar/enops.dev"
-              target="_blank"
               rel="noopener noreferrer"
+              target="_blank"
             >
               <Github className="h-4 w-4" />
             </Link>
@@ -354,23 +364,23 @@ export function TopToolbar({
       </div>
 
       <ProjectDialogs
-        showProjectBrowser={showProjectBrowser}
-        onProjectBrowserChange={setShowProjectBrowser}
-        projects={projects}
-        onOpenProject={handleOpenProjectWithClose}
-        showNewProjectDialog={showNewProjectDialog}
-        onNewProjectDialogChange={onNewProjectDialogChange}
-        onConfirmNew={confirmNewProject}
-        showDeleteDialog={showDeleteDialog}
-        onDeleteDialogChange={setShowDeleteDialog}
         onConfirmDelete={confirmDeleteProject}
+        onConfirmNew={confirmNewProject}
+        onDeleteDialogChange={setShowDeleteDialog}
+        onNewProjectDialogChange={onNewProjectDialogChange}
+        onOpenProject={handleOpenProjectWithClose}
+        onProjectBrowserChange={setShowProjectBrowser}
         projectName={projectName}
+        projects={projects}
+        showDeleteDialog={showDeleteDialog}
+        showNewProjectDialog={showNewProjectDialog}
+        showProjectBrowser={showProjectBrowser}
       />
 
       <CommandPalette
+        commands={commands}
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
-        commands={commands}
       />
 
       <HelpDialog

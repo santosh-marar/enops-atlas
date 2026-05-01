@@ -1,38 +1,38 @@
-import Dexie, { Table } from "dexie";
-import { Node, Edge } from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
+import Dexie, { type Table } from "dexie";
 
 export interface ChatMessage {
+  content: string;
   id: string;
   role: "user" | "assistant";
-  content: string;
 }
 
 export interface ProjectTechStack {
-  database: string;
-  orm: string;
-  language: string;
-  backendFramework: string;
   authLibrary: string;
+  backendFramework: string;
   billingLibrary: string;
+  database: string;
+  language: string;
+  orm: string;
 }
 
 export interface Project {
+  aiChatHistory?: ChatMessage[];
+  createdAt: Date;
+  dbml: string;
+  edges?: Edge[];
   id: string;
   name: string;
-  dbml: string;
   nodes?: Node[];
-  edges?: Edge[];
-  aiChatHistory?: ChatMessage[];
   techStack?: ProjectTechStack;
-  createdAt: Date;
   updatedAt: Date;
 }
 
 export interface AISettings {
-  id?: string;
-  provider: "claude" | "gpt";
   claudeApiKey?: string;
+  id?: string;
   openaiApiKey?: string;
+  provider: "claude" | "gpt";
   updatedAt: Date;
 }
 
@@ -48,17 +48,25 @@ export class AppDatabase extends Dexie {
         projects: "id, name, createdAt, updatedAt", // 'id' is primary key, others are indexes
         aiSettings: "++id, updatedAt",
       })
-      .upgrade((tx) => {
-        return tx
+      .upgrade((tx) =>
+        tx
           .table("projects")
           .toCollection()
           .modify((project) => {
-            if (!project.nodes) project.nodes = [];
-            if (!project.edges) project.edges = [];
-            if (!project.aiChatHistory) project.aiChatHistory = [];
-            if (!project.techStack) project.techStack = null;
-          });
-      });
+            if (!project.nodes) {
+              project.nodes = [];
+            }
+            if (!project.edges) {
+              project.edges = [];
+            }
+            if (!project.aiChatHistory) {
+              project.aiChatHistory = [];
+            }
+            if (!project.techStack) {
+              project.techStack = null;
+            }
+          })
+      );
   }
 }
 

@@ -1,19 +1,19 @@
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 export interface KeyboardShortcut {
-  key: string;
-  ctrl?: boolean;
-  shift?: boolean;
-  alt?: boolean;
-  meta?: boolean;
-  description: string;
-  category: string;
   action: () => void;
+  alt?: boolean;
+  category: string;
+  ctrl?: boolean;
+  description: string;
+  key: string;
+  meta?: boolean;
+  shift?: boolean;
 }
 
 interface UseKeyboardShortcutsOptions {
-  shortcuts: KeyboardShortcut[];
   enabled?: boolean;
+  shortcuts: KeyboardShortcut[];
 }
 
 export function useKeyboardShortcuts({
@@ -22,7 +22,9 @@ export function useKeyboardShortcuts({
 }: UseKeyboardShortcutsOptions) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!enabled) return;
+      if (!enabled) {
+        return;
+      }
 
       // Don't trigger shortcuts when typing in input fields
       const target = e.target as HTMLElement;
@@ -38,7 +40,7 @@ export function useKeyboardShortcuts({
         const keyMatches = e.key.toLowerCase() === shortcut.key.toLowerCase();
         const ctrlMatches = shortcut.ctrl
           ? e.ctrlKey || e.metaKey
-          : !e.ctrlKey && !e.metaKey;
+          : !(e.ctrlKey || e.metaKey);
         const shiftMatches = shortcut.shift ? e.shiftKey : !e.shiftKey;
         const altMatches = shortcut.alt ? e.altKey : !e.altKey;
 
@@ -49,7 +51,7 @@ export function useKeyboardShortcuts({
         }
       }
     },
-    [shortcuts, enabled],
+    [shortcuts, enabled]
   );
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export function useKeyboardShortcuts({
 }
 
 export function formatShortcut(
-  shortcut: Pick<KeyboardShortcut, "key" | "ctrl" | "shift" | "alt" | "meta">,
+  shortcut: Pick<KeyboardShortcut, "key" | "ctrl" | "shift" | "alt" | "meta">
 ): string {
   const isMac =
     typeof window !== "undefined" &&

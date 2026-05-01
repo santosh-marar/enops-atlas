@@ -1,6 +1,6 @@
-import { MAX_TOKENS, TEMPERATURE } from "@/constant/ai";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { MAX_TOKENS, TEMPERATURE } from "@/constant/ai";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   prisma: `You are an expert in Prisma ORM. Generate clean, production-ready Prisma schema code with:
@@ -102,11 +102,12 @@ Table posts {
 Ref: posts.userId > users.id [delete: cascade]`;
 
 export interface AIGenerateOptions {
-  provider: "claude" | "gpt";
   apiKey: string;
-  prompt: string;
-  orm?: string;
   database?: string;
+  onStream?: (chunk: string) => void;
+  orm?: string;
+  prompt: string;
+  provider: "claude" | "gpt";
   techStack?: {
     database: string;
     orm: string;
@@ -115,7 +116,6 @@ export interface AIGenerateOptions {
     authLibrary: string;
     billingLibrary: string;
   };
-  onStream?: (chunk: string) => void;
 }
 
 export async function generateCode({
@@ -126,7 +126,7 @@ export async function generateCode({
   database,
   onStream,
 }: AIGenerateOptions): Promise<string> {
-  if (!orm || !database) {
+  if (!(orm && database)) {
     throw new Error("ORM and database are required");
   }
 
@@ -178,27 +178,27 @@ Output should be valid ${orm} schema code that can be copied and used immediatel
         .replace(/```$/g, "")
         .trim();
       return code;
-    } else {
-      const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-      });
-
-      const content = message.content[0];
-      if (content.type === "text") {
-        let code = content.text;
-        code = code
-          .replace(/```[\w]*\n/g, "")
-          .replace(/```$/g, "")
-          .trim();
-        return code;
-      }
-      throw new Error("No text content received");
     }
-  } else if (provider === "gpt") {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: MAX_TOKENS,
+      temperature: TEMPERATURE,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const content = message.content[0];
+    if (content.type === "text") {
+      let code = content.text;
+      code = code
+        .replace(/```[\w]*\n/g, "")
+        .replace(/```$/g, "")
+        .trim();
+      return code;
+    }
+    throw new Error("No text content received");
+  }
+  if (provider === "gpt") {
     const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
 
     if (onStream) {
@@ -228,24 +228,23 @@ Output should be valid ${orm} schema code that can be copied and used immediatel
         .replace(/```$/g, "")
         .trim();
       return code;
-    } else {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4-turbo",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: TEMPERATURE,
-        max_tokens: MAX_TOKENS,
-      });
-
-      let code = completion.choices[0]?.message?.content || "";
-      code = code
-        .replace(/```[\w]*\n/g, "")
-        .replace(/```$/g, "")
-        .trim();
-      return code;
     }
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: TEMPERATURE,
+      max_tokens: MAX_TOKENS,
+    });
+
+    let code = completion.choices[0]?.message?.content || "";
+    code = code
+      .replace(/```[\w]*\n/g, "")
+      .replace(/```$/g, "")
+      .trim();
+    return code;
   }
 
   throw new Error("Invalid provider");
@@ -299,24 +298,22 @@ Tech Stack Context:
       }
 
       return fullText;
-    } else {
-      const message = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
-        system: DBML_SYSTEM_PROMPT,
-        messages: [
-          { role: "user", content: `${techStackContext}\n\n${prompt}` },
-        ],
-      });
-
-      const content = message.content[0];
-      if (content.type === "text") {
-        return content.text;
-      }
-      throw new Error("No text content received");
     }
-  } else if (provider === "gpt") {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: MAX_TOKENS,
+      temperature: TEMPERATURE,
+      system: DBML_SYSTEM_PROMPT,
+      messages: [{ role: "user", content: `${techStackContext}\n\n${prompt}` }],
+    });
+
+    const content = message.content[0];
+    if (content.type === "text") {
+      return content.text;
+    }
+    throw new Error("No text content received");
+  }
+  if (provider === "gpt") {
     const openai = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
 
     if (onStream) {
@@ -341,19 +338,18 @@ Tech Stack Context:
       }
 
       return fullText;
-    } else {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4-turbo",
-        messages: [
-          { role: "system", content: fullPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: TEMPERATURE,
-        max_tokens: MAX_TOKENS,
-      });
-
-      return completion.choices[0]?.message?.content || "";
     }
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [
+        { role: "system", content: fullPrompt },
+        { role: "user", content: prompt },
+      ],
+      temperature: TEMPERATURE,
+      max_tokens: MAX_TOKENS,
+    });
+
+    return completion.choices[0]?.message?.content || "";
   }
 
   throw new Error("Invalid provider");

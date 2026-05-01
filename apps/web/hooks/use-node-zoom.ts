@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
 import { useReactFlow } from "@xyflow/react";
+import { useCallback, useState } from "react";
 
 interface UseNodeZoomOptions {
   duration?: number;
-  padding?: number;
-  minZoom?: number;
   maxZoom?: number;
+  minZoom?: number;
+  padding?: number;
 }
 
 export function useNodeZoom(options?: UseNodeZoomOptions) {
@@ -40,7 +40,7 @@ export function useNodeZoom(options?: UseNodeZoomOptions) {
         setZoomedNodeId(node.id);
       }
     },
-    [fitView, zoomedNodeId, duration, padding, minZoom, maxZoom],
+    [fitView, zoomedNodeId, duration, padding, minZoom, maxZoom]
   );
 
   const resetZoom = useCallback(() => {

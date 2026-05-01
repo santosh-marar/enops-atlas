@@ -1,6 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import type { Edge, Node } from "@xyflow/react";
+import {
+  Check,
+  Copy,
+  Download,
+  Settings as SettingsIcon,
+  Sparkles,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +20,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,28 +28,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Download,
-  Sparkles,
-  Copy,
-  Check,
-  Settings as SettingsIcon,
-} from "lucide-react";
-import { Node, Edge } from "@xyflow/react";
-import { db } from "@/lib/db";
-import { toast } from "sonner";
-import { APISettingsDialog } from "./api-settings-dialog";
 import { generateCode } from "@/lib/ai-client";
+import { db } from "@/lib/db";
+import { APISettingsDialog } from "./api-settings-dialog";
 
 type ORM = "prisma" | "drizzle" | "mongoose" | "typeorm" | "sequelize";
 type Database = "postgresql" | "mysql" | "mongodb" | "sqlite" | "mariadb";
 
 interface ExportDialogProps {
   children?: React.ReactNode;
-  nodes: Node[];
   edges: Edge[];
+  nodes: Node[];
 }
 
 const ormOptions = [
@@ -144,7 +144,9 @@ Please provide complete, production-ready code with:
   };
 
   const handleGenerate = async () => {
-    if (!selectedORM || !selectedDatabase) return;
+    if (!(selectedORM && selectedDatabase)) {
+      return;
+    }
 
     setIsGenerating(true);
     setGeneratedCode("");
@@ -164,7 +166,7 @@ Please provide complete, production-ready code with:
 
       if (!apiKey) {
         toast.error(
-          `Please add your ${provider === "claude" ? "Claude" : "OpenAI"} API key in settings`,
+          `Please add your ${provider === "claude" ? "Claude" : "OpenAI"} API key in settings`
         );
         setIsGenerating(false);
         setActiveTab("configure");
@@ -190,7 +192,7 @@ Please provide complete, production-ready code with:
     } catch (error: any) {
       toast.error(error.message || "Failed to generate code");
       setGeneratedCode(
-        `Error: ${error.message || "Failed to generate code. Please try again."}`,
+        `Error: ${error.message || "Failed to generate code. Please try again."}`
       );
     } finally {
       setIsGenerating(false);
@@ -225,7 +227,7 @@ Please provide complete, production-ready code with:
   };
 
   const filteredDatabases = databaseOptions.filter(
-    (db) => !selectedORM || db.compatibleWith.includes(selectedORM as string),
+    (db) => !selectedORM || db.compatibleWith.includes(selectedORM as string)
   );
 
   useEffect(() => {
@@ -240,16 +242,16 @@ Please provide complete, production-ready code with:
   }, [generatedCode, isGenerating]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         {children || (
-          <Button variant="ghost" size={"sm"}>
-            <Download className="h-4 w-4 mr-2" />
+          <Button size={"sm"} variant="ghost">
+            <Download className="mr-2 h-4 w-4" />
             Export Schema
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="min-w-2xl max-w-3xl max-h-[90vh] overflow-y-auto z-50">
+      <DialogContent className="z-50 max-h-[90vh] min-w-2xl max-w-3xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
@@ -257,7 +259,7 @@ Please provide complete, production-ready code with:
               AI-Powered Schema Export
             </DialogTitle>
             <APISettingsDialog>
-              <Button variant="ghost" size="sm">
+              <Button size="sm" variant="ghost">
                 <SettingsIcon className="h-4 w-4" />
               </Button>
             </APISettingsDialog>
@@ -268,28 +270,28 @@ Please provide complete, production-ready code with:
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs className="w-full" onValueChange={setActiveTab} value={activeTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="configure">Configure</TabsTrigger>
             <TabsTrigger
+              disabled={!(generatedCode || isGenerating)}
               value="preview"
-              disabled={!generatedCode && !isGenerating}
             >
               Preview & Export
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="configure" className="space-y-6">
+          <TabsContent className="space-y-6" value="configure">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="orm">Select ORM/ODM</Label>
                 <Select
-                  value={selectedORM}
                   onValueChange={(value) => {
                     setSelectedORM(value as ORM);
                     setSelectedDatabase("");
                     setGeneratedCode("");
                   }}
+                  value={selectedORM}
                 >
                   <SelectTrigger id="orm">
                     <SelectValue placeholder="Choose your ORM/ODM" />
@@ -299,7 +301,7 @@ Please provide complete, production-ready code with:
                       <SelectItem key={orm.value} value={orm.value}>
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{orm.label}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {orm.description}
                           </span>
                         </div>
@@ -312,12 +314,12 @@ Please provide complete, production-ready code with:
               <div className="space-y-2">
                 <Label htmlFor="database">Select Database</Label>
                 <Select
-                  value={selectedDatabase}
+                  disabled={!selectedORM}
                   onValueChange={(value) => {
                     setSelectedDatabase(value as Database);
                     setGeneratedCode("");
                   }}
-                  disabled={!selectedORM}
+                  value={selectedDatabase}
                 >
                   <SelectTrigger id="database">
                     <SelectValue placeholder="Choose your database" />
@@ -331,7 +333,7 @@ Please provide complete, production-ready code with:
                   </SelectContent>
                 </Select>
                 {selectedORM && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Showing databases compatible with{" "}
                     {ormOptions.find((o) => o.value === selectedORM)?.label}
                   </p>
@@ -339,13 +341,13 @@ Please provide complete, production-ready code with:
               </div>
 
               {selectedORM && selectedDatabase && (
-                <div className="rounded-lg border p-4 space-y-3 bg-muted/50">
+                <div className="space-y-3 rounded-lg border bg-muted/50 p-4">
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary">{selectedORM}</Badge>
-                    <span className="text-sm text-muted-foreground">+</span>
+                    <span className="text-muted-foreground text-sm">+</span>
                     <Badge variant="secondary">{selectedDatabase}</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     AI will generate optimized schema code based on your visual
                     design
                   </p>
@@ -355,18 +357,18 @@ Please provide complete, production-ready code with:
 
             <div className="flex justify-end gap-2">
               <Button
-                onClick={handleGenerate}
-                disabled={!selectedORM || !selectedDatabase || isGenerating}
                 className="w-full sm:w-auto"
+                disabled={!(selectedORM && selectedDatabase) || isGenerating}
+                onClick={handleGenerate}
               >
                 {isGenerating ? (
                   <>
-                    <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                    <Sparkles className="mr-2 h-4 w-4 animate-pulse" />
                     Generating...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="h-4 w-4 mr-2" />
+                    <Sparkles className="mr-2 h-4 w-4" />
                     Generate Code
                   </>
                 )}
@@ -374,13 +376,13 @@ Please provide complete, production-ready code with:
             </div>
           </TabsContent>
 
-          <TabsContent value="preview" className="space-y-4">
+          <TabsContent className="space-y-4" value="preview">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Label>Generated Code</Label>
                   {isGenerating && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1 text-muted-foreground text-xs">
                       <Sparkles className="h-3 w-3 animate-pulse" />
                       <span>Generating...</span>
                     </div>
@@ -388,34 +390,34 @@ Please provide complete, production-ready code with:
                 </div>
                 <div className="flex gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopy}
                     disabled={!generatedCode || isGenerating}
+                    onClick={handleCopy}
+                    size="sm"
+                    variant="outline"
                   >
                     {copied ? (
-                      <Check className="h-4 w-4 mr-2" />
+                      <Check className="mr-2 h-4 w-4" />
                     ) : (
-                      <Copy className="h-4 w-4 mr-2" />
+                      <Copy className="mr-2 h-4 w-4" />
                     )}
                     {copied ? "Copied!" : "Copy"}
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownload}
                     disabled={!generatedCode || isGenerating}
+                    onClick={handleDownload}
+                    size="sm"
+                    variant="outline"
                   >
-                    <Download className="h-4 w-4 mr-2" />
+                    <Download className="mr-2 h-4 w-4" />
                     Download
                   </Button>
                 </div>
               </div>
               <div className="relative overflow-hidden rounded-md border">
-                <div className="h-full min-h-[480px] overflow-y-auto p-3 bg-card scroll-smooth">
+                <div className="h-full min-h-[480px] overflow-y-auto scroll-smooth bg-card p-3">
                   <pre
+                    className="break-word min-h-full whitespace-pre-wrap font-mono text-foreground text-sm"
                     ref={textareaRef}
-                    className="font-mono text-sm whitespace-pre-wrap break-word min-h-full text-foreground"
                   >
                     {generatedCode || (
                       <span className="text-muted-foreground">
@@ -430,7 +432,7 @@ Please provide complete, production-ready code with:
                   <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
                     <div className="flex flex-col items-center gap-2">
                       <Sparkles className="h-8 w-8 animate-pulse text-primary" />
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         Starting generation...
                       </p>
                     </div>
@@ -440,8 +442,8 @@ Please provide complete, production-ready code with:
             </div>
 
             {!isGenerating && generatedCode && (
-              <div className="rounded-lg border p-4 bg-muted/50">
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-lg border bg-muted/50 p-4">
+                <p className="text-muted-foreground text-sm">
                   Review the generated code and make any necessary adjustments
                   before using it in your project.
                 </p>
@@ -449,14 +451,14 @@ Please provide complete, production-ready code with:
             )}
 
             {isGenerating && (
-              <div className="rounded-lg border p-4 bg-primary/5 border-primary/20">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-start gap-3">
-                  <Sparkles className="h-5 w-5 animate-pulse text-primary mt-0.5" />
+                  <Sparkles className="mt-0.5 h-5 w-5 animate-pulse text-primary" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">
+                    <p className="font-medium text-sm">
                       Generating your schema code
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       AI is analyzing your schema and creating optimized{" "}
                       {selectedORM} code for {selectedDatabase}...
                     </p>

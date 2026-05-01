@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import { useTheme } from "next-themes";
+import { useEffect, useRef, useState } from "react";
 import { SAMPLE_DBML } from "@/data/sample-dbml";
-import { validateDBML, ValidationError } from "@/validation/dbml-editor";
 import { useSchemaStore } from "@/store/use-schema-store";
+import { type ValidationError, validateDBML } from "@/validation/dbml-editor";
 
 export default function DBMLEditor() {
   const { theme } = useTheme();
@@ -14,7 +14,7 @@ export default function DBMLEditor() {
 
   const [localDBML, setLocalDBML] = useState(SAMPLE_DBML);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
-    [],
+    []
   );
   const [isValid, setIsValid] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
@@ -24,7 +24,7 @@ export default function DBMLEditor() {
   // Loading SAMPLE_DBML on first mount if store is empty
   useEffect(() => {
     const hasProjectToRestore = localStorage.getItem(
-      "enops-dev-last-project-id",
+      "enops-dev-last-project-id"
     );
 
     if (!hasProjectToRestore && (!dbml || dbml.trim() === "")) {
@@ -66,7 +66,7 @@ export default function DBMLEditor() {
               endLineNumber: err.line,
               endColumn: Math.min(
                 model.getLineLength(err.line) + 1,
-                err.column + 30,
+                err.column + 30
               ),
               message: err.message,
             }));
@@ -84,8 +84,12 @@ export default function DBMLEditor() {
   }, [localDBML]);
 
   useEffect(() => {
-    if (!isValid) return;
-    if (!localDBML) return;
+    if (!isValid) {
+      return;
+    }
+    if (!localDBML) {
+      return;
+    }
 
     const handler = setTimeout(async () => {
       try {
@@ -234,7 +238,7 @@ export default function DBMLEditor() {
           [/'([^'\\]|\\.)*'/, "string"],
           [/`([^`\\]|\\.)*`/, "string.escape"],
           [/\d+(\.\d+)?/, "number"],
-          [/[{}()\[\]]/, "@brackets"],
+          [/[{}()[\]]/, "@brackets"],
           [
             /@symbols/,
             {
@@ -307,22 +311,22 @@ export default function DBMLEditor() {
   };
 
   const errorCount = validationErrors.filter(
-    (e) => e.severity === "error",
+    (e) => e.severity === "error"
   ).length;
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="flex h-full flex-col bg-background">
       {/* Error Panel */}
       {validationErrors.length > 0 && (
-        <div className="border-b bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900 max-h-48 overflow-y-auto">
-          <div className="px-4 py-3 space-y-2">
+        <div className="max-h-48 overflow-y-auto border-red-200 border-b bg-red-50 dark:border-red-900 dark:bg-red-950/30">
+          <div className="space-y-2 px-4 py-3">
             {validationErrors.map((err, idx) => (
               <div
+                className="flex items-start gap-3 rounded p-2 text-sm transition-colors hover:bg-white dark:hover:bg-red-900/20"
                 key={idx}
-                className="flex items-start gap-3 text-sm hover:bg-white dark:hover:bg-red-900/20 p-2 rounded transition-colors"
               >
                 <span
-                  className={`font-mono text-xs font-semibold shrink-0 ${
+                  className={`shrink-0 font-mono font-semibold text-xs ${
                     err.severity === "error"
                       ? "text-red-600 dark:text-red-400"
                       : "text-amber-600 dark:text-amber-400"
@@ -347,13 +351,13 @@ export default function DBMLEditor() {
       )}
 
       {/* Monaco Editor */}
-      <div className="flex-1 min-h-0">
+      <div className="min-h-0 flex-1">
         <Editor
-          height="100%"
+          className="font-mono"
           defaultLanguage="dbml"
-          theme={theme === "dark" ? "zinc" : "vs"}
-          value={localDBML}
+          height="100%"
           onChange={(value) => value !== undefined && setLocalDBML(value)}
+          onMount={handleEditorDidMount}
           options={{
             minimap: { enabled: false },
             fontSize: 14,
@@ -371,8 +375,8 @@ export default function DBMLEditor() {
             autoClosingQuotes: "always",
             formatOnPaste: true,
           }}
-          onMount={handleEditorDidMount}
-          className="font-mono"
+          theme={theme === "dark" ? "zinc" : "vs"}
+          value={localDBML}
         />
       </div>
     </div>

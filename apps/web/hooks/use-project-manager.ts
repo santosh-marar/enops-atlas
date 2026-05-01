@@ -1,25 +1,25 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { nanoId } from "@/lib/id";
 
 interface Project {
+  createdAt: Date;
+  dbml: string;
+  edges?: any[];
   id: string;
   name: string;
-  dbml: string;
   nodes?: any[];
-  edges?: any[];
-  createdAt: Date;
   updatedAt: Date;
 }
 
 interface UseProjectManagerProps {
   dbml: string;
-  nodes: any[];
   edges: any[];
-  updateFromDBML: (dbml: string, preservePositions?: boolean) => Promise<void>;
-  setNodes: (nodes: any[]) => void;
+  nodes: any[];
   setEdges: (edges: any[]) => void;
+  setNodes: (nodes: any[]) => void;
+  updateFromDBML: (dbml: string, preservePositions?: boolean) => Promise<void>;
 }
 
 export function useProjectManager({
@@ -70,30 +70,29 @@ export function useProjectManager({
         });
         setLastSaved(new Date());
         return currentProject.id;
-      } else {
-        const projectToSave = {
-          id: nanoId as string,
-          name: projectName,
-          dbml,
-          nodes,
-          edges,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        // Add to database
-        await db.projects.add(projectToSave);
-
-        setCurrentProject(projectToSave);
-        localStorage.setItem("current_project_id", projectToSave.id);
-        setLastSaved(new Date());
-        // console.log(projectToSave.id);
-        return nanoId as string;
       }
+      const projectToSave = {
+        id: nanoId as string,
+        name: projectName,
+        dbml,
+        nodes,
+        edges,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Add to database
+      await db.projects.add(projectToSave);
+
+      setCurrentProject(projectToSave);
+      localStorage.setItem("current_project_id", projectToSave.id);
+      setLastSaved(new Date());
+      // console.log(projectToSave.id);
+      return nanoId as string;
     } catch (error) {
       // console.error("[handleSave] Error saving project:", error);
       toast.error("Failed to save project. Please try again.");
-      return undefined;
+      return;
     } finally {
       setIsSaving(false);
     }
@@ -115,7 +114,9 @@ export function useProjectManager({
 
   // Delete project
   const handleDelete = async () => {
-    if (!currentProject?.id) return;
+    if (!currentProject?.id) {
+      return;
+    }
 
     try {
       await db.projects.delete(currentProject.id);
@@ -151,13 +152,13 @@ export function useProjectManager({
 
         await updateFromDBML(
           project.dbml || "",
-          project.nodes && project.nodes.length > 0,
+          project.nodes && project.nodes.length > 0
         );
       } catch (error) {
         toast.error("Failed to open project. Please try again.");
       }
     },
-    [setNodes, setEdges, updateFromDBML],
+    [setNodes, setEdges, updateFromDBML]
   );
 
   // Auto-restore last opened project on mount ONLY ONCE

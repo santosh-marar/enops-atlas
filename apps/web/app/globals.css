@@ -193,7 +193,7 @@
     @apply font-sans;
   }
   body {
-    @apply bg-background text-foreground antialiased;
     letter-spacing: var(--tracking-normal);
+    @apply bg-background text-foreground antialiased;
   }
 }

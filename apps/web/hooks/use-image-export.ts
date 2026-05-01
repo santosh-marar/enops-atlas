@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 const loadImageExport = () => import("html-to-image");
@@ -22,7 +22,9 @@ export function useImageExport({
       return;
     }
 
-    if (isExporting) return;
+    if (isExporting) {
+      return;
+    }
 
     exportCancelRef.current = false;
     setIsExporting(true);
@@ -100,7 +102,9 @@ export function useImageExport({
     e.stopPropagation();
     e.preventDefault();
 
-    if (isCancelling) return;
+    if (isCancelling) {
+      return;
+    }
 
     setIsCancelling(true);
     exportCancelRef.current = true;

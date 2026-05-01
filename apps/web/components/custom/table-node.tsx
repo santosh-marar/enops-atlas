@@ -1,18 +1,18 @@
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { memo, useMemo } from "react";
-import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Column, ForeignKeyMeta } from "@/lib/schema-transformer";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { Column, ForeignKeyMeta } from "@/lib/schema-transformer";
 
 export interface TableNodeData {
-  label: string;
-  schema: string;
   alias?: string;
   columns: Column[];
+  label: string;
+  schema: string;
   sourceColumns?: string[]; // columns that are sources for relationships
 }
 
@@ -30,7 +30,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
       nodeData.schema && nodeData.schema !== "public"
         ? nodeData.schema.toUpperCase()
         : "PUBLIC",
-    [nodeData.schema],
+    [nodeData.schema]
   );
 
   const aliasTag = useMemo(
@@ -38,13 +38,13 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
       nodeData.alias && nodeData.alias !== nodeData.label
         ? nodeData.alias.toUpperCase()
         : null,
-    [nodeData.alias, nodeData.label],
+    [nodeData.alias, nodeData.label]
   );
 
   const columns = useMemo(() => nodeData.columns ?? [], [nodeData.columns]);
   const sourceColumnSet = useMemo(
     () => new Set(nodeData.sourceColumns ?? []),
-    [nodeData.sourceColumns],
+    [nodeData.sourceColumns]
   );
 
   // Generate color based on schema name for visual grouping
@@ -135,9 +135,11 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className={`relative min-w-65 rounded-xl border bg-card`}>
+      <div className={"relative min-w-65 rounded-xl border bg-card"}>
         <div
-          className={`flex items-center justify-between border-border/60 px-4 py-2 text-sm font-medium text-primary bg-background rounded-xl`}
+          className={
+            "flex items-center justify-between rounded-xl border-border/60 bg-background px-4 py-2 font-medium text-primary text-sm"
+          }
         >
           <div className="flex items-center">
             <div className="flex flex-col gap-0.5">
@@ -151,7 +153,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
           </div>
           <div>
             {aliasTag ? (
-              <span className="rounded-full border  px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em]">
+              <span className="rounded-full border px-2 py-0.5 font-medium text-[10px] uppercase tracking-[0.18em]">
                 as {aliasTag}
               </span>
             ) : null}
@@ -184,7 +186,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
             }
 
             const fkTargets = foreignKeys.map((fk) =>
-              formatForeignKeyTarget(fk),
+              formatForeignKeyTarget(fk)
             );
 
             // Show enum values and FK references on hover
@@ -198,54 +200,54 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
 
             return (
               <div
-                key={`${column.name}-${index}`}
                 className="group relative flex items-center gap-3 px-4 py-1.5 text-sm transition-colors hover:bg-muted/40"
+                key={`${column.name}-${index}`}
               >
                 {isForeignKey ? (
                   <Handle
-                    type="target"
-                    position={Position.Left}
+                    className="border! -left-3! h-2! w-2! border-primary/40! bg-primary! shadow-[0_0_0_4px_rgba(56,189,248,0.25)]! transition-transform group-hover:scale-125!"
                     id={`${id}-${column.name}-target`}
-                    className="h-2! w-2! -left-3! bg-primary! border! border-primary/40! shadow-[0_0_0_4px_rgba(56,189,248,0.25)]! transition-transform group-hover:scale-125!"
+                    position={Position.Left}
+                    type="target"
                   />
                 ) : null}
 
                 <div className="flex flex-1 flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium tracking-wide text-foreground">
+                    <span className="font-medium text-foreground tracking-wide">
                       {column.name}
                     </span>
-                    <span className="rounded bg-primary/10 px-1.5 py-px text-[10px] font-mono uppercase tracking-[0.18em] text-primary">
+                    <span className="rounded bg-primary/10 px-1.5 py-px font-mono text-[10px] text-primary uppercase tracking-[0.18em]">
                       {column.type}
                     </span>
                     {column.typeDetail ? (
-                      <span className="rounded bg-muted/60 px-1.5 py-px text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground">
+                      <span className="rounded bg-muted/60 px-1.5 py-px font-mono text-[10px] text-muted-foreground uppercase tracking-[0.14em]">
                         {column.typeDetail}
                       </span>
                     ) : null}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-1 font-medium text-[10px] text-muted-foreground uppercase tracking-[0.18em]">
                     {badges.map((badge) => (
                       <span
-                        key={`${column.name}-${badge}`}
                         className="inline-flex items-center rounded bg-muted/60 px-1.5 py-px"
+                        key={`${column.name}-${badge}`}
                       >
                         {badge}
                       </span>
                     ))}
                     {hasIndex && (
-                      <span className="inline-flex items-center rounded bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 px-1.5 py-px">
+                      <span className="inline-flex items-center rounded border border-orange-500/20 bg-orange-500/10 px-1.5 py-px text-orange-600 dark:text-orange-400">
                         IDX
                         {column.indexType && (
-                          <span className="ml-1 text-[9px] font-normal lowercase opacity-70">
+                          <span className="ml-1 font-normal text-[9px] lowercase opacity-70">
                             ({column.indexType})
                           </span>
                         )}
                       </span>
                     )}
                     {hasDefaultValue && (
-                      <span className="rounded bg-cyan-500/10 px-1.5 py-px text-[10px] font-medium normal-case text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                      <span className="rounded border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-px font-medium text-[10px] text-cyan-600 normal-case dark:text-cyan-400">
                         default: {String(column.defaultValue)}
                       </span>
                     )}
@@ -253,20 +255,18 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {hasEnumValues && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center rounded bg-emerald-500/10 px-1.5 py-1px text-[10px] font-medium normal-case text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 cursor-help">
+                          <span className="inline-flex cursor-help items-center rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-1px font-medium text-[10px] text-emerald-600 normal-case dark:text-emerald-400">
                             ENUM ({column.enumValues!.length})
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
+                        <TooltipContent className="max-w-xs" side="top">
                           <div className="space-y-1">
-                            <p className="font-medium text-xs">
-                              Enum Values:
-                            </p>
+                            <p className="font-medium text-xs">Enum Values:</p>
                             <div className="flex flex-wrap gap-1">
                               {column.enumValues!.map((val, idx) => (
                                 <span
+                                  className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-medium text-[10px]"
                                   key={idx}
-                                  className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium"
                                 >
                                   {val}
                                 </span>
@@ -280,20 +280,20 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {hasForeignKeys && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center rounded bg-blue-500/10 px-1.5 py-px text-[10px] font-medium normal-case text-blue-600 dark:text-blue-400 border border-blue-500/20 cursor-help">
+                          <span className="inline-flex cursor-help items-center rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-px font-medium text-[10px] text-blue-600 normal-case dark:text-blue-400">
                             REF{" "}
                             {fkTargets.length > 1
                               ? `(${fkTargets.length})`
                               : ""}
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
+                        <TooltipContent className="max-w-xs" side="top">
                           <div className="space-y-1">
                             <p className="font-medium text-xs">References:</p>
                             {fkTargets.map((target, idx) => (
                               <p
+                                className="font-mono text-muted-foreground text-xs"
                                 key={idx}
-                                className="text-xs font-mono text-muted-foreground"
                               >
                                 → {target}
                               </p>
@@ -306,14 +306,14 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {hasNote && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center rounded bg-amber-500/10 px-1.5 py-px text-[10px] font-medium normal-case text-amber-600 dark:text-amber-400 border border-amber-500/20 cursor-help">
+                          <span className="inline-flex cursor-help items-center rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-px font-medium text-[10px] text-amber-600 normal-case dark:text-amber-400">
                             NOTE
                           </span>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
+                        <TooltipContent className="max-w-xs" side="top">
                           <div className="space-y-1">
                             <p className="font-medium text-xs">Note:</p>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
+                            <p className="text-muted-foreground text-xs leading-relaxed">
                               {column.note}
                             </p>
                           </div>
@@ -325,10 +325,10 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
 
                 {isPrimaryKey || isSourceColumn ? (
                   <Handle
-                    type="source"
-                    position={Position.Right}
+                    className="border! -right-3! h-2! w-2! border-primary/40! bg-primary! shadow-[0_0_0_4px_rgba(56,189,248,0.25)]! transition-transform group-hover:scale-125!"
                     id={`${id}-${column.name}-source`}
-                    className="h-2! w-2! -right-3! bg-primary! border! border-primary/40! shadow-[0_0_0_4px_rgba(56,189,248,0.25)]! transition-transform group-hover:scale-125!"
+                    position={Position.Right}
+                    type="source"
                   />
                 ) : null}
               </div>

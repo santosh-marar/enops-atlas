@@ -1,7 +1,7 @@
 "use client";
 
-import { Keyboard, Command as CommandIcon, Github } from "lucide-react";
-import { formatShortcut } from "@/hooks/use-keyboard-shortcuts";
+import { Command as CommandIcon, Github, Keyboard } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,15 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { formatShortcut } from "@/hooks/use-keyboard-shortcuts";
 
 interface ShortcutItem {
-  key: string;
-  ctrl?: boolean;
-  shift?: boolean;
   alt?: boolean;
-  description: string;
   category: string;
+  ctrl?: boolean;
+  description: string;
+  key: string;
+  shift?: boolean;
 }
 
 interface HelpDialogProps {
@@ -37,12 +37,12 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
       acc[shortcut.category].push(shortcut);
       return acc;
     },
-    {} as Record<string, ShortcutItem[]>,
+    {} as Record<string, ShortcutItem[]>
   );
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="min-w-xl max-w-2xl max-h-[87vh] overflow-hidden flex flex-col">
+    <Dialog onOpenChange={onClose} open={isOpen}>
+      <DialogContent className="flex max-h-[87vh] min-w-xl max-w-2xl flex-col overflow-hidden">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <Keyboard className="h-6 w-6 text-primary" />
@@ -60,14 +60,14 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
           <div className="grid gap-6">
             {Object.entries(groupedShortcuts).map(([category, items]) => (
               <div key={category}>
-                <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+                <h3 className="mb-3 font-semibold text-muted-foreground text-sm">
                   {category}
                 </h3>
                 <div className="space-y-2">
                   {items.map((item, index) => (
                     <div
-                      key={index}
                       className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-4 py-3 transition-colors hover:bg-muted/50"
+                      key={index}
                     >
                       <span className="text-sm">{item.description}</span>
                       <kbd className="rounded border border-border bg-card px-3 py-1.5 font-mono text-sm shadow-sm">
@@ -82,11 +82,11 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
 
           {/* Additional Info */}
           <div className="mt-8 rounded-lg border border-border bg-muted/30 p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <div className="mb-2 flex items-center gap-2 font-semibold text-sm">
               <CommandIcon className="h-4 w-4" />
               Pro Tip
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Press{" "}
               <kbd className="rounded border border-border bg-card px-2 py-0.5 font-mono text-xs">
                 {formatShortcut({
@@ -102,13 +102,13 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
 
         {/* Footer */}
         <DialogFooter className="flex-row items-center justify-between sm:justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <span>Need more help?</span>
             <a
-              href="https://github.com/santosh-marar/enops.dev"
-              target="_blank"
-              rel="noopener noreferrer"
               className="flex items-center gap-1 text-primary transition-colors hover:underline"
+              href="https://github.com/santosh-marar/enops.dev"
+              rel="noopener noreferrer"
+              target="_blank"
             >
               <Github className="h-4 w-4" />
               Visit our GitHub

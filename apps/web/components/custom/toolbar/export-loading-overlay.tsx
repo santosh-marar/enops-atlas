@@ -2,8 +2,8 @@ import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ExportLoadingOverlayProps {
-  isExporting: boolean;
   isCancelling: boolean;
+  isExporting: boolean;
   onCancel: (e: React.MouseEvent) => void;
 }
 
@@ -12,7 +12,9 @@ export function ExportLoadingOverlay({
   isCancelling,
   onCancel,
 }: ExportLoadingOverlayProps) {
-  if (!isExporting) return null;
+  if (!isExporting) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -23,13 +25,13 @@ export function ExportLoadingOverlay({
           )}
           <div className="text-center">
             <div className="font-semibold">Exporting Diagram...</div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-muted-foreground text-sm">
               This may take a few seconds
             </div>
           </div>
           <Button
-            onClick={onCancel}
             disabled={isCancelling}
+            onClick={onCancel}
             variant="destructive"
           >
             {isCancelling ? (

@@ -1,14 +1,16 @@
+import type { Edge, Node } from "@xyflow/react";
 import { useMemo } from "react";
-import { Node, Edge } from "@xyflow/react";
 
 export function useTableFilter(
   nodes: Node[],
   edges: Edge[],
-  searchQuery: string,
+  searchQuery: string
 ) {
   // Filter nodes based on search query
   const filteredNodes = useMemo(() => {
-    if (!searchQuery.trim()) return nodes;
+    if (!searchQuery.trim()) {
+      return nodes;
+    }
 
     const query = searchQuery.toLowerCase();
     return nodes.filter((node) => {
@@ -18,10 +20,14 @@ export function useTableFilter(
       const columns = Array.isArray(nodeData?.columns) ? nodeData.columns : [];
 
       // Search in table name
-      if (label.includes(query)) return true;
+      if (label.includes(query)) {
+        return true;
+      }
 
       // Search in schema name
-      if (schema.includes(query)) return true;
+      if (schema.includes(query)) {
+        return true;
+      }
 
       // Search in column names
       return columns.some(
@@ -29,7 +35,7 @@ export function useTableFilter(
           col &&
           typeof col === "object" &&
           col.name &&
-          String(col.name).toLowerCase().includes(query),
+          String(col.name).toLowerCase().includes(query)
       );
     });
   }, [nodes, searchQuery]);
@@ -39,7 +45,7 @@ export function useTableFilter(
     const visibleNodeIds = new Set(filteredNodes.map((node) => node.id));
     return edges.filter(
       (edge) =>
-        visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target),
+        visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
     );
   }, [edges, filteredNodes]);
 

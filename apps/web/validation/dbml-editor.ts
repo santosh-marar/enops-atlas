@@ -1,16 +1,16 @@
 // Only validates DBML syntax - does not check for errors
 // Todo: add semantic validation
 export interface ValidationError {
-  line: number;
   column: number;
+  line: number;
   message: string;
   severity: "error" | "warning";
 }
 
 export interface ValidationResult {
-  isValid: boolean;
-  errors: ValidationError[];
   database?: any;
+  errors: ValidationError[];
+  isValid: boolean;
 }
 
 /**
@@ -57,7 +57,7 @@ export const validateDBML = async (dbml: string): Promise<ValidationResult> => {
             column: diag.location?.start?.column || 1,
             message: diag.message || "Syntax error",
             severity: diag.severity === 1 ? "warning" : ("error" as const),
-          })),
+          }))
         );
       } else if (error.location) {
         errors.push({
