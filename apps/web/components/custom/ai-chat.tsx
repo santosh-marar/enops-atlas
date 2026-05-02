@@ -20,6 +20,7 @@ import { streamText } from "ai";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { SYSTEM_PROMPT } from "@/ai/prompt/system-prompt";
+import { SchemaMessages } from "./chat/schema-message";
 
 interface AIChatProps {
   isOpen: boolean;
@@ -398,9 +399,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
           messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`w-full rounded-lg px-4 py-3 text-sm leading-relaxed ${
@@ -409,9 +408,13 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
                     : "border border-border bg-card"
                 }`}
               >
-                <p className="whitespace-pre-wrap wrap-break-word">
-                  {message.content}
-                </p>
+                {message.role === "user" ? (
+                  <p className="whitespace-pre-wrap wrap-break-word">
+                    {message.content}
+                  </p>
+                ) : (
+                  <SchemaMessages content={message?.content} />
+                )}
               </div>
             </div>
           ))

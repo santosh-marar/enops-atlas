@@ -153,7 +153,6 @@ export default function DBMLEditor() {
       },
     });
     monaco.editor.setTheme("zinc");
-    monaco.editor.setTheme("zinc");
 
     // Register DBML as a language
     monaco.languages.register({ id: "dbml" });
