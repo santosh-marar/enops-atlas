@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/db";
 import type { TechStack } from "./ai-tech-stack-dialog";
 import { getAISettings } from "./api-settings-dialog";
+import { SchemaMessages } from "./chat/schema-message";
 
 interface AIChatProps {
   isOpen: boolean;
@@ -388,9 +389,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
           ) : (
             messages.map((message) => (
               <div
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 key={message.id}
               >
                 <div
@@ -400,9 +399,13 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
                       : "border border-border bg-card"
                   }`}
                 >
-                  <p className="wrap-break-word whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  {message.role === "user" ? (
+                    <p className="wrap-break-word whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                  ) : (
+                    <SchemaMessages content={message?.content} />
+                  )}
                 </div>
               </div>
             ))
