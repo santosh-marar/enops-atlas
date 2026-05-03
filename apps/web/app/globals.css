@@ -98,7 +98,7 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
 
-  --radius: 0.25rem;
+  --radius: 0.45rem;
 
   --shadow-color: #1a1a1a;
   --shadow-2xs: 0px 1px 0px 0px hsl(0 0% 10.1961% / 0);

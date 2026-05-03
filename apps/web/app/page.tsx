@@ -247,16 +247,18 @@ export default function Home() {
           {/* Toggle button for IDE/AI Chat */}
           {!showAIChat && (
             <Button
-              className={`absolute top-14 z-10 h-14 w-2 bg-card px-4 py-2 backdrop-blur-sm transition-all hover:bg-accent ${
-                showIde ? "left-[576px]" : "left-0"
+              className={`absolute top-14 z-10 h-12 w-6 ${
+                showIde ? "left-143.5" : "left-0"
               }`}
               onClick={handleToggleEditor}
+              size={"icon-sm"}
               title={showIde ? "Close IDE" : "Open IDE"}
+              variant={"secondary"}
             >
               {showIde ? (
-                <ChevronLeft className="h-5 w-5 text-primary" />
+                <ChevronLeft className="h-5 w-5" />
               ) : (
-                <ChevronRight className="h-5 w-5 text-primary" />
+                <ChevronRight className="h-5 w-5" />
               )}
             </Button>
           )}
@@ -264,9 +266,11 @@ export default function Home() {
           {/* AI Chat toggle button */}
           {showAIChat && (
             <Button
-              className="absolute top-13 left-[576px] z-10 h-12 w-4 rounded-lg border border-border/60 bg-card/75 px-4 py-2 shadow-lg backdrop-blur-sm transition-all hover:bg-accent"
+              className="absolute top-14 left-144 z-10 h-12 w-6"
               onClick={() => setShowAIChat(false)}
+              size={"icon-sm"}
               title="Close AI Chat"
+              variant={"secondary"}
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
