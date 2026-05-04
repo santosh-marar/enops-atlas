@@ -26,6 +26,7 @@ import { ProjectNameEditor } from "./toolbar/project-name-editor";
 import { ProjectDialogs } from "./toolbar/project-dialogs";
 import { APISettingsDialog } from "./api-settings-dialog";
 import { AIExportDialog } from "./ai-export-dialog";
+import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
 import { Button } from "../ui/button";
 import Link from "next/link";
 
@@ -84,6 +85,7 @@ export function TopToolbar({
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showImportDbDialog, setShowImportDbDialog] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>("");
 
@@ -103,6 +105,12 @@ export function TopToolbar({
   const confirmDeleteProject = async () => {
     await handleDelete();
     setShowDeleteDialog(false);
+  };
+
+  // Confirm new project and show import dialog
+  const confirmNewProjectWithImport = () => {
+    onConfirmNew();
+    setShowImportDbDialog(true);
   };
 
   // Handle open project with dialog close
@@ -273,6 +281,7 @@ export function TopToolbar({
             onBrowse={onBrowse}
             onDelete={handleDeleteWithDialog}
             onExport={handleExportImage}
+            onImportDb={() => setShowImportDbDialog(true)}
             hasCurrentProject={!!currentProject}
           />
 
@@ -360,11 +369,16 @@ export function TopToolbar({
         onOpenProject={handleOpenProjectWithClose}
         showNewProjectDialog={showNewProjectDialog}
         onNewProjectDialogChange={onNewProjectDialogChange}
-        onConfirmNew={confirmNewProject}
+        onConfirmNew={confirmNewProjectWithImport}
         showDeleteDialog={showDeleteDialog}
         onDeleteDialogChange={setShowDeleteDialog}
         onConfirmDelete={confirmDeleteProject}
         projectName={projectName}
+      />
+
+      <ImportSchemaDialog
+        open={showImportDbDialog}
+        onOpenChange={setShowImportDbDialog}
       />
 
       <CommandPalette

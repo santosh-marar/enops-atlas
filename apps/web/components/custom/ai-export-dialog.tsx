@@ -32,9 +32,13 @@ import { db } from "@/lib/db";
 import { toast } from "sonner";
 import { APISettingsDialog } from "./api-settings-dialog";
 import { generateCode } from "@/lib/ai-client";
+import { useSchemaStore } from "@/store/use-schema-store";
+import { Parser, ModelExporter } from "@dbml/core";
 
 type ORM = "prisma" | "drizzle" | "mongoose" | "typeorm" | "sequelize";
 type Database = "postgresql" | "mysql" | "mongodb" | "sqlite" | "mariadb";
+type SQLDialect = "postgresql" | "mysql" | "mssql";
+type ExportFormatType = "postgres" | "mysql" | "mssql";
 
 interface ExportDialogProps {
   children?: React.ReactNode;
@@ -102,11 +106,14 @@ export function AIExportDialog({ children, nodes, edges }: ExportDialogProps) {
   const [open, setOpen] = useState(false);
   const [selectedORM, setSelectedORM] = useState<ORM | "">("");
   const [selectedDatabase, setSelectedDatabase] = useState<Database | "">("");
+  const [selectedSQLDialect, setSelectedSQLDialect] = useState<SQLDialect>("postgresql");
   const [generatedCode, setGeneratedCode] = useState("");
+  const [generatedSQL, setGeneratedSQL] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("configure");
   const textareaRef = useRef<HTMLPreElement>(null);
+  const { dbml } = useSchemaStore();
 
   const generatePrompt = () => {
     const schemaDescription = nodes
@@ -224,6 +231,43 @@ Please provide complete, production-ready code with:
     URL.revokeObjectURL(url);
   };
 
+  const handleGenerateSQL = () => {
+    try {
+      if (!dbml) {
+        toast.error("No schema to export. Please create a schema first.");
+        return;
+      }
+
+      const model = new Parser().parse(dbml, "dbml");
+      const exportFormat: ExportFormatType = selectedSQLDialect === "postgresql" ? "postgres" : selectedSQLDialect;
+      const sql = ModelExporter.export(model, exportFormat);
+      setGeneratedSQL(sql);
+      setActiveTab("sql");
+      toast.success("SQL generated successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate SQL");
+    }
+  };
+
+  const handleDownloadSQL = () => {
+    const ext = selectedSQLDialect === "postgresql" ? "sql" : selectedSQLDialect === "mysql" ? "sql" : "sql";
+    const blob = new Blob([generatedSQL], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `schema.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopySQL = async () => {
+    await navigator.clipboard.writeText(generatedSQL);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const filteredDatabases = databaseOptions.filter(
     (db) => !selectedORM || db.compatibleWith.includes(selectedORM as string),
   );
@@ -269,7 +313,7 @@ Please provide complete, production-ready code with:
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="configure">Configure</TabsTrigger>
             <TabsTrigger
               value="preview"
@@ -277,6 +321,7 @@ Please provide complete, production-ready code with:
             >
               Preview & Export
             </TabsTrigger>
+            <TabsTrigger value="sql">Raw SQL</TabsTrigger>
           </TabsList>
 
           <TabsContent value="configure" className="space-y-6">
@@ -462,6 +507,78 @@ Please provide complete, production-ready code with:
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="sql" className="space-y-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="sql-dialect">Select SQL Dialect</Label>
+                <Select value={selectedSQLDialect} onValueChange={(value) => setSelectedSQLDialect(value as SQLDialect)}>
+                  <SelectTrigger id="sql-dialect">
+                    <SelectValue placeholder="Choose SQL dialect" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="postgresql">PostgreSQL</SelectItem>
+                    <SelectItem value="mysql">MySQL</SelectItem>
+                    <SelectItem value="mssql">SQL Server (MSSQL)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                onClick={handleGenerateSQL}
+                className="w-full"
+              >
+                Generate Raw SQL
+              </Button>
+            </div>
+
+            {generatedSQL && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Generated SQL</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopySQL}
+                      disabled={!generatedSQL}
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Copy className="h-4 w-4 mr-2" />
+                      )}
+                      {copied ? "Copied!" : "Copy"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadSQL}
+                      disabled={!generatedSQL}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+                <div className="relative overflow-hidden rounded-md border">
+                  <div className="h-full min-h-[480px] overflow-y-auto p-3 bg-card scroll-smooth">
+                    <pre className="font-mono text-sm whitespace-pre-wrap break-word min-h-full text-foreground">
+                      {generatedSQL}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!generatedSQL && (
+              <div className="rounded-lg border p-4 bg-muted/50">
+                <p className="text-sm text-muted-foreground">
+                  Select a SQL dialect and click "Generate Raw SQL" to export your schema as raw SQL DDL statements.
+                </p>
               </div>
             )}
           </TabsContent>

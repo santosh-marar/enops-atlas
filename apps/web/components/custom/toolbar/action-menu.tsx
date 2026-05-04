@@ -7,6 +7,7 @@ import {
   Download,
   ImageIcon,
   Code2,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +17,7 @@ interface ActionMenuProps {
   onDelete: () => void;
   onExport: (format: "png" | "jpeg" | "svg") => void;
   onExportSchema?: () => void;
+  onImportDb?: () => void;
   hasCurrentProject: boolean;
 }
 
@@ -25,6 +27,7 @@ export function ActionMenu({
   onDelete,
   onExport,
   onExportSchema,
+  onImportDb,
   hasCurrentProject,
 }: ActionMenuProps) {
   const [showActionMenu, setShowActionMenu] = useState(false);
@@ -88,6 +91,16 @@ export function ActionMenu({
           >
             <FolderOpen className="h-4 w-4" />
             Browse Projects
+          </button>
+          <button
+            onClick={() => {
+              onImportDb?.();
+              setShowActionMenu(false);
+            }}
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+          >
+            <Database className="h-4 w-4" />
+            Import DB
           </button>
           <button
             onClick={() => {

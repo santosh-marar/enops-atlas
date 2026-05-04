@@ -15,7 +15,6 @@ export default defineConfig([
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": ["warn"],
       "no-console": "off",
-      "react/display-name": "off",
     },
   },
 
