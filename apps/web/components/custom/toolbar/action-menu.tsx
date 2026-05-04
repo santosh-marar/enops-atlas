@@ -103,6 +103,8 @@ export function ActionMenu({
             Import DB
           </button>
           <button
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!hasCurrentProject}
             onClick={() => {
               onDelete();
               setShowActionMenu(false);

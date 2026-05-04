@@ -292,6 +292,7 @@ export function TopToolbar({
             onDelete={handleDeleteWithDialog}
             onExport={handleExportImage}
             onImportDb={() => setShowImportDbDialog(true)}
+            onNew={handleNewWithConfirmation}
           />
 
           <Button
@@ -382,6 +383,7 @@ export function TopToolbar({
         projects={projects}
         showDeleteDialog={showDeleteDialog}
         showNewProjectDialog={showNewProjectDialog}
+        showProjectBrowser={showProjectBrowser}
       />
 
       <ImportSchemaDialog
