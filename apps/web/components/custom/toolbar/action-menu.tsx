@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   Code2,
+  Database,
   Download,
   FolderOpen,
   ImageIcon,
@@ -16,6 +17,7 @@ interface ActionMenuProps {
   onDelete: () => void;
   onExport: (format: "png" | "jpeg" | "svg") => void;
   onExportSchema?: () => void;
+  onImportDb?: () => void;
   onNew: () => void;
 }
 
@@ -25,6 +27,7 @@ export function ActionMenu({
   onDelete,
   onExport,
   onExportSchema,
+  onImportDb,
   hasCurrentProject,
 }: ActionMenuProps) {
   const [showActionMenu, setShowActionMenu] = useState(false);
@@ -90,8 +93,16 @@ export function ActionMenu({
             Browse Projects
           </button>
           <button
-            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={!hasCurrentProject}
+            className="flex w-full items-center gap-2 px-4 py-2 text-sm transition-colors hover:bg-muted"
+            onClick={() => {
+              onImportDb?.();
+              setShowActionMenu(false);
+            }}
+          >
+            <Database className="h-4 w-4" />
+            Import DB
+          </button>
+          <button
             onClick={() => {
               onDelete();
               setShowActionMenu(false);

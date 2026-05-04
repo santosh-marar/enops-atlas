@@ -24,6 +24,7 @@ import { AIExportDialog } from "./ai-export-dialog";
 import { APISettingsDialog } from "./api-settings-dialog";
 import { CommandPalette } from "./command-palette";
 import { HelpDialog } from "./help-dialog";
+import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
 import { ActionMenu } from "./toolbar/action-menu";
 import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
 import { ProjectDialogs } from "./toolbar/project-dialogs";
@@ -84,6 +85,7 @@ export function TopToolbar({
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showImportDbDialog, setShowImportDbDialog] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>("");
 
@@ -103,6 +105,12 @@ export function TopToolbar({
   const confirmDeleteProject = async () => {
     await handleDelete();
     setShowDeleteDialog(false);
+  };
+
+  // Confirm new project and show import dialog
+  const confirmNewProjectWithImport = () => {
+    onConfirmNew();
+    setShowImportDbDialog(true);
   };
 
   // Handle open project with dialog close
@@ -283,7 +291,7 @@ export function TopToolbar({
             onBrowse={onBrowse}
             onDelete={handleDeleteWithDialog}
             onExport={handleExportImage}
-            onNew={handleNewWithConfirmation}
+            onImportDb={() => setShowImportDbDialog(true)}
           />
 
           <Button
@@ -374,7 +382,11 @@ export function TopToolbar({
         projects={projects}
         showDeleteDialog={showDeleteDialog}
         showNewProjectDialog={showNewProjectDialog}
-        showProjectBrowser={showProjectBrowser}
+      />
+
+      <ImportSchemaDialog
+        onOpenChange={setShowImportDbDialog}
+        open={showImportDbDialog}
       />
 
       <CommandPalette
