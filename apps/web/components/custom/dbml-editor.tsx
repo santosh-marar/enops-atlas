@@ -16,43 +16,36 @@ export default function DBMLEditor() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
     []
   );
-  const [isValid, setIsValid] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
 
   const { updateFromDBML, dbml } = useSchemaStore();
 
-  // Loading SAMPLE_DBML on first mount if store is empty
+  // Seed store on first mount if empty
   useEffect(() => {
-    const hasProjectToRestore = localStorage.getItem(
-      "enops-dev-last-project-id"
-    );
-
-    if (!hasProjectToRestore && (!dbml || dbml.trim() === "")) {
+    const hasProject = localStorage.getItem("enops-dev-last-project-id");
+    if (!hasProject && (!dbml || dbml.trim() === "")) {
       updateFromDBML(SAMPLE_DBML);
     }
   }, []);
 
-  // Sync editor with store when DBML changes externally
   useEffect(() => {
     if (dbml !== localDBML) {
       setLocalDBML(dbml);
       if (dbml === "") {
         setValidationErrors([]);
-        setIsValid(true);
       }
     }
-  }, [dbml, localDBML]);
+  }, [dbml]);
 
+  // Validate + update store, debounced together
   useEffect(() => {
     const timer = setTimeout(async () => {
       setIsValidating(true);
-
       try {
         const result = await validateDBML(localDBML);
-        setIsValid(result.isValid);
         setValidationErrors(result.errors);
 
-        // Update Monaco inline error markers (red squiggly lines)
+        // Update Monaco inline markers
         if (editorRef.current && monacoRef.current) {
           const model = editorRef.current.getModel();
           if (model) {
@@ -73,72 +66,39 @@ export default function DBMLEditor() {
             monacoRef.current.editor.setModelMarkers(model, "dbml", markers);
           }
         }
-      } catch (err) {
-        // console.error("Validation error:", err);
+
+        // Only push to store if valid
+        if (result.isValid && localDBML) {
+          updateFromDBML(localDBML, true);
+        }
+      } catch {
+        // silent — invalid DBML mid-type is expected
       } finally {
         setIsValidating(false);
       }
-    }, 1000); // 1s debounce
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, [localDBML]);
+  }, [localDBML, updateFromDBML]);
 
-  useEffect(() => {
-    if (!isValid) {
-      return;
-    }
-    if (!localDBML) {
-      return;
-    }
-
-    const handler = setTimeout(async () => {
-      try {
-        updateFromDBML(localDBML, true);
-      } catch (err) {
-        console.error("Failed to apply DBML:", err);
-      }
-    }, 1000); // debounce: 1 seconds
-
-    return () => clearTimeout(handler);
-  }, [localDBML, isValid, updateFromDBML]);
-
-  // Monaco editor setup with DBML language support
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
-    // Zinc theme
     monaco.editor.defineTheme("zinc", {
       base: "vs-dark",
       inherit: true,
       rules: [
-        // comments — // and /* */
         { token: "comment", foreground: "71717a", fontStyle: "italic" },
-
-        // keywords: Table, Ref, Enum, pk, null, unique, etc.
-        { token: "keyword", foreground: "c084fc" }, // purple-400
-
-        // typeKeywords: integer, varchar, boolean, uuid, etc.
-        { token: "type", foreground: "67e8f9" }, // cyan-300
-
-        // identifiers: table names, column names
-        { token: "identifier", foreground: "e4e4e7" }, // zinc-200
-
-        // strings: "...", '...'
-        { token: "string", foreground: "86efac" }, // green-300
-
-        // backtick strings: `...`
-        { token: "string.escape", foreground: "86efac" }, // green-300
-
-        // numbers
-        { token: "number", foreground: "fb923c" }, // orange-400
-
-        // operators: < > - <>
-        { token: "operator", foreground: "94a3b8" }, // slate-400
-
-        // brackets: {} () []
+        { token: "keyword", foreground: "c084fc" },
+        { token: "type", foreground: "67e8f9" },
+        { token: "identifier", foreground: "e4e4e7" },
+        { token: "string", foreground: "86efac" },
+        { token: "string.escape", foreground: "86efac" },
+        { token: "number", foreground: "fb923c" },
+        { token: "operator", foreground: "94a3b8" },
         { token: "delimiter.bracket", foreground: "e4e4e7" },
-        { token: "", foreground: "e4e4e7" }, // fallback
+        { token: "", foreground: "e4e4e7" },
       ],
       colors: {
         "editor.background": "#27272a",
@@ -158,10 +118,8 @@ export default function DBMLEditor() {
     });
     monaco.editor.setTheme("zinc");
 
-    // Register DBML as a language
     monaco.languages.register({ id: "dbml" });
 
-    // Syntax highlighting for DBML
     monaco.languages.setMonarchTokensProvider("dbml", {
       keywords: [
         "Table",
@@ -220,7 +178,6 @@ export default function DBMLEditor() {
       ],
       operators: ["<", ">", "-", "<>"],
       symbols: /[<>-]/,
-
       tokenizer: {
         root: [
           [
@@ -238,15 +195,7 @@ export default function DBMLEditor() {
           [/`([^`\\]|\\.)*`/, "string.escape"],
           [/\d+(\.\d+)?/, "number"],
           [/[{}()[\]]/, "@brackets"],
-          [
-            /@symbols/,
-            {
-              cases: {
-                "@operators": "operator",
-                "@default": "",
-              },
-            },
-          ],
+          [/@symbols/, { cases: { "@operators": "operator", "@default": "" } }],
           [/\/\/.*$/, "comment"],
           [/\/\*/, "comment", "@comment"],
         ],
@@ -258,7 +207,6 @@ export default function DBMLEditor() {
       },
     });
 
-    // Autocomplete snippets
     monaco.languages.registerCompletionItemProvider("dbml", {
       provideCompletionItems: (model: any, position: any) => {
         const word = model.getWordUntilPosition(position);
@@ -268,7 +216,6 @@ export default function DBMLEditor() {
           startColumn: word.startColumn,
           endColumn: word.endColumn,
         };
-
         return {
           suggestions: [
             {
@@ -309,13 +256,8 @@ export default function DBMLEditor() {
     editor.focus();
   };
 
-  const errorCount = validationErrors.filter(
-    (e) => e.severity === "error"
-  ).length;
-
   return (
     <div className="flex h-full flex-col bg-background">
-      {/* Error Panel */}
       {validationErrors.length > 0 && (
         <div className="max-h-48 overflow-y-auto border-red-200 border-b bg-red-50 dark:border-red-900 dark:bg-red-950/30">
           <div className="space-y-2 px-4 py-3">
@@ -349,7 +291,6 @@ export default function DBMLEditor() {
         </div>
       )}
 
-      {/* Monaco Editor */}
       <div className="min-h-0 flex-1">
         <Editor
           className="font-mono"
