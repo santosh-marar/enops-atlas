@@ -128,8 +128,6 @@ export function ImportSchemaDialog({
   const [selectedDb, setSelectedDb] = useState<DbType | null>(null);
   const [schemaInput, setSchemaInput] = useState("");
   const [isImporting, setIsImporting] = useState(false);
-  const [copiedCommand, setCopiedCommand] = useState(false);
-  const [copiedExample, setCopiedExample] = useState(false);
 
   const { updateFromDBML } = useSchemaStore();
 
@@ -144,33 +142,10 @@ export function ImportSchemaDialog({
         setStep(1);
         setSelectedDb(null);
         setSchemaInput("");
-        setCopiedCommand(false);
-        setCopiedExample(false);
       }, 200);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
-
-  // Reset copied feedback after 2s
-  useEffect(() => {
-    if (copiedCommand) {
-      const timer = setTimeout(() => setCopiedCommand(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [copiedCommand]);
-
-  useEffect(() => {
-    if (copiedExample) {
-      const timer = setTimeout(() => setCopiedExample(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [copiedExample]);
-
-  // Reset copied states when selectedDb changes
-  useEffect(() => {
-    setCopiedCommand(false);
-    setCopiedExample(false);
-  }, [selectedDb]);
 
   async function parseSchemaToDBML(
     schema: string,
@@ -238,26 +213,6 @@ export function ImportSchemaDialog({
       setIsImporting(false);
     }
   }
-
-  const handleCopyCommand = async () => {
-    if (!selectedConfig) return;
-    try {
-      await navigator.clipboard.writeText(selectedConfig.command);
-      setCopiedCommand(true);
-    } catch {
-      toast.error("Failed to copy to clipboard");
-    }
-  };
-
-  const handleCopyExample = async () => {
-    if (!selectedConfig) return;
-    try {
-      await navigator.clipboard.writeText(selectedConfig.example);
-      setCopiedExample(true);
-    } catch {
-      toast.error("Failed to copy to clipboard");
-    }
-  };
 
   return (
     <Dialog onOpenChange={setIsOpen} open={isOpen}>
@@ -328,18 +283,11 @@ export function ImportSchemaDialog({
               <p className="mb-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
                 Run this command to export schema:
               </p>
-              <CommandBlock
-                code={selectedConfig.command}
-                copied={copiedCommand}
-                label="Command"
-                onCopy={handleCopyCommand}
-              />
+              <CommandBlock code={selectedConfig.command} label="Command" />
               <CommandBlock
                 className="mt-6"
                 code={selectedConfig.example}
-                copied={copiedExample}
                 label="Example (localhost)"
-                onCopy={handleCopyExample}
               />
             </div>
 
