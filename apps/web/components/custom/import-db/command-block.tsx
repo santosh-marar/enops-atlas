@@ -16,7 +16,11 @@ function CommandBlock({
 
       <div className="relative rounded-md border bg-muted p-2">
         {/* Copy Button */}
-        <CopyButton className="absolute top-2 right-2" value={code} />
+        <CopyButton
+          className="absolute top-2 right-2"
+          iconClassName="size-3"
+          value={code}
+        />
 
         {/* Code */}
         <code className="block whitespace-pre-wrap break-all pr-8 font-mono text-foreground text-xs">

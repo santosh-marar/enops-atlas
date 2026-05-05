@@ -2,6 +2,7 @@ import Markdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import DBMLHighlighter from "@/lib/utils/dbml-syntax-highlighter";
+import { CopyButton } from "../copy-button";
 
 export function SchemaMessages({ content }: { content: string }) {
   return (
@@ -14,18 +15,34 @@ export function SchemaMessages({ content }: { content: string }) {
           const code = String(children).replace(/\n$/, "");
 
           if (lang === "dbml") {
-            return <DBMLHighlighter code={code} />;
+            return (
+              <div className="group relative">
+                <CopyButton
+                  className="absolute top-2 right-2 opacity-0 transition group-hover:opacity-100"
+                  value={code}
+                />
+                <DBMLHighlighter code={code} />
+              </div>
+            );
           }
-
           return match ? (
-            <SyntaxHighlighter
-              customStyle={{ borderRadius: "0.5rem", fontSize: "0.8rem" }}
-              language={lang}
-              PreTag="div"
-              style={vscDarkPlus}
-            >
-              {code}
-            </SyntaxHighlighter>
+            <div className="group relative">
+              {/* Copy Button */}
+              <CopyButton
+                className="absolute top-2 right-2 opacity-0 transition group-hover:opacity-100"
+                iconClassName="size-8"
+                value={code}
+              />
+
+              <SyntaxHighlighter
+                customStyle={{ borderRadius: "0.5rem", fontSize: "0.8rem" }}
+                language={lang}
+                PreTag="div"
+                style={vscDarkPlus}
+              >
+                {code}
+              </SyntaxHighlighter>
+            </div>
           ) : (
             <code
               {...rest}

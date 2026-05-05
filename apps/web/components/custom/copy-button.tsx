@@ -28,11 +28,15 @@ export function CopyButton({
     <Button
       className={cn("rounded p-1 transition-colors", className)}
       onClick={handleCopy}
-      size={"icon-xs"}
+      size={"icon-sm"}
       title={copied ? "Copied!" : "Copy to clipboard"}
       variant={"ghost"}
     >
-      {copied ? <Check /> : <Copy />}
+      {copied ? (
+        <Check className={cn(iconClassName)} />
+      ) : (
+        <Copy className={cn(iconClassName)} />
+      )}
     </Button>
   );
 }
