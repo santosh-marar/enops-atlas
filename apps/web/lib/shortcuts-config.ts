@@ -1,6 +1,6 @@
+import { IconBrandGithub } from "@tabler/icons-react";
 import {
   FolderOpen,
-  Github,
   HelpCircle,
   ImageIcon,
   Moon,
@@ -172,7 +172,7 @@ export function createCommands(
       id: "github",
       label: "Open GitHub",
       description: "Visit the GitHub repository",
-      icon: Github,
+      icon: IconBrandGithub,
       category: "Help",
     },
   ];

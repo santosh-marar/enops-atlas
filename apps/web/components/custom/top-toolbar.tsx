@@ -1,8 +1,8 @@
 "use client";
 
+import { IconBrandGithub } from "@tabler/icons-react";
 import {
   Crown,
-  Github,
   HelpCircle,
   Loader2,
   Moon,
@@ -366,7 +366,7 @@ export function TopToolbar({
               rel="noopener noreferrer"
               target="_blank"
             >
-              <Github className="h-4 w-4" />
+              <IconBrandGithub className="h-4 w-4" />
             </Link>
           </Button>
         </div>

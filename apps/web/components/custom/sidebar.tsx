@@ -1,7 +1,7 @@
 "use client";
 
-import { IconBrandX } from "@tabler/icons-react";
-import { Code2, FolderOpen, Github, Plus, Sparkles } from "lucide-react";
+import { IconBrandGithub, IconBrandX } from "@tabler/icons-react";
+import { Code2, FolderOpen, Plus, Sparkles } from "lucide-react";
 
 interface SidebarProps {
   isAIOpen: boolean;
@@ -90,7 +90,7 @@ export function Sidebar({
           target="_blank"
           title="GitHub"
         >
-          <Github className="h-5 w-5 text-sidebar-foreground" />
+          <IconBrandGithub className="h-5 w-5 text-sidebar-foreground" />
           <span className="absolute left-full ml-2 hidden whitespace-nowrap rounded-md bg-popover px-2 py-1 text-popover-foreground text-xs shadow-md group-hover:block">
             GitHub
           </span>

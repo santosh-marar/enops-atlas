@@ -1,6 +1,7 @@
 "use client";
 
-import { Command as CommandIcon, Github, Keyboard } from "lucide-react";
+import { IconBrandGithub } from "@tabler/icons-react";
+import { Command as CommandIcon, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -110,7 +111,7 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
               rel="noopener noreferrer"
               target="_blank"
             >
-              <Github className="h-4 w-4" />
+              <IconBrandGithub className="h-4 w-4" />
               Visit our GitHub
             </a>
           </div>
