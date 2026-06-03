@@ -5,8 +5,6 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
@@ -62,6 +60,8 @@
 
   --tracking-normal: 0.025em;
   --spacing: 0.25rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
 }
 
 .dark {
@@ -155,10 +155,10 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans, Geist, ui-sans-serif, system-ui, sans-serif);
+  --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono, ui-monospace, monospace);
   --font-serif: var(--font-geist-mono, ui-monospace, monospace);
-  --font-heading: var(--font-sans, Geist, ui-sans-serif, system-ui, sans-serif);
+  --font-heading: var(--font-sans);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -194,6 +194,10 @@
   }
   body {
     letter-spacing: var(--tracking-normal);
-    @apply bg-background text-foreground antialiased;
+    @apply antialiased bg-background text-foreground;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
