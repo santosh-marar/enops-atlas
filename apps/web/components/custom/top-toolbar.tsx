@@ -324,11 +324,14 @@ export function TopToolbar({
         </div>
 
         {/* Middle Section - Project Name */}
-        <ProjectNameEditor
-          onEditingChange={setIsEditingName}
-          onNameChange={setProjectName}
-          projectName={projectName}
-        />
+        {currentProject != null && (
+          <ProjectNameEditor
+            onEditingChange={setIsEditingName}
+            onNameChange={setProjectName}
+            projectId={currentProject.id}
+            projectName={projectName}
+          />
+        )}
 
         {/* Right Section */}
         <div className="flex items-center gap-4">

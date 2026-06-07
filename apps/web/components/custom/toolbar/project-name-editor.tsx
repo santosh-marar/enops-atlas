@@ -1,17 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { db } from "@/lib/db";
 
 interface ProjectNameEditorProps {
   onEditingChange?: (isEditing: boolean) => void;
   onNameChange: (name: string) => void;
+  projectId: string;
   projectName: string;
 }
 
 export function ProjectNameEditor({
   projectName,
+  projectId,
   onNameChange,
   onEditingChange,
 }: ProjectNameEditorProps) {
   const [isEditingName, setIsEditingName] = useState(false);
+  const debouncedName = useDebounce(projectName, 1500);
+
+  // auto trigger when user stops typing for 1.5s
+  useEffect(() => {
+    if (!debouncedName) return;
+    db.projects.update(projectId, {
+      name: debouncedName,
+      updatedAt: new Date(),
+    });
+  }, [debouncedName, projectId]);
 
   const handleEditingChange = (editing: boolean) => {
     setIsEditingName(editing);
@@ -20,7 +34,7 @@ export function ProjectNameEditor({
 
   return (
     <div className="flex flex-1 justify-center">
-      <div className="relative min-w-[200px] max-w-[400px]">
+      <div className="relative min-w-50 max-w-100">
         {isEditingName ? (
           <input
             autoFocus
@@ -28,9 +42,7 @@ export function ProjectNameEditor({
             onBlur={() => handleEditingChange(false)}
             onChange={(e) => onNameChange(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleEditingChange(false);
-              }
+              if (e.key === "Enter") handleEditingChange(false);
             }}
             type="text"
             value={projectName}
