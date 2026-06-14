@@ -29,11 +29,9 @@ export interface Project {
 }
 
 export interface AISettings {
-  claudeApiKey?: string;
   id?: string;
-  openaiApiKey?: string;
-  provider: "claude" | "gpt";
   updatedAt: Date;
+  vercelAIKey: string;
 }
 
 export class AppDatabase extends Dexie {
