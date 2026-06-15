@@ -26,10 +26,11 @@ import {
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { SAMPLE_DBML } from "@/data/sample-dbml";
+import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
-import { type ValidationError, validateDBML } from "@/validation/dbml-editor";
+import { validateDBML } from "@/validation/dbml-editor";
 
 // DBML StreamLanguage
 const KEYWORDS = new Set([
@@ -238,35 +239,29 @@ const dbmlCompletions = autocompletion({
   ],
 });
 
-// Linter — wraps your existing validateDBML, keeps the error panel in sync
-function makeLinter(onErrors: (errs: ValidationError[]) => void) {
-  return linter(
-    async (view) => {
-      const code = view.state.doc.toString();
-      let result: Awaited<ReturnType<typeof validateDBML>>;
-      try {
-        result = await validateDBML(code);
-      } catch {
-        return [];
-      }
-      onErrors(result.errors);
-      const diagnostics: Diagnostic[] = result.errors.map((err) => {
-        const lineObj = view.state.doc.line(
-          Math.max(1, Math.min(err.line, view.state.doc.lines))
-        );
-        const from = lineObj.from + Math.max(0, err.column - 1);
-        const to = Math.min(lineObj.to, from + 30);
-        return {
-          from,
-          to,
-          severity: err.severity === "error" ? "error" : "warning",
-          message: err.message,
-        };
-      });
-      return diagnostics;
-    },
-    { delay: 1000 }
-  ); // 1 s debounce — matches your original timer
+// Linter — wraps existing validateDBML
+function dbmlLinter() {
+  return linter(async (view) => {
+    const code = view.state.doc.toString();
+    let result: Awaited<ReturnType<typeof validateDBML>>;
+    try {
+      result = await validateDBML(code);
+    } catch {
+      return [];
+    }
+    const diagnostics: Diagnostic[] = result.errors.map((err) => {
+      const line = view.state.doc.line(Math.max(1, err.line));
+      const from = line.from + Math.max(0, err.column - 1);
+      const to = Math.min(line.to, from + 30);
+      return {
+        from,
+        to,
+        severity: err.severity === "error" ? "error" : "warning",
+        message: err.message,
+      };
+    });
+    return diagnostics;
+  });
 }
 
 // Component
@@ -276,18 +271,28 @@ export default function DBMLEditor() {
   const viewRef = useRef<EditorView | null>(null);
   const isUpdatingStoreRef = useRef(false);
 
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
-    []
-  );
-
   const { updateFromDBML, dbml } = useSchemaStore();
 
-  // Seed store on first mount if empty — same logic as before
+  // Seed store on first mount
   useEffect(() => {
-    const hasProject = localStorage.getItem("enops-dev-last-project-id");
-    if (!hasProject && (!dbml || dbml.trim() === "")) {
-      updateFromDBML(SAMPLE_DBML);
-    }
+    const init = async () => {
+      const projectId = localStorage.getItem("current_project_id");
+
+      if (projectId) {
+        const project = await db.projects.get(projectId);
+        if (project?.dbml) {
+          updateFromDBML(project.dbml);
+          return;
+        }
+      }
+
+      // No project or no dbml in db — fall back to sample
+      if (!dbml || dbml.trim() === "") {
+        updateFromDBML(SAMPLE_DBML);
+      }
+    };
+
+    init();
   }, []);
 
   // Build / rebuild editor when theme changes
@@ -342,7 +347,7 @@ export default function DBMLEditor() {
           ? [zincDarkTheme, syntaxHighlighting(zincDarkHighlight)]
           : [lightTheme, syntaxHighlighting(lightHighlight)],
         dbmlCompletions,
-        makeLinter(setValidationErrors),
+        dbmlLinter(),
         keymap.of([
           ...closeBracketsKeymap,
           ...defaultKeymap,
@@ -374,76 +379,11 @@ export default function DBMLEditor() {
           insert: dbml ?? "",
         },
       });
-      // Clear errors if store was reset to empty
-      if (!dbml || dbml === "") setValidationErrors([]);
       setTimeout(() => {
         isUpdatingStoreRef.current = false;
       }, 200);
     }
   }, [dbml]);
 
-  return (
-    <div className="flex h-full flex-col bg-background">
-      {/* Error panel — identical markup to what you had before */}
-      {validationErrors.length > 0 && (
-        <div className="border-b bg-card">
-          <div className="flex items-center justify-between border-b px-4 py-2">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-destructive" />
-              <span className="font-medium text-sm">
-                {validationErrors.length} issue
-                {validationErrors.length > 1 ? "s" : ""}
-              </span>
-            </div>
-
-            <span className="text-muted-foreground text-xs">
-              DBML Validation
-            </span>
-          </div>
-
-          <div className="max-h-52 overflow-y-auto">
-            {validationErrors.map((err, idx) => {
-              const isError = err.severity === "error";
-
-              return (
-                <button
-                  className="group flex w-full items-start gap-3 border-b px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                  key={idx}
-                >
-                  <div
-                    className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${isError ? "bg-destructive" : "bg-yellow-500"}
-                    `}
-                  />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <span
-                        className={`rounded-md px-1.5 py-0.5 font-medium text-[10px] uppercase tracking-wide ${
-                          isError
-                            ? "bg-destructive/10 text-destructive"
-                            : "bg-yellow-500/10 text-yellow-600"
-                        }
-                        `}
-                      >
-                        {err.severity}
-                      </span>
-
-                      <span className="font-mono text-muted-foreground text-xs">
-                        {err.line}:{err.column}
-                      </span>
-
-                      <p className="line-clamp-2 text-sm leading-relaxed">
-                        {err.message}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-      <div className="min-h-0 flex-1 font-mono" ref={containerRef} />
-    </div>
-  );
+  return <div className="h-full flex-1 font-mono" ref={containerRef} />;
 }
