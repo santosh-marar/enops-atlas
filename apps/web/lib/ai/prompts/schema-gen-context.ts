@@ -1,16 +1,10 @@
+import type { TechStackType } from "@/components/custom/ai-tech-stack-dialog";
 import { BASE_SYSTEM_PROMPT_SCHEMA_GEN } from "./schema-gen";
 
 // This is for schema generation with context & based past schema work
 
 function EnhancedSchemaGenPrompt(params: {
-  techStack?: {
-    database: string;
-    orm: string;
-    language: string;
-    backendFramework: string;
-    authLibrary: string;
-    billingLibrary: string;
-  };
+  techStack?: TechStackType;
   conversationHistory?: Array<{ role: string; content: string }>;
   recentSchemas?: Array<{
     name: string;

@@ -1,8 +1,5 @@
 "use client";
 
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
-import { streamText } from "ai";
 import {
   Loader2,
   Send,
@@ -14,13 +11,30 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { SYSTEM_PROMPT } from "@/ai/prompt/system-prompt";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { EnhancedSchemaGenPrompt, streamAI } from "@/lib/ai";
 import { db } from "@/lib/db";
-import type { TechStack } from "./ai-tech-stack-dialog";
+import type { TechStackType } from "./ai-tech-stack-dialog";
 import { getAISettings } from "./api-settings-dialog";
 import { SchemaMessages } from "./chat/schema-message";
+
+//  Constants
+const MODEL_KEY = "claude-haiku-4-5" as const;
+const CONVERSATION_HISTORY_LIMIT = 8;
+
+//  Utils
+function extractDBML(content: string): string | null {
+  const match = content.match(/```dbml\n([\s\S]*?)\n```/);
+  return match?.[1]?.trim() ?? null;
+}
+
+//  Types
+interface Message {
+  content: string;
+  id: string;
+  role: "user" | "assistant";
+}
 
 interface AIChatProps {
   isOpen: boolean;
@@ -31,12 +45,7 @@ interface AIChatProps {
   projectId?: string;
 }
 
-interface Message {
-  content: string;
-  id: string;
-  role: "user" | "assistant";
-}
-
+//  Component
 export function AIChat({
   isOpen,
   onClose,
@@ -46,48 +55,40 @@ export function AIChat({
   projectId,
 }: AIChatProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const prevProjectIdRef = useRef<string | undefined>(undefined);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [techStack, setTechStack] = useState<TechStack | null>(null);
-  const prevProjectIdRef = useRef<string | undefined>(null);
+  const [techStack, setTechStack] = useState<TechStackType | null>(null);
 
+  // Derived
+  const conversationHistory = messages.slice(-CONVERSATION_HISTORY_LIMIT);
+
+  // Load tech stack when panel opens
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    setIsLoading(true);
+    if (!isOpen) return;
 
     const loadTechStack = async () => {
       try {
         const currentProjectId = localStorage.getItem("current_project_id");
-        if (!currentProjectId) {
-          return;
-        }
+        if (!currentProjectId) return;
 
         const project = await db.projects.get(currentProjectId);
-        if (!project) {
-          return;
-        }
-
-        if (project.techStack) {
-          setTechStack(project.techStack);
-        } else {
-          setTechStack(null);
-        }
-      } catch (error) {}
+        setTechStack(project?.techStack ?? null);
+      } catch (error) {
+        console.error("Failed to load tech stack:", error);
+      }
     };
 
     loadTechStack();
-    setIsLoading(false);
   }, [isOpen]);
 
+  // Load chat history when project changes
   useEffect(() => {
-    const loadChatHistory = async () => {
-      if (!isOpen) {
-        return;
-      }
+    if (!isOpen) return;
 
+    const loadChatHistory = async () => {
       const projectChanged = prevProjectIdRef.current !== projectId;
       prevProjectIdRef.current = projectId;
 
@@ -103,30 +104,38 @@ export function AIChat({
 
       try {
         const project = await db.projects.get(projectId);
-        if (project?.aiChatHistory && project.aiChatHistory.length > 0) {
+        if (project?.aiChatHistory?.length) {
           setMessages(project.aiChatHistory);
         } else if (projectChanged) {
           setMessages([]);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error("Failed to load chat history:", error);
+      }
     };
+
     loadChatHistory();
   }, [projectId, isOpen]);
 
+  // Persist chat history on message change
   useEffect(() => {
+    if (!projectId || messages.length === 0) return;
+
     const saveChatHistory = async () => {
-      if (projectId && messages.length > 0) {
-        try {
-          await db.projects.update(projectId, {
-            aiChatHistory: messages,
-            updatedAt: new Date(),
-          });
-        } catch (error) {}
+      try {
+        await db.projects.update(projectId, {
+          aiChatHistory: messages,
+          updatedAt: new Date(),
+        });
+      } catch (error) {
+        console.error("Failed to save chat history:", error);
       }
     };
+
     saveChatHistory();
   }, [messages, projectId]);
 
+  // Auto-scroll to bottom
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
@@ -134,21 +143,22 @@ export function AIChat({
     }
   }, [messages]);
 
-  const extractDBML = (content: string): string | null => {
-    const dbmlMatch = content.match(/```dbml\n([\s\S]*?)\n```/);
-    return dbmlMatch && dbmlMatch[1] ? dbmlMatch[1].trim() : null;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) {
+    if (!input.trim() || isLoading) return;
+
+    // Guard: settings
+    const settings = await getAISettings();
+    if (!settings?.vercelAIKey) {
+      toast.error("Please configure your API keys first");
+      onOpenSettings();
       return;
     }
 
-    const settings = await getAISettings();
-    if (!(settings && (settings.claudeApiKey || settings.openaiApiKey))) {
-      toast.error("Please configure your API keys first");
-      onOpenSettings();
+    // Guard: tech stack
+    if (!techStack) {
+      toast.error("Please configure your tech stack first");
+      onOpenTechStack();
       return;
     }
 
@@ -163,64 +173,34 @@ export function AIChat({
     setIsLoading(true);
 
     try {
-      let contextMessage = input;
-      if (techStack && messages.length === 0) {
-        contextMessage = `${input}
-
-TECH STACK CONTEXT (use as guidelines, not rigid rules):
-
-Authentication: ${techStack.authLibrary}
-Payment/Billing: ${techStack.billingLibrary}
-Database: ${techStack.database}
-ORM: ${techStack.orm}
-Language: ${techStack.language}
-Framework: ${techStack.backendFramework}
-
-REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CONTEXT to help you make smart decisions. If I ask for features that need additional tables (like "OAuth", "subscriptions", "2FA"), ADD them regardless of the basic tech stack setup.`;
-      }
-
       const aiMessages = [
         ...messages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
         })),
-        {
-          role: "user" as const,
-          content: contextMessage,
-        },
+        { role: "user" as const, content: input },
       ];
 
-      let model;
-      if (settings.provider === "claude" && settings.claudeApiKey) {
-        const anthropic = createAnthropic({
-          apiKey: settings.claudeApiKey,
-        });
-        model = anthropic("claude-sonnet-4-20250514");
-      } else if (settings.openaiApiKey) {
-        const openai = createOpenAI({
-          apiKey: settings.openaiApiKey,
-        });
-        model = openai("gpt-4-turbo");
-      } else {
-        throw new Error("No valid API key configured");
-      }
-
-      const result = await streamText({
-        model,
-        system: SYSTEM_PROMPT,
-        messages: aiMessages,
-        temperature: 0.1,
+      const systemPrompt = EnhancedSchemaGenPrompt({
+        techStack,
+        conversationHistory,
       });
 
-      let fullResponse = "";
+      const result = await streamAI({
+        apiKey: settings.vercelAIKey,
+        modelKey: MODEL_KEY,
+        system: systemPrompt,
+        messages: aiMessages,
+      });
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: "",
       };
-
       setMessages((prev) => [...prev, assistantMessage]);
 
+      let fullResponse = "";
       for await (const textPart of result.textStream) {
         fullResponse += textPart;
         setMessages((prev) =>
@@ -231,10 +211,9 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
       }
 
       const dbml = extractDBML(fullResponse);
-      if (dbml) {
-        onSchemaGenerated(dbml);
-      }
+      if (dbml) onSchemaGenerated(dbml);
     } catch (error) {
+      console.error("AI generation failed:", error);
       toast.error(
         error instanceof Error ? error.message : "Failed to generate response"
       );
@@ -245,22 +224,29 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
   };
 
   const handleClearChat = async () => {
-    if (
-      confirm(
-        "Are you sure you want to clear the chat history? This cannot be undone."
-      )
-    ) {
-      setMessages([]);
-      if (projectId) {
-        try {
-          await db.projects.update(projectId, {
-            aiChatHistory: [],
-            updatedAt: new Date(),
-          });
-          toast.success("Chat history cleared");
-        } catch (error) {
-          toast.error("Failed to clear chat history");
-        }
+    if (!confirm("Clear chat history? This cannot be undone.")) return;
+
+    setMessages([]);
+
+    if (projectId) {
+      try {
+        await db.projects.update(projectId, {
+          aiChatHistory: [],
+          updatedAt: new Date(),
+        });
+        toast.success("Chat history cleared");
+      } catch (error) {
+        console.error("Failed to clear chat history:", error);
+        toast.error("Failed to clear chat history");
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (input.trim() && techStack) {
+        handleSubmit(e as unknown as React.FormEvent);
       }
     }
   };
@@ -321,18 +307,19 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
               Tech Stack:
             </span>
             <div className="flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 font-medium">
-                {techStack.database}
-              </span>
-              <span className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 font-medium">
-                {techStack.orm}
-              </span>
-              <span className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 font-medium">
-                {techStack.language}
-              </span>
-              <span className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 font-medium">
-                {techStack.backendFramework}
-              </span>
+              {[
+                techStack.database,
+                techStack.orm,
+                techStack.language,
+                techStack.backendFramework,
+              ].map((item) => (
+                <span
+                  className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 font-medium"
+                  key={item}
+                >
+                  {item}
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -345,47 +332,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
       >
         {techStack ? (
           messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="rounded-lg border border-border bg-card p-8">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="mb-2 font-semibold text-base">
-                  AI Schema Assistant
-                </h3>
-                <p className="mb-4 max-w-sm text-muted-foreground text-sm">
-                  Describe your application and I will generate a
-                  production-ready database schema with proper relationships,
-                  indexes, and constraints.
-                </p>
-                <div className="space-y-1.5 text-left text-muted-foreground text-xs">
-                  <p className="flex items-center gap-2">
-                    <span className="text-green-600 dark:text-green-400">
-                      ✓
-                    </span>{" "}
-                    Foreign key relationships
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-green-600 dark:text-green-400">
-                      ✓
-                    </span>{" "}
-                    Optimized indexes
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-green-600 dark:text-green-400">
-                      ✓
-                    </span>{" "}
-                    Data constraints
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="text-green-600 dark:text-green-400">
-                      ✓
-                    </span>{" "}
-                    Scalability patterns
-                  </p>
-                </div>
-              </div>
-            </div>
+            <EmptyState />
           ) : (
             messages.map((message) => (
               <div
@@ -404,36 +351,14 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
                       {message.content}
                     </p>
                   ) : (
-                    <SchemaMessages content={message?.content} />
+                    <SchemaMessages content={message.content} />
                   )}
                 </div>
               </div>
             ))
           )
         ) : (
-          <div className="flex h-full flex-col items-center justify-center text-center">
-            <div className="max-w-md rounded-lg border border-orange-500/50 bg-orange-500/10 p-8">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-500/20">
-                <Wrench className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-              <h3 className="mb-2 font-semibold text-base text-orange-900 dark:text-orange-100">
-                Tech Stack Required
-              </h3>
-              <p className="mb-4 text-orange-800 text-sm dark:text-orange-200">
-                Before using the AI assistant, please configure your
-                project&apos;s tech stack. This ensures the generated schema
-                matches your authentication library, database, and other
-                requirements.
-              </p>
-              <Button
-                className="bg-orange-600 text-white hover:bg-orange-700"
-                onClick={onOpenTechStack}
-              >
-                <Wrench className="mr-2 h-4 w-4" />
-                Configure Tech Stack
-              </Button>
-            </div>
-          </div>
+          <NoTechStackState onOpenTechStack={onOpenTechStack} />
         )}
 
         {isLoading && (
@@ -448,7 +373,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
         )}
       </div>
 
-      {/* Input Form */}
+      {/* Input */}
       <form
         className="border-border border-t bg-card p-4"
         onSubmit={handleSubmit}
@@ -458,14 +383,7 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
             className="resize-none text-sm"
             disabled={isLoading || !techStack}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (input.trim() && techStack) {
-                  handleSubmit(e as any);
-                }
-              }
-            }}
+            onKeyDown={handleKeyDown}
             placeholder={
               techStack
                 ? "E.g., Create a SaaS app with user authentication, subscription billing, and team management..."
@@ -498,6 +416,68 @@ REMEMBER: My request above is the PRIMARY requirement. The tech stack is just CO
           )}
         </div>
       </form>
+    </div>
+  );
+}
+
+//  Sub-components
+function EmptyState() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <div className="rounded-lg border border-border bg-card p-8">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+          <Sparkles className="h-6 w-6 text-primary" />
+        </div>
+        <h3 className="mb-2 font-semibold text-base">AI Schema Assistant</h3>
+        <p className="mb-4 max-w-sm text-muted-foreground text-sm">
+          Describe your application and I will generate a production-ready
+          database schema with proper relationships, indexes, and constraints.
+        </p>
+        <div className="space-y-1.5 text-left text-muted-foreground text-xs">
+          {[
+            "Foreign key relationships",
+            "Optimized indexes",
+            "Data constraints",
+            "Scalability patterns",
+          ].map((feature) => (
+            <p className="flex items-center gap-2" key={feature}>
+              <span className="text-green-600 dark:text-green-400">✓</span>
+              {feature}
+            </p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NoTechStackState({
+  onOpenTechStack,
+}: {
+  onOpenTechStack: () => void;
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <div className="max-w-md rounded-lg border border-orange-500/50 bg-orange-500/10 p-8">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-500/20">
+          <Wrench className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+        </div>
+        <h3 className="mb-2 font-semibold text-base text-orange-900 dark:text-orange-100">
+          Tech Stack Required
+        </h3>
+        <p className="mb-4 text-orange-800 text-sm dark:text-orange-200">
+          Before using the AI assistant, please configure your project&apos;s
+          tech stack. This ensures the generated schema matches your
+          authentication library, database, and other requirements.
+        </p>
+        <Button
+          className="bg-orange-600 text-white hover:bg-orange-700"
+          onClick={onOpenTechStack}
+        >
+          <Wrench className="mr-2 h-4 w-4" />
+          Configure Tech Stack
+        </Button>
+      </div>
     </div>
   );
 }

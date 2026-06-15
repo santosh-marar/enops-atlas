@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/db";
 
-export interface TechStack {
+export interface TechStackType {
   authLibrary: string;
   backendFramework: string;
   billingLibrary: string;
@@ -27,11 +27,11 @@ export interface TechStack {
 interface AITechStackDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (techStack: TechStack) => void;
+  onGenerate: (techStack: TechStackType) => void;
   projectId?: string;
 }
 
-export async function getSavedTechStack(): Promise<TechStack | null> {
+export async function getSavedTechStack(): Promise<TechStackType | null> {
   const projectId = localStorage.getItem("current_project_id");
 
   try {
@@ -51,7 +51,7 @@ export async function getSavedTechStack(): Promise<TechStack | null> {
 }
 
 export async function saveTechStack(
-  techStack: TechStack,
+  techStack: TechStackType,
   projectId: string
 ): Promise<void> {
   try {
@@ -95,7 +95,7 @@ export function AITechStackDialog({
   onGenerate,
   projectId,
 }: AITechStackDialogProps) {
-  const [techStack, setTechStack] = useState<TechStack>({
+  const [techStack, setTechStack] = useState<TechStackType>({
     database: "postgresql",
     orm: "prisma",
     language: "typescript",
@@ -125,7 +125,7 @@ export function AITechStackDialog({
     }
   }, [isOpen, projectId]);
 
-  const handleChange = (field: keyof TechStack, value: string) => {
+  const handleChange = (field: keyof TechStackType, value: string) => {
     setTechStack((prev) => ({ ...prev, [field]: value }));
   };
 
