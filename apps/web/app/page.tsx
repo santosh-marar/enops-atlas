@@ -6,7 +6,7 @@ import { AIChat } from "@/components/custom/ai-chat";
 import {
   AITechStackDialog,
   getSavedTechStack,
-  type TechStack,
+  type TechStackType,
 } from "@/components/custom/ai-tech-stack-dialog";
 import { APISettingsDialog } from "@/components/custom/api-settings-dialog";
 import DBMLEditor from "@/components/custom/dbml-editor";
@@ -56,7 +56,7 @@ export default function Home() {
   const [showTechStackDialog, setShowTechStackDialog] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
   const [currentTechStack, setCurrentTechStack] = useState<
-    TechStack | undefined
+    TechStackType | undefined
   >();
 
   const handleNewWithConfirmation = async () => {
@@ -147,7 +147,7 @@ export default function Home() {
   };
 
   // Handle tech stack generation
-  const handleTechStackGenerate = async (techStack: TechStack) => {
+  const handleTechStackGenerate = async (techStack: TechStackType) => {
     setCurrentTechStack(techStack);
 
     // Ensure project exists and save tech stack

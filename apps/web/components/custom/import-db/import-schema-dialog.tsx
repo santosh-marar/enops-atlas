@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { generateDBMLSchema } from "@/lib/ai-client";
+import { type ModelKey, streamAI } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { useSchemaStore } from "@/store/use-schema-store";
@@ -65,18 +65,18 @@ const DB_TYPE_CONFIGS: DbTypeConfig[] = [
       "Paste the .schema output here...\n\nExpected format:\nCREATE TABLE users (\n  id INTEGER PRIMARY KEY,\n  email TEXT NOT NULL,\n  ...\n);",
     isAIPath: false,
   },
-  {
-    id: "mongodb",
-    label: "MongoDB",
-    icon: "/database-logo/mongodb.png",
-    description: "Mongoose schema (AI-assisted)",
-    parseFormat: null,
-    command: "",
-    example: "",
-    placeholder:
-      "Paste your Mongoose schema definition here...\n\nExample:\nconst userSchema = new Schema({\n  email: { type: String, required: true, unique: true },\n  name: String,\n  createdAt: { type: Date, default: Date.now }\n});",
-    isAIPath: true,
-  },
+  // {
+  //   id: "mongodb",
+  //   label: "MongoDB",
+  //   icon: "/database-logo/mongodb.png",
+  //   description: "Mongoose schema (AI-assisted)",
+  //   parseFormat: null,
+  //   command: "For now no command available, paste your schema below",
+  //   example: "",
+  //   placeholder:
+  //     "Paste your Mongoose schema definition here...\n\nExample:\nconst userSchema = new Schema({\n  email: { type: String, required: true, unique: true },\n  name: String,\n  createdAt: { type: Date, default: Date.now }\n});",
+  //   isAIPath: true,
+  // },
   {
     id: "mssql",
     label: "SQL Server",
@@ -160,24 +160,32 @@ export function ImportSchemaDialog({
         );
       }
 
-      const { provider, claudeApiKey, openaiApiKey } = settings[0];
-      const apiKey = provider === "claude" ? claudeApiKey : openaiApiKey;
+      const { vercelAIKey } = settings[0];
 
-      if (!apiKey) {
-        throw new Error(
-          `Please add your ${provider === "claude" ? "Claude" : "OpenAI"} API key in AI Settings`
-        );
+      if (!vercelAIKey) {
+        throw new Error("Please add your Vercel AI key in AI Settings");
       }
 
       const prompt = `Convert the following Mongoose schema to DBML format:\n\n${schema}\n\nGenerate a valid DBML schema.`;
 
-      const dbml = await generateDBMLSchema({
-        provider,
-        apiKey,
-        prompt,
+      const result = streamAI({
+        apiKey: vercelAIKey,
+        modelKey: "claude-haiku-4-5" as ModelKey,
+        system:
+          "You are an expert at converting database schemas to DBML format. Output ONLY valid DBML, no explanation.",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+        maxOutputTokens: 8192,
       });
 
-      return dbml;
+      let dbml = "";
+      for await (const part of result.fullStream) {
+        if (part.type === "text-delta") {
+          dbml += part.text;
+        }
+      }
+
+      return dbml.trim();
     }
 
     // SQL-based parsing
@@ -279,20 +287,20 @@ export function ImportSchemaDialog({
         {step === 2 && selectedConfig && (
           <div className="flex h-[60vh] min-w-3xl gap-4 py-4">
             {/* Left: Command to input db schema */}
-            <div className="min-w-60">
+            <div className="h-full min-w-60">
               <p className="mb-3 font-semibold text-muted-foreground text-xs uppercase tracking-wider">
                 Run this command to export schema:
               </p>
               <CommandBlock code={selectedConfig.command} label="Command" />
               <CommandBlock
-                className="mt-6"
+                className="mt-6 mb-10"
                 code={selectedConfig.example}
                 label="Example (localhost)"
               />
-            </div>
 
-            {/* Mongodb Notice */}
-            {selectedDb === "mongodb" && <MongoDBNotice />}
+              {/* Mongodb Notice */}
+              {selectedDb === "mongodb" && <MongoDBNotice />}
+            </div>
 
             {/* Right: Textarea Input */}
             <div className="h-full w-full min-w-xl max-w-xl">

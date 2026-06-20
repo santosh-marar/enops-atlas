@@ -14,10 +14,10 @@ function CommandBlock({
     <div className={cn("flex flex-col gap-1", className)}>
       <p className="font-medium text-muted-foreground text-xs">{label}</p>
 
-      <div className="relative rounded-md border bg-muted p-2">
+      <div className="relative h-20 rounded-md border bg-muted p-2">
         {/* Copy Button */}
         <CopyButton
-          className="absolute top-2 right-2"
+          className="absolute top-0 right-0"
           iconClassName="size-3"
           value={code}
         />
