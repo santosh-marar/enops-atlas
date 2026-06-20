@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { generateCode } from "@/lib/ai-client";
+import { type ModelKey, streamAI } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { APISettingsDialog } from "./api-settings-dialog";
@@ -169,32 +169,35 @@ Please provide complete, production-ready code with:
         return;
       }
 
-      const { provider, claudeApiKey, openaiApiKey } = settings[0];
-      const apiKey = provider === "claude" ? claudeApiKey : openaiApiKey;
+      const { vercelAIKey } = settings[0];
 
-      if (!apiKey) {
-        toast.error(
-          `Please add your ${provider === "claude" ? "Claude" : "OpenAI"} API key in settings`
-        );
+      if (!vercelAIKey) {
+        toast.error("Please add your Vercel AI key in settings");
         setIsGenerating(false);
         setActiveTab("configure");
         return;
       }
 
-      const prompt = generatePrompt();
+      const modelKey: ModelKey = "claude-sonnet-4-6";
 
+      const prompt = generatePrompt();
       let streamedCode = "";
-      await generateCode({
-        provider,
-        apiKey,
-        prompt,
-        orm: selectedORM,
-        database: selectedDatabase,
-        onStream: (chunk: string) => {
-          streamedCode += chunk;
-          setGeneratedCode(streamedCode);
-        },
+
+      const result = streamAI({
+        apiKey: vercelAIKey,
+        modelKey,
+        system: `You are an expert ${selectedORM} developer generating production-ready schema for ${selectedDatabase}. Give user no explanations, just the schema or nothing else.`,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+        maxOutputTokens: 8192,
       });
+
+      for await (const part of result.fullStream) {
+        if (part.type === "text-delta") {
+          streamedCode += part.text;
+          setGeneratedCode(streamedCode);
+        }
+      }
 
       toast.success("Code generated successfully");
     } catch (error: any) {

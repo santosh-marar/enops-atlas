@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Eye, EyeOff, Settings, Shield, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Settings, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type AISettings as DBAISettings, db } from "@/lib/db";
 
 interface APISettingsDialogProps {
@@ -38,11 +37,9 @@ export function APISettingsDialog({
       setInternalOpen(value);
     }
   };
-  const [provider, setProvider] = useState<"claude" | "gpt">("claude");
-  const [claudeKey, setClaudeKey] = useState("");
-  const [openaiKey, setOpenaiKey] = useState("");
-  const [showClaudeKey, setShowClaudeKey] = useState(false);
-  const [showOpenaiKey, setShowOpenaiKey] = useState(false);
+
+  const [vercelAIKey, setVercelAIKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,13 +54,9 @@ export function APISettingsDialog({
       setIsLoading(true);
       const settings = await db.aiSettings.toArray();
       if (settings.length > 0) {
-        const current = settings[0];
-        setProvider(current.provider);
-        setClaudeKey(current.claudeApiKey || "");
-        setOpenaiKey(current.openaiApiKey || "");
+        setVercelAIKey(settings[0].vercelAIKey || "");
       }
-    } catch (error) {
-      // console.error("Failed to load API settings:", error);
+    } catch {
       toast.error("Failed to load API settings");
     } finally {
       setIsLoading(false);
@@ -71,23 +64,16 @@ export function APISettingsDialog({
   };
 
   const handleSave = async () => {
+    if (!vercelAIKey.trim()) {
+      toast.error("Please enter your Vercel AI Gateway key");
+      return;
+    }
+
     try {
       setIsSaving(true);
 
-      if (provider === "claude" && !claudeKey.trim()) {
-        toast.error("Please enter Claude API key");
-        return;
-      }
-
-      if (provider === "gpt" && !openaiKey.trim()) {
-        toast.error("Please enter OpenAI API key");
-        return;
-      }
-
       const settings: DBAISettings = {
-        provider,
-        claudeApiKey: claudeKey.trim() || undefined,
-        openaiApiKey: openaiKey.trim() || undefined,
+        vercelAIKey: vercelAIKey.trim(),
         updatedAt: new Date(),
       };
 
@@ -98,21 +84,13 @@ export function APISettingsDialog({
         await db.aiSettings.add(settings);
       }
 
-      toast.success("API settings saved successfully");
+      toast.success("AI key saved successfully");
       setOpen(false);
-    } catch (error) {
-      // console.error("Failed to save API settings:", error);
-      toast.error("Failed to save API settings");
+    } catch {
+      toast.error("Failed to save AI key");
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const maskKey = (key: string) => {
-    if (!key || key.length < 8) {
-      return key;
-    }
-    return key.slice(0, 4) + "•".repeat(key.length - 8) + key.slice(-4);
   };
 
   return (
@@ -127,7 +105,7 @@ export function APISettingsDialog({
             AI Settings
           </DialogTitle>
           <DialogDescription>
-            Configure your preferred AI provider and API credentials
+            Configure your Vercel AI Gateway credentials
           </DialogDescription>
         </DialogHeader>
 
@@ -136,143 +114,47 @@ export function APISettingsDialog({
             <div className="h-8 w-8 animate-spin rounded-full border-primary border-b-2" />
           </div>
         ) : (
-          <Tabs
-            className="w-full"
-            onValueChange={(v) => setProvider(v as "claude" | "gpt")}
-            value={provider}
-          >
-            <div className="flex items-center justify-center pb-4">
-              <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger className="gap-2" value="claude">
-                  <Sparkles className="h-4 w-4" />
-                  Claude Sonnet 4.5
-                </TabsTrigger>
-                <TabsTrigger className="gap-2" value="gpt">
-                  <Sparkles className="h-4 w-4" />
-                  GPT-4 Turbo
-                </TabsTrigger>
-              </TabsList>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="font-medium text-sm" htmlFor="vercel-ai-key">
+                Vercel AI Gateway Key
+                <span className="ml-1 text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  className="pr-10 font-mono text-sm"
+                  id="vercel-ai-key"
+                  onChange={(e) => setVercelAIKey(e.target.value)}
+                  placeholder="vai-..."
+                  type={showKey ? "text" : "password"}
+                  value={vercelAIKey}
+                />
+                <button
+                  className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => setShowKey(!showKey)}
+                  type="button"
+                >
+                  {showKey ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Get your key from{" "}
+                <a
+                  className="font-medium text-primary hover:underline"
+                  href="https://vercel.com/docs/ai-gateway"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  vercel.com/docs/ai-gateway
+                </a>
+              </p>
             </div>
 
-            <TabsContent className="mt-0 space-y-4" value="claude">
-              <div className="rounded-lg border bg-linear-to-br from-primary/5 to-primary/10 p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-primary/10 p-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">
-                        Anthropic Claude
-                      </h3>
-                      <p className="mt-0.5 text-muted-foreground text-xs">
-                        Claude 3.5 Sonnet - Advanced reasoning and code
-                        generation
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-medium text-sm" htmlFor="claude-key">
-                  API Key
-                  <span className="ml-1 text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    className="pr-10 font-mono text-sm"
-                    id="claude-key"
-                    onChange={(e) => setClaudeKey(e.target.value)}
-                    placeholder="sk-ant-api..."
-                    type={showClaudeKey ? "text" : "password"}
-                    value={claudeKey}
-                  />
-                  <button
-                    className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                    onClick={() => setShowClaudeKey(!showClaudeKey)}
-                    type="button"
-                  >
-                    {showClaudeKey ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  Get your API key from{" "}
-                  <a
-                    className="font-medium text-primary hover:underline"
-                    href="https://console.anthropic.com/"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    console.anthropic.com
-                  </a>
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent className="mt-0 space-y-4" value="gpt">
-              <div className="rounded-lg border bg-linear-to-br from-green-500/5 to-green-500/10 p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-lg bg-green-500/10 p-2">
-                      <Sparkles className="h-5 w-5 text-green-600 dark:text-green-500" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">OpenAI GPT</h3>
-                      <p className="mt-0.5 text-muted-foreground text-xs">
-                        GPT-4 Turbo - Powerful language model with broad
-                        knowledge
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-medium text-sm" htmlFor="openai-key">
-                  API Key
-                  <span className="ml-1 text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    className="pr-10 font-mono text-sm"
-                    id="openai-key"
-                    onChange={(e) => setOpenaiKey(e.target.value)}
-                    placeholder="sk-..."
-                    type={showOpenaiKey ? "text" : "password"}
-                    value={openaiKey}
-                  />
-                  <button
-                    className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                    onClick={() => setShowOpenaiKey(!showOpenaiKey)}
-                    type="button"
-                  >
-                    {showOpenaiKey ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  Get your API key from{" "}
-                  <a
-                    className="font-medium text-primary hover:underline"
-                    href="https://platform.openai.com/api-keys"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    platform.openai.com
-                  </a>
-                </p>
-              </div>
-            </TabsContent>
-
-            <div className="mt-4 rounded-lg border bg-muted/50 p-3">
+            <div className="rounded-lg border bg-muted/50 p-3">
               <div className="flex gap-2.5">
                 <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <div className="space-y-1 text-muted-foreground text-xs">
@@ -280,14 +162,13 @@ export function APISettingsDialog({
                     Privacy & Security
                   </p>
                   <p>
-                    Your API keys are encrypted and stored locally in your
-                    browser. They never leave your device and are only used for
-                    direct API requests.
+                    Your key is stored locally in your browser and never leaves
+                    your device.
                   </p>
                 </div>
               </div>
             </div>
-          </Tabs>
+          </div>
         )}
 
         <DialogFooter className="gap-2">
@@ -310,10 +191,7 @@ export function APISettingsDialog({
                 Saving...
               </>
             ) : (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Save Changes
-              </>
+              <>Save</>
             )}
           </Button>
         </DialogFooter>
@@ -323,27 +201,16 @@ export function APISettingsDialog({
 }
 
 export interface AISettings {
-  claudeApiKey: string;
-  openaiApiKey: string;
-  provider: "claude" | "gpt";
+  vercelAIKey: string;
 }
 
 export async function getAISettings(): Promise<AISettings | null> {
-  if (typeof window === "undefined") {
-    return null;
-  }
+  if (typeof window === "undefined") return null;
 
   try {
     const saved = await db.aiSettings.toCollection().first();
-    if (!saved) {
-      return null;
-    }
-
-    return {
-      provider: saved.provider,
-      claudeApiKey: saved.claudeApiKey || "",
-      openaiApiKey: saved.openaiApiKey || "",
-    };
+    if (!saved) return null;
+    return { vercelAIKey: saved.vercelAIKey || "" };
   } catch {
     return null;
   }
