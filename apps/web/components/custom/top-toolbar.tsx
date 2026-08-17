@@ -1,15 +1,7 @@
 "use client";
 
 import { IconBrandGithub } from "@tabler/icons-react";
-import {
-  Crown,
-  HelpCircle,
-  Loader2,
-  Moon,
-  Save,
-  Settings,
-  Sun,
-} from "lucide-react";
+import { Crown, Moon, Sun } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -68,11 +60,11 @@ export function TopToolbar({
     handleOpenProject,
   } = useProjectManager({
     dbml,
-    nodes,
     edges,
-    updateFromDBML,
-    setNodes,
+    nodes,
     setEdges,
+    setNodes,
+    updateFromDBML,
   });
 
   // Image export
@@ -151,6 +143,7 @@ export function TopToolbar({
 
   // Setup keyboard shortcuts
   useKeyboardShortcuts({
+    enabled: !isEditingName,
     shortcuts: shortcuts.map((s) => ({
       ...s,
       action: () => {
@@ -160,7 +153,6 @@ export function TopToolbar({
         s.action();
       },
     })),
-    enabled: !isEditingName,
   });
 
   // Create commands for command palette
@@ -290,7 +282,7 @@ export function TopToolbar({
             hasCurrentProject={!!currentProject}
             onBrowse={onBrowse}
             onDelete={handleDeleteWithDialog}
-            onExport={handleExportImage}
+            // onExport={handleExportImage}
             onImportDb={() => setShowImportDbDialog(true)}
             onNew={handleNewWithConfirmation}
           />
@@ -300,13 +292,11 @@ export function TopToolbar({
             size={"sm"}
             variant={"ghost"}
           >
-            <HelpCircle className="h-4 w-4" />
             Help
           </Button>
 
           <APISettingsDialog>
             <Button size={"sm"} variant="ghost">
-              <Settings className="h-4 w-4" />
               AI Settings
             </Button>
           </APISettingsDialog>
@@ -324,7 +314,7 @@ export function TopToolbar({
         </div>
 
         {/* Middle Section - Project Name */}
-        {currentProject != null && (
+        {currentProject !== null && (
           <ProjectNameEditor
             onEditingChange={setIsEditingName}
             onNameChange={setProjectName}
@@ -339,17 +329,7 @@ export function TopToolbar({
             Saved: {formatLastSaved()}
           </span>
           <Button disabled={isSaving} onClick={handleSaveWithReset} size={"sm"}>
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                Save
-              </>
-            )}
+            {isSaving ? <>Saving...</> : <>Save</>}
           </Button>
           <Button
             onClick={toggleTheme}
