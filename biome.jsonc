@@ -36,11 +36,6 @@
         "noSvgWithoutTitle": "off",
         "useButtonType": "off"
       },
-      "nursery": {
-        "noShadow": "off",
-        "noLeakedRender": "off",
-        "noIncrementDecrement": "off"
-      },
       "suspicious": {
         "noExplicitAny": "off",
         "noTemplateCurlyInString": "off",
