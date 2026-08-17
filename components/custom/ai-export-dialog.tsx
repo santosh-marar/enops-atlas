@@ -48,57 +48,57 @@ interface ExportDialogProps {
 
 const ormOptions = [
   {
-    value: "prisma",
-    label: "Prisma",
     description: "Next-generation ORM for TypeScript",
+    label: "Prisma",
+    value: "prisma",
   },
   {
-    value: "drizzle",
-    label: "Drizzle ORM",
     description: "TypeScript ORM with SQL-like syntax",
+    label: "Drizzle ORM",
+    value: "drizzle",
   },
   {
-    value: "mongoose",
-    label: "Mongoose",
     description: "MongoDB object modeling",
+    label: "Mongoose",
+    value: "mongoose",
   },
   {
-    value: "typeorm",
-    label: "TypeORM",
     description: "ORM for TypeScript and JavaScript",
+    label: "TypeORM",
+    value: "typeorm",
   },
   {
-    value: "sequelize",
-    label: "Sequelize",
     description: "Promise-based Node.js ORM",
+    label: "Sequelize",
+    value: "sequelize",
   },
 ];
 
 const databaseOptions = [
   {
-    value: "postgresql",
+    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
     label: "PostgreSQL",
-    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    value: "postgresql",
   },
   {
-    value: "mysql",
+    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
     label: "MySQL",
-    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    value: "mysql",
   },
   {
-    value: "mongodb",
-    label: "MongoDB",
     compatibleWith: ["mongoose", "prisma"],
+    label: "MongoDB",
+    value: "mongodb",
   },
   {
-    value: "sqlite",
+    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
     label: "SQLite",
-    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    value: "sqlite",
   },
   {
-    value: "mariadb",
-    label: "MariaDB",
     compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    label: "MariaDB",
+    value: "mariadb",
   },
 ];
 
@@ -185,11 +185,11 @@ Please provide complete, production-ready code with:
 
       const result = streamAI({
         apiKey: vercelAIKey,
+        maxOutputTokens: 8192,
+        messages: [{ content: prompt, role: "user" }],
         modelKey,
         system: `You are an expert ${selectedORM} developer generating production-ready schema for ${selectedDatabase}. Give user no explanations, just the schema or nothing else.`,
-        messages: [{ role: "user", content: prompt }],
         temperature: 0.1,
-        maxOutputTokens: 8192,
       });
 
       for await (const part of result.fullStream) {
@@ -218,11 +218,11 @@ Please provide complete, production-ready code with:
 
   const handleDownload = () => {
     const fileExtensions: Record<ORM, string> = {
-      prisma: "prisma",
       drizzle: "ts",
       mongoose: "ts",
-      typeorm: "ts",
+      prisma: "prisma",
       sequelize: "ts",
+      typeorm: "ts",
     };
 
     const ext = selectedORM ? fileExtensions[selectedORM] : "txt";
@@ -300,7 +300,6 @@ Please provide complete, production-ready code with:
       <DialogTrigger asChild>
         {children || (
           <Button size={"sm"} variant="ghost">
-            <Download className="mr-2 h-4 w-4" />
             Export Schema
           </Button>
         )}
@@ -469,7 +468,7 @@ Please provide complete, production-ready code with:
                 </div>
               </div>
               <div className="relative overflow-hidden rounded-md border">
-                <div className="h-full min-h-[480px] overflow-y-auto scroll-smooth bg-card p-3">
+                <div className="h-full min-h-120 overflow-y-auto scroll-smooth bg-card p-3">
                   <pre
                     className="break-word min-h-full whitespace-pre-wrap font-mono text-foreground text-sm"
                     ref={textareaRef}
@@ -579,7 +578,7 @@ Please provide complete, production-ready code with:
                   </div>
                 </div>
                 <div className="relative overflow-hidden rounded-md border">
-                  <div className="h-full min-h-[480px] overflow-y-auto scroll-smooth bg-card p-3">
+                  <div className="h-full min-h-120 overflow-y-auto scroll-smooth bg-card p-3">
                     <pre className="break-word min-h-full whitespace-pre-wrap font-mono text-foreground text-sm">
                       {generatedSQL}
                     </pre>

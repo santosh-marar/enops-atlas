@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Settings, Shield } from "lucide-react";
+import { Eye, EyeOff, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -73,8 +73,8 @@ export function APISettingsDialog({
       setIsSaving(true);
 
       const settings: DBAISettings = {
-        vercelAIKey: vercelAIKey.trim(),
         updatedAt: new Date(),
+        vercelAIKey: vercelAIKey.trim(),
       };
 
       const existing = await db.aiSettings.toArray();
@@ -99,9 +99,6 @@ export function APISettingsDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <div className="rounded-lg bg-primary/10 p-1.5">
-              <Settings className="h-4 w-4 text-primary" />
-            </div>
             AI Settings
           </DialogTitle>
           <DialogDescription>
