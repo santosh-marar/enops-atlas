@@ -5,25 +5,25 @@ import type { AIBaseOptions } from "../types";
 //  Resuable ai function
 export function streamAI(opts: AIBaseOptions & { apiKey: string }) {
   return streamText({
+    maxOutputTokens: opts.maxOutputTokens || 4096,
+    messages: opts.messages,
     model: resolveModel(opts.modelKey, opts.apiKey),
     system: opts.system,
-    messages: opts.messages,
-    maxOutputTokens: opts.maxOutputTokens || 4096,
     temperature: opts.temperature || 0.1,
-    tools: opts.tools,
     toolChoice: opts.toolChoice,
+    tools: opts.tools,
   });
 }
 
 export async function generateAI(opts: AIBaseOptions & { apiKey: string }) {
   const result = await generateText({
+    maxOutputTokens: opts.maxOutputTokens || 4096,
+    messages: opts.messages,
     model: resolveModel(opts.modelKey, opts.apiKey),
     system: opts.system,
-    messages: opts.messages,
-    maxOutputTokens: opts.maxOutputTokens || 4096,
     temperature: opts.temperature || 0.1,
-    tools: opts.tools,
     toolChoice: opts.toolChoice,
+    tools: opts.tools,
   });
 
   return {
@@ -34,12 +34,12 @@ export async function generateAI(opts: AIBaseOptions & { apiKey: string }) {
 
 export function streamRaw(opts: AIBaseOptions & { apiKey: string }) {
   return streamText({
+    maxOutputTokens: opts.maxOutputTokens || 4096,
+    messages: opts.messages,
     model: resolveModel(opts.modelKey, opts.apiKey),
     system: opts.system,
-    messages: opts.messages,
-    maxOutputTokens: opts.maxOutputTokens || 4096,
     temperature: opts.temperature || 0.1,
-    tools: opts.tools,
     toolChoice: opts.toolChoice,
+    tools: opts.tools,
   });
 }

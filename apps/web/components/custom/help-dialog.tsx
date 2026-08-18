@@ -91,8 +91,8 @@ export function HelpDialog({ isOpen, onClose, shortcuts }: HelpDialogProps) {
               Press{" "}
               <kbd className="rounded border border-border bg-card px-2 py-0.5 font-mono text-xs">
                 {formatShortcut({
-                  key: "K",
                   ctrl: true,
+                  key: "K",
                 })}
               </kbd>{" "}
               to open the command palette and quickly access all actions with

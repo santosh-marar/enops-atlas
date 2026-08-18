@@ -28,17 +28,17 @@ const nodeTypes = {
 };
 
 const defaultEdgeOptions = {
-  type: "smoothstep" as const,
   markerEnd: {
-    type: MarkerType.ArrowClosed,
     color: "var(--muted-foreground)",
-    width: 16,
     height: 16,
+    type: MarkerType.ArrowClosed,
+    width: 16,
   },
   style: {
     stroke: "var(--muted-foreground)",
     strokeWidth: 1.2,
   },
+  type: "smoothstep" as const,
 };
 
 function XYFlowsInner() {
@@ -66,12 +66,13 @@ function XYFlowsInner() {
 
   const { handleNodeDoubleClick, isZoomed } = useNodeZoom({
     duration: 500,
-    padding: 0.5,
-    minZoom: 0.5,
     maxZoom: 1.5,
+    minZoom: 0.5,
+    padding: 0.5,
   });
 
   useKeyboardShortcuts({
+    enabled: true,
     shortcuts: [
       {
         ...SHORTCUT_CONFIGS.SEARCH_TABLES,
@@ -80,7 +81,6 @@ function XYFlowsInner() {
         },
       },
     ],
-    enabled: true,
   });
 
   return (

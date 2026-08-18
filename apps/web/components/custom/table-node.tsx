@@ -51,41 +51,41 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
   const schemaColor = useMemo(() => {
     const schema = nodeData.schema || "public";
     const colors = {
-      public: {
-        from: "from-background",
-        to: "to-background",
-        border: "border",
-        shadow: "shadow-background/20",
-      },
-      ecommerce: {
-        from: "from-emerald-600",
-        to: "to-emerald-700",
-        border: "border",
-        shadow: "shadow-emerald-500/20",
+      analytics: {
+        border: "border-amber-500/60",
+        from: "from-amber-500",
+        shadow: "shadow-amber-500/20",
+        to: "to-amber-600",
       },
       auth: {
-        from: "from-violet-500",
-        to: "to-violet-600",
         border: "border-violet-500/60",
+        from: "from-violet-500",
         shadow: "shadow-violet-500/20",
+        to: "to-violet-600",
       },
-      analytics: {
-        from: "from-amber-500",
-        to: "to-amber-600",
-        border: "border-amber-500/60",
-        shadow: "shadow-amber-500/20",
+      ecommerce: {
+        border: "border",
+        from: "from-emerald-600",
+        shadow: "shadow-emerald-500/20",
+        to: "to-emerald-700",
       },
       inventory: {
-        from: "from-rose-500",
-        to: "to-rose-600",
         border: "border-rose-500/60",
+        from: "from-rose-500",
         shadow: "shadow-rose-500/20",
+        to: "to-rose-600",
       },
       payment: {
-        from: "from-fuchsia-500",
-        to: "to-fuchsia-600",
         border: "border-fuchsia-500/60",
+        from: "from-fuchsia-500",
         shadow: "shadow-fuchsia-500/20",
+        to: "to-fuchsia-600",
+      },
+      public: {
+        border: "border",
+        from: "from-background",
+        shadow: "shadow-background/20",
+        to: "to-background",
       },
     };
 
@@ -100,41 +100,41 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
       .reduce((acc, char) => char.charCodeAt(0) + acc, 0);
     const colorOptions = [
       {
-        from: "from-cyan-500",
-        to: "to-cyan-600",
         border: "border-cyan-500/60",
+        from: "from-cyan-500",
         shadow: "shadow-cyan-500/20",
+        to: "to-cyan-600",
       },
       {
-        from: "from-pink-500",
-        to: "to-pink-600",
         border: "border-pink-500/60",
+        from: "from-pink-500",
         shadow: "shadow-pink-500/20",
+        to: "to-pink-600",
       },
       {
-        from: "from-teal-500",
-        to: "to-teal-600",
         border: "border-teal-500/60",
+        from: "from-teal-500",
         shadow: "shadow-teal-500/20",
+        to: "to-teal-600",
       },
       {
-        from: "from-orange-500",
-        to: "to-orange-600",
         border: "border-orange-500/60",
+        from: "from-orange-500",
         shadow: "shadow-orange-500/20",
+        to: "to-orange-600",
       },
       {
-        from: "from-lime-500",
-        to: "to-lime-600",
         border: "border-lime-500/60",
+        from: "from-lime-500",
         shadow: "shadow-lime-500/20",
+        to: "to-lime-600",
       },
     ];
     return colorOptions[hash % colorOptions.length];
   }, [nodeData.schema]);
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider delay={200}>
       <div className={"relative min-w-65 rounded-xl border bg-card"}>
         <div
           className={
@@ -254,7 +254,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {/* Show enum values on hover - inline */}
                     {hasEnumValues && (
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger>
                           <span className="inline-flex cursor-help items-center rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-1px font-medium text-[10px] text-emerald-600 normal-case dark:text-emerald-400">
                             ENUM ({column.enumValues!.length})
                           </span>
@@ -279,7 +279,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {/* Show FK references on hover - inline */}
                     {hasForeignKeys && (
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger>
                           <span className="inline-flex cursor-help items-center rounded border border-blue-500/20 bg-blue-500/10 px-1.5 py-px font-medium text-[10px] text-blue-600 normal-case dark:text-blue-400">
                             REF{" "}
                             {fkTargets.length > 1
@@ -305,7 +305,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                     {/* Show note on hover - inline */}
                     {hasNote && (
                       <Tooltip>
-                        <TooltipTrigger asChild>
+                        <TooltipTrigger>
                           <span className="inline-flex cursor-help items-center rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-px font-medium text-[10px] text-amber-600 normal-case dark:text-amber-400">
                             NOTE
                           </span>

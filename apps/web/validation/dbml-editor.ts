@@ -21,15 +21,15 @@ export const validateDBML = async (dbml: string): Promise<ValidationResult> => {
   // Empty check
   if (!dbml?.trim()) {
     return {
-      isValid: false,
       errors: [
         {
-          line: 1,
           column: 1,
+          line: 1,
           message: "DBML cannot be empty",
           severity: "error",
         },
       ],
+      isValid: false,
     };
   }
 
@@ -41,9 +41,9 @@ export const validateDBML = async (dbml: string): Promise<ValidationResult> => {
     const database = parser.parse(dbml, "dbmlv2");
 
     return {
-      isValid: true,
-      errors: [],
       database,
+      errors: [],
+      isValid: true,
     };
   } catch (error: any) {
     const errors: ValidationError[] = [];
@@ -53,16 +53,16 @@ export const validateDBML = async (dbml: string): Promise<ValidationResult> => {
       if (error.diags && Array.isArray(error.diags)) {
         errors.push(
           ...error.diags.map((diag: any) => ({
-            line: diag.location?.start?.line || 1,
             column: diag.location?.start?.column || 1,
+            line: diag.location?.start?.line || 1,
             message: diag.message || "Syntax error",
             severity: diag.severity === 1 ? "warning" : ("error" as const),
           }))
         );
       } else if (error.location) {
         errors.push({
-          line: error.location.start.line,
           column: error.location.start.column,
+          line: error.location.start.line,
           message: error.message || "Syntax error",
           severity: "error",
         });
@@ -70,24 +70,24 @@ export const validateDBML = async (dbml: string): Promise<ValidationResult> => {
       // Unknown error format - fallback
       else {
         errors.push({
-          line: 1,
           column: 1,
+          line: 1,
           message: error.message || "Invalid DBML syntax",
           severity: "error",
         });
       }
     } catch (parseErr) {
       errors.push({
-        line: 1,
         column: 1,
+        line: 1,
         message: "Failed to parse DBML",
         severity: "error",
       });
     }
 
     return {
-      isValid: false,
       errors,
+      isValid: false,
     };
   }
 };

@@ -49,5 +49,5 @@ export function useTableFilter(
     );
   }, [edges, filteredNodes]);
 
-  return { filteredNodes, filteredEdges };
+  return { filteredEdges, filteredNodes };
 }

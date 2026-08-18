@@ -30,40 +30,40 @@ import CommandBlock from "./command-block";
 
 const DB_TYPE_CONFIGS: DbTypeConfig[] = [
   {
-    id: "postgresql",
-    label: "PostgreSQL",
-    icon: "/database-logo/postgres.png",
-    description: "pg_dump schema export",
-    parseFormat: "postgres",
     command: `pg_dump --schema-only "postgresql://USER:PASSWORD@HOST:PORT/DATABASE" > schema.sql`,
+    description: "pg_dump schema export",
     example: `pg_dump --schema-only "postgresql://admin:secret@localhost:5432/mydb" > schema.sql`,
+    icon: "/database-logo/postgres.png",
+    id: "postgresql",
+    isAIPath: false,
+    label: "PostgreSQL",
+    parseFormat: "postgres",
     placeholder:
       "Paste the contents of schema.sql here...\n\nExpected format:\nCREATE TABLE users (\n  id SERIAL PRIMARY KEY,\n  email VARCHAR(255) NOT NULL,\n  ...\n);",
-    isAIPath: false,
   },
   {
-    id: "mysql",
-    label: "MySQL",
-    icon: "/database-logo/mysql.png",
-    description: "mysqldump schema export",
-    parseFormat: "mysql",
     command: "mysqldump --no-data -u USER -p DATABASE > schema.sql",
+    description: "mysqldump schema export",
     example: "mysqldump --no-data -u root -p mydb > schema.sql",
+    icon: "/database-logo/mysql.png",
+    id: "mysql",
+    isAIPath: false,
+    label: "MySQL",
+    parseFormat: "mysql",
     placeholder:
       "Paste the contents of schema.sql here...\n\nExpected format:\nCREATE TABLE `users` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `email` varchar(255) NOT NULL,\n  ...\n);",
-    isAIPath: false,
   },
   {
-    id: "sqlite",
-    label: "SQLite",
-    icon: "/database-logo/sqlite.png",
-    description: ".schema command output",
-    parseFormat: "postgres",
     command: `sqlite3 DATABASE.db ".schema" > schema.sql`,
+    description: ".schema command output",
     example: `sqlite3 ./myapp.db ".schema" > schema.sql`,
+    icon: "/database-logo/sqlite.png",
+    id: "sqlite",
+    isAIPath: false,
+    label: "SQLite",
+    parseFormat: "postgres",
     placeholder:
       "Paste the .schema output here...\n\nExpected format:\nCREATE TABLE users (\n  id INTEGER PRIMARY KEY,\n  email TEXT NOT NULL,\n  ...\n);",
-    isAIPath: false,
   },
   // {
   //   id: "mongodb",
@@ -78,16 +78,16 @@ const DB_TYPE_CONFIGS: DbTypeConfig[] = [
   //   isAIPath: true,
   // },
   {
-    id: "mssql",
-    label: "SQL Server",
-    icon: "/database-logo/msql.png",
-    description: "SSMS or sqlcmd export",
-    parseFormat: "mssql",
     command: `sqlcmd -S SERVER -d DATABASE -Q "SELECT ..." -o schema.sql\n\n# Or use SSMS: Right-click DB → Tasks → Generate Scripts`,
+    description: "SSMS or sqlcmd export",
     example: "sqlcmd -S localhost -d mydb -E -o schema.sql",
+    icon: "/database-logo/msql.png",
+    id: "mssql",
+    isAIPath: false,
+    label: "SQL Server",
+    parseFormat: "mssql",
     placeholder:
       "Paste the SQL Server DDL here...\n\nExpected format:\nCREATE TABLE [dbo].[Users] (\n  [Id] INT NOT NULL,\n  [Email] VARCHAR(255) NOT NULL,\n  ...\n);",
-    isAIPath: false,
   },
 ];
 
@@ -170,12 +170,12 @@ export function ImportSchemaDialog({
 
       const result = streamAI({
         apiKey: vercelAIKey,
+        maxOutputTokens: 8192,
+        messages: [{ content: prompt, role: "user" }],
         modelKey: "claude-haiku-4-5" as ModelKey,
         system:
           "You are an expert at converting database schemas to DBML format. Output ONLY valid DBML, no explanation.",
-        messages: [{ role: "user", content: prompt }],
         temperature: 0.1,
-        maxOutputTokens: 8192,
       });
 
       let dbml = "";
@@ -336,7 +336,7 @@ export function ImportSchemaDialog({
               Back
             </Button>
           )}
-          <DialogClose asChild>
+          <DialogClose>
             <Button variant="ghost">Skip</Button>
           </DialogClose>
           {step === 2 && (

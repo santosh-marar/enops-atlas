@@ -72,8 +72,8 @@ const runMissingReferenceErrorTest = () => {
 const runSyntaxErrorPropagationTest = () => {
   console.log("Running syntax error propagation test...");
   assert.throws(() => transformDbml("Table broken { id "), {
-    name: /Error/,
     message: /Expected/i,
+    name: /Error/,
   });
   console.log("✓ Syntax error propagation test passed");
 };
