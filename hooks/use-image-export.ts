@@ -60,15 +60,15 @@ export function useImageExport({
 
         if (format === "png") {
           dataUrl = await toPng(element, {
-            quality: 0.95,
-            pixelRatio: 1.5,
             cacheBust: false,
+            pixelRatio: 1.5,
+            quality: 0.95,
           });
         } else if (format === "jpeg") {
           dataUrl = await toJpeg(element, {
-            quality: 0.9,
-            pixelRatio: 1.5,
             cacheBust: false,
+            pixelRatio: 1.5,
+            quality: 0.9,
           });
         } else {
           dataUrl = await toSvg(element, { cacheBust: false });
@@ -111,9 +111,9 @@ export function useImageExport({
   };
 
   return {
-    isExporting,
-    isCancelling,
-    handleExportImage,
     handleCancelExport,
+    handleExportImage,
+    isCancelling,
+    isExporting,
   };
 }

@@ -43,8 +43,8 @@ export class AppDatabase extends Dexie {
 
     this.version(1)
       .stores({
-        projects: "id, name, createdAt, updatedAt", // 'id' is primary key, others are indexes
         aiSettings: "++id, updatedAt",
+        projects: "id, name, createdAt, updatedAt", // 'id' is primary key, others are indexes
       })
       .upgrade((tx) =>
         tx

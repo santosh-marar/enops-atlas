@@ -91,6 +91,7 @@ const TYPE_KEYWORDS = new Set([
 ]);
 
 const dbmlLanguage = StreamLanguage.define({
+  languageData: { commentTokens: { line: "//" } },
   name: "dbml",
   token(stream) {
     if (stream.match("//")) {
@@ -119,46 +120,30 @@ const dbmlLanguage = StreamLanguage.define({
     stream.next();
     return null;
   },
-  languageData: { commentTokens: { line: "//" } },
 });
 
 // Themes
 const zincDarkTheme = EditorView.theme(
   {
-    "&": {
-      backgroundColor: "#27272a",
-      color: "#e4e4e7",
-      height: "100%",
-      fontSize: "14px",
-    },
-    ".cm-content": {
-      padding: "16px 0",
-      caretColor: "#e4e4e7",
-      lineHeight: "20px",
-    },
-    ".cm-cursor": { borderLeftColor: "#e4e4e7" },
-    ".cm-selectionBackground, ::selection": { backgroundColor: "#52525b" },
     ".cm-activeLine": { backgroundColor: "#3f3f4640" },
     ".cm-activeLineGutter": { backgroundColor: "#3f3f4640" },
-    ".cm-gutters": {
-      backgroundColor: "#27272a",
-      color: "#52525b",
-      borderRight: "1px solid #3f3f46",
-    },
-    ".cm-lineNumbers .cm-gutterElement": { paddingRight: "12px" },
     ".cm-activeLineGutter.cm-lineNumbers": { color: "#a1a1aa" },
     ".cm-bracketMatching": {
       backgroundColor: "#3f3f46",
       outline: "1px solid #71717a",
     },
-    ".cm-tooltip": {
-      backgroundColor: "#3f3f46",
-      border: "1px solid #52525b",
-      color: "#e4e4e7",
+    ".cm-content": {
+      caretColor: "#e4e4e7",
+      lineHeight: "20px",
+      padding: "16px 0",
     },
-    ".cm-tooltip-autocomplete ul li[aria-selected]": {
-      backgroundColor: "#52525b",
+    ".cm-cursor": { borderLeftColor: "#e4e4e7" },
+    ".cm-gutters": {
+      backgroundColor: "#27272a",
+      borderRight: "1px solid #3f3f46",
+      color: "#52525b",
     },
+    ".cm-lineNumbers .cm-gutterElement": { paddingRight: "12px" },
     ".cm-lintRange-error": {
       backgroundImage: "none",
       borderBottom: "2px solid #ef4444",
@@ -167,35 +152,50 @@ const zincDarkTheme = EditorView.theme(
       backgroundImage: "none",
       borderBottom: "2px dashed #f59e0b",
     },
+    ".cm-selectionBackground, ::selection": { backgroundColor: "#52525b" },
+    ".cm-tooltip": {
+      backgroundColor: "#3f3f46",
+      border: "1px solid #52525b",
+      color: "#e4e4e7",
+    },
+    ".cm-tooltip-autocomplete ul li[aria-selected]": {
+      backgroundColor: "#52525b",
+    },
+    "&": {
+      backgroundColor: "#27272a",
+      color: "#e4e4e7",
+      fontSize: "14px",
+      height: "100%",
+    },
   },
   { dark: true }
 );
 
 const zincDarkHighlight = HighlightStyle.define([
-  { tag: tags.lineComment, color: "#71717a", fontStyle: "italic" },
-  { tag: tags.blockComment, color: "#71717a", fontStyle: "italic" },
-  { tag: tags.keyword, color: "#c084fc" },
-  { tag: tags.typeName, color: "#67e8f9" },
-  { tag: tags.variableName, color: "#e4e4e7" },
-  { tag: tags.string, color: "#86efac" },
-  { tag: tags.number, color: "#fb923c" },
-  { tag: tags.operator, color: "#94a3b8" },
-  { tag: tags.bracket, color: "#e4e4e7" },
+  { color: "#71717a", fontStyle: "italic", tag: tags.lineComment },
+  { color: "#71717a", fontStyle: "italic", tag: tags.blockComment },
+  { color: "#c084fc", tag: tags.keyword },
+  { color: "#67e8f9", tag: tags.typeName },
+  { color: "#e4e4e7", tag: tags.variableName },
+  { color: "#86efac", tag: tags.string },
+  { color: "#fb923c", tag: tags.number },
+  { color: "#94a3b8", tag: tags.operator },
+  { color: "#e4e4e7", tag: tags.bracket },
 ]);
 
 const lightTheme = EditorView.theme({
-  "&": { height: "100%", fontSize: "14px" },
-  ".cm-content": { padding: "16px 0", lineHeight: "20px" },
+  ".cm-content": { lineHeight: "20px", padding: "16px 0" },
+  "&": { fontSize: "14px", height: "100%" },
 });
 
 const lightHighlight = HighlightStyle.define([
-  { tag: tags.lineComment, color: "#008000", fontStyle: "italic" },
-  { tag: tags.blockComment, color: "#008000", fontStyle: "italic" },
-  { tag: tags.keyword, color: "#0000ff" },
-  { tag: tags.typeName, color: "#267f99" },
-  { tag: tags.string, color: "#a31515" },
-  { tag: tags.number, color: "#098658" },
-  { tag: tags.operator, color: "#000000" },
+  { color: "#008000", fontStyle: "italic", tag: tags.lineComment },
+  { color: "#008000", fontStyle: "italic", tag: tags.blockComment },
+  { color: "#0000ff", tag: tags.keyword },
+  { color: "#267f99", tag: tags.typeName },
+  { color: "#a31515", tag: tags.string },
+  { color: "#098658", tag: tags.number },
+  { color: "#000000", tag: tags.operator },
 ]);
 
 // Completions
@@ -208,22 +208,22 @@ const dbmlCompletions = autocompletion({
         from: word.from,
         options: [
           {
+            apply: "Table table_name {\n  id integer [pk, increment]\n  \n}",
+            detail: "Create a new table",
             label: "Table",
             type: "keyword",
-            detail: "Create a new table",
-            apply: "Table table_name {\n  id integer [pk, increment]\n  \n}",
           },
           {
+            apply: "Ref: table1.field1 > table2.field2",
+            detail: "Foreign key reference",
             label: "Ref",
             type: "keyword",
-            detail: "Foreign key reference",
-            apply: "Ref: table1.field1 > table2.field2",
           },
           {
+            apply: "Enum enum_name {\n  value1\n  value2\n}",
+            detail: "Define an enum type",
             label: "Enum",
             type: "keyword",
-            detail: "Define an enum type",
-            apply: "Enum enum_name {\n  value1\n  value2\n}",
           },
           ...Array.from(TYPE_KEYWORDS).map((kw) => ({
             label: kw,
@@ -255,9 +255,9 @@ function dbmlLinter() {
       const to = Math.min(line.to, from + 30);
       return {
         from,
-        to,
-        severity: err.severity === "error" ? "error" : "warning",
         message: err.message,
+        severity: err.severity === "error" ? "error" : "warning",
+        to,
       };
     });
     return diagnostics;
@@ -359,7 +359,7 @@ export default function DBMLEditor() {
       ],
     });
 
-    const view = new EditorView({ state, parent: containerRef.current });
+    const view = new EditorView({ parent: containerRef.current, state });
     viewRef.current = view;
     view.focus();
 
@@ -375,8 +375,8 @@ export default function DBMLEditor() {
       viewRef.current.dispatch({
         changes: {
           from: 0,
-          to: viewRef.current.state.doc.length,
           insert: dbml ?? "",
+          to: viewRef.current.state.doc.length,
         },
       });
       setTimeout(() => {

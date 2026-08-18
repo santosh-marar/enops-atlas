@@ -43,11 +43,11 @@ export default function Home() {
     handleSave,
   } = useProjectManager({
     dbml,
-    nodes,
     edges,
-    updateFromDBML,
-    setNodes,
+    nodes,
     setEdges,
+    setNodes,
+    updateFromDBML,
   });
 
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
@@ -171,12 +171,12 @@ export default function Home() {
       try {
         const updateResult = await db.projects.update(projectId, {
           techStack: {
-            database: techStack.database,
-            orm: techStack.orm,
-            language: techStack.language,
-            backendFramework: techStack.backendFramework,
             authLibrary: techStack.authLibrary,
+            backendFramework: techStack.backendFramework,
             billingLibrary: techStack.billingLibrary,
+            database: techStack.database,
+            language: techStack.language,
+            orm: techStack.orm,
           },
           updatedAt: new Date(),
         });

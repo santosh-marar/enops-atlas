@@ -8,6 +8,13 @@ export function SchemaMessages({ content }: { content: string }) {
   return (
     <Markdown
       components={{
+        blockquote({ children }) {
+          return (
+            <blockquote className="my-2 border-l-2 pl-3 italic">
+              {children}
+            </blockquote>
+          );
+        },
         code(props) {
           const { children, className, node, ref, ...rest } = props;
           const match = /language-(\w+)/.exec(className || "");
@@ -52,9 +59,6 @@ export function SchemaMessages({ content }: { content: string }) {
             </code>
           );
         },
-        p({ children }) {
-          return <p className="mb-3 text-sm leading-relaxed">{children}</p>;
-        },
         h1({ children }) {
           return <h1 className="mt-4 mb-2 font-bold text-lg">{children}</h1>;
         },
@@ -68,12 +72,8 @@ export function SchemaMessages({ content }: { content: string }) {
             <h3 className="mt-2 mb-1 font-semibold text-sm">{children}</h3>
           );
         },
-        ul({ children }) {
-          return (
-            <ul className="mb-3 list-inside list-disc space-y-1 text-sm">
-              {children}
-            </ul>
-          );
+        li({ children }) {
+          return <li className="text-sm leading-relaxed">{children}</li>;
         },
         ol({ children }) {
           return (
@@ -82,17 +82,17 @@ export function SchemaMessages({ content }: { content: string }) {
             </ol>
           );
         },
-        li({ children }) {
-          return <li className="text-sm leading-relaxed">{children}</li>;
+        p({ children }) {
+          return <p className="mb-3 text-sm leading-relaxed">{children}</p>;
         },
         strong({ children }) {
           return <strong className="font-semibold">{children}</strong>;
         },
-        blockquote({ children }) {
+        ul({ children }) {
           return (
-            <blockquote className="my-2 border-l-2 pl-3 italic">
+            <ul className="mb-3 list-inside list-disc space-y-1 text-sm">
               {children}
-            </blockquote>
+            </ul>
           );
         },
       }}

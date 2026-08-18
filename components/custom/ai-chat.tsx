@@ -163,9 +163,9 @@ export function AIChat({
     }
 
     const userMessage: Message = {
+      content: input,
       id: Date.now().toString(),
       role: "user",
-      content: input,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -175,28 +175,28 @@ export function AIChat({
     try {
       const aiMessages = [
         ...messages.map((m) => ({
-          role: m.role as "user" | "assistant",
           content: m.content,
+          role: m.role as "user" | "assistant",
         })),
-        { role: "user" as const, content: input },
+        { content: input, role: "user" as const },
       ];
 
       const systemPrompt = EnhancedSchemaGenPrompt({
-        techStack,
         conversationHistory,
+        techStack,
       });
 
       const result = await streamAI({
         apiKey: settings.vercelAIKey,
+        messages: aiMessages,
         modelKey: MODEL_KEY,
         system: systemPrompt,
-        messages: aiMessages,
       });
 
       const assistantMessage: Message = {
+        content: "",
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "",
       };
       setMessages((prev) => [...prev, assistantMessage]);
 

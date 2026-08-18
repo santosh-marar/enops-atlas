@@ -69,23 +69,23 @@ export interface TransformResult {
 }
 
 const TYPE_SHORTHANDS: Record<string, string> = {
-  integer: "int",
-  int4: "int",
   bigint: "bigint",
   bigserial: "bigserial",
+  bool: "bool",
+  boolean: "bool",
+  "character varying": "varchar",
+  datetime: "datetime",
+  decimal: "decimal",
+  double: "double",
+  int4: "int",
+  integer: "int",
+  numeric: "numeric",
   serial: "serial",
   smallint: "smallint",
-  varchar: "varchar",
-  "character varying": "varchar",
   text: "text",
   timestamp: "timestamp",
   timestamptz: "timestamptz",
-  datetime: "datetime",
-  bool: "bool",
-  boolean: "bool",
-  numeric: "numeric",
-  decimal: "decimal",
-  double: "double",
+  varchar: "varchar",
 };
 
 interface DbmlDiagnostic {
@@ -171,7 +171,7 @@ const formatColumnType = (
   }
 
   return detail
-    ? { type: displayType, detail: detail.toString() }
+    ? { detail: detail.toString(), type: displayType }
     : { type: displayType };
 };
 
@@ -187,7 +187,7 @@ const parseDefaultValue = (
   type: "expression" | "string" | "number" | "boolean" | "null";
 } => {
   if (dbdefault === null || dbdefault === undefined) {
-    return { value: null, type: "null" };
+    return { type: "null", value: null };
   }
 
   if (
@@ -199,30 +199,30 @@ const parseDefaultValue = (
     const { type, value } = defaultObj;
     switch (type) {
       case "number":
-        return { value: Number(value), type: "number" };
+        return { type: "number", value: Number(value) };
       case "string":
-        return { value: String(value), type: "string" };
+        return { type: "string", value: String(value) };
       case "boolean":
-        return { value: Boolean(value), type: "boolean" };
+        return { type: "boolean", value: Boolean(value) };
       case "expression":
-        return { value: String(value), type: "expression" };
+        return { type: "expression", value: String(value) };
       default:
-        return { value: String(value), type: "string" };
+        return { type: "string", value: String(value) };
     }
   }
 
   if (typeof dbdefault === "number") {
-    return { value: dbdefault, type: "number" };
+    return { type: "number", value: dbdefault };
   }
   if (typeof dbdefault === "boolean") {
-    return { value: dbdefault, type: "boolean" };
+    return { type: "boolean", value: dbdefault };
   }
   if (typeof dbdefault === "string") {
     const isExpression = /\(|\)|now|current|uuid|gen_random/i.test(dbdefault);
-    return { value: dbdefault, type: isExpression ? "expression" : "string" };
+    return { type: isExpression ? "expression" : "string", value: dbdefault };
   }
 
-  return { value: String(dbdefault), type: "string" };
+  return { type: "string", value: String(dbdefault) };
 };
 
 interface TableRegistryEntry {
@@ -393,16 +393,16 @@ export function transformDbml(dbml: string): TransformResult {
     schema.tables?.forEach((table) => {
       if (!table.name) {
         warnings.push({
-          message: "Table missing name",
           context: `schema ${schemaName}`,
+          message: "Table missing name",
         });
         return;
       }
 
       if (!table.fields || table.fields.length === 0) {
         warnings.push({
-          message: `Table "${table.name}" has no columns`,
           context: schemaName,
+          message: `Table "${table.name}" has no columns`,
         });
         return;
       }
@@ -422,13 +422,13 @@ export function transformDbml(dbml: string): TransformResult {
         const { type, detail } = formatColumnType(field);
 
         const column: Column = {
-          name: field.name,
-          type,
-          nullable: !field.not_null,
-          primaryKey: Boolean(field.pk),
-          unique: Boolean(field.unique),
           autoIncrement: Boolean(field.increment),
           foreignKeys: [],
+          name: field.name,
+          nullable: !field.not_null,
+          primaryKey: Boolean(field.pk),
+          type,
+          unique: Boolean(field.unique),
         };
 
         if (detail) {
@@ -510,8 +510,8 @@ export function transformDbml(dbml: string): TransformResult {
 
           if (!columnName) {
             warnings.push({
-              message: "Index column missing name",
               context: `${displayLabel} index`,
+              message: "Index column missing name",
             });
             return;
           }
@@ -519,8 +519,8 @@ export function transformDbml(dbml: string): TransformResult {
           const column = columns.find((col) => col.name === columnName);
           if (!column) {
             warnings.push({
-              message: `Index references unknown column "${columnName}"`,
               context: displayLabel,
+              message: `Index references unknown column "${columnName}"`,
             });
             return;
           }
@@ -552,23 +552,23 @@ export function transformDbml(dbml: string): TransformResult {
       });
 
       const tableEntry: Table = {
-        schema: schemaName,
-        name: table.name,
         alias: table.alias || undefined,
-        referenceName,
-        displayLabel,
         columns,
+        displayLabel,
+        name: table.name,
+        referenceName,
+        schema: schemaName,
       };
 
       tables.push(tableEntry);
 
       const registryEntry: TableRegistryEntry = {
-        schema: schemaName,
         actualName: table.name,
         alias: table.alias || undefined,
-        referenceName,
-        displayLabel,
         columns,
+        displayLabel,
+        referenceName,
+        schema: schemaName,
       };
 
       const referenceNames = new Set<string>([table.name]);
@@ -596,8 +596,8 @@ export function transformDbml(dbml: string): TransformResult {
     (schema.refs || []).forEach((ref, refIndex: number) => {
       if (!ref.endpoints || ref.endpoints.length !== 2) {
         warnings.push({
-          message: "Reference is missing endpoints",
           context: `schema index ${schemaIndex} ref ${refIndex}`,
+          message: "Reference is missing endpoints",
         });
         return;
       }
@@ -618,11 +618,11 @@ export function transformDbml(dbml: string): TransformResult {
 
       if (!(resolvedA && resolvedB)) {
         warnings.push({
-          message: "Unable to resolve reference endpoints",
           context: JSON.stringify({
             endpointA: endpointA.tableName,
             endpointB: endpointB.tableName,
           }),
+          message: "Unable to resolve reference endpoints",
         });
         return;
       }
@@ -665,8 +665,8 @@ export function transformDbml(dbml: string): TransformResult {
 
         if (!(parentField && childField)) {
           warnings.push({
-            message: "Reference endpoint missing column name",
             context: `${parentResolved.entry.displayLabel} ↔ ${childResolved.entry.displayLabel}`,
+            message: "Reference endpoint missing column name",
           });
           continue;
         }
@@ -677,28 +677,28 @@ export function transformDbml(dbml: string): TransformResult {
         const reverseId = `${childResolved.entry.schema}.${childResolved.entry.actualName}.${childField}->${parentResolved.entry.schema}.${parentResolved.entry.actualName}.${parentField}`;
         if (circularRefCheck.has(reverseId)) {
           warnings.push({
-            message: "Potential circular reference detected",
             context: `${parentResolved.entry.displayLabel}.${parentField} ↔ ${childResolved.entry.displayLabel}.${childField}`,
+            message: "Potential circular reference detected",
           });
         }
         circularRefCheck.add(relationshipId);
 
         relationships.push({
-          id: relationshipId,
-          parent: {
-            schema: parentResolved.entry.schema,
-            table: parentResolved.entry.actualName,
-            column: parentField,
-            relation: parentEndpoint.relation,
-          },
           child: {
-            schema: childResolved.entry.schema,
-            table: childResolved.entry.actualName,
             column: childField,
             relation: childEndpoint.relation,
+            schema: childResolved.entry.schema,
+            table: childResolved.entry.actualName,
           },
+          id: relationshipId,
           onDelete: ref.onDelete || undefined,
           onUpdate: ref.onUpdate || undefined,
+          parent: {
+            column: parentField,
+            relation: parentEndpoint.relation,
+            schema: parentResolved.entry.schema,
+            table: parentResolved.entry.actualName,
+          },
         });
 
         if (relationships.length > MAX_RELATIONSHIPS) {
@@ -728,17 +728,17 @@ export function transformDbml(dbml: string): TransformResult {
             childColumn.foreignKeys = [];
           }
           childColumn.foreignKeys.push({
-            schema: parentResolved.entry.schema,
-            table: parentResolved.entry.actualName,
             column: parentField,
-            relation: parentEndpoint.relation,
             onDelete: ref.onDelete || undefined,
             onUpdate: ref.onUpdate || undefined,
+            relation: parentEndpoint.relation,
+            schema: parentResolved.entry.schema,
+            table: parentResolved.entry.actualName,
           });
         } else {
           warnings.push({
-            message: `Unable to attach foreign key metadata for ${childField}`,
             context: `${childResolved.entry.displayLabel}`,
+            message: `Unable to attach foreign key metadata for ${childField}`,
           });
         }
       }
@@ -746,9 +746,9 @@ export function transformDbml(dbml: string): TransformResult {
   });
 
   return {
+    relationships,
     sql,
     tables,
-    relationships,
     warnings,
   };
 }

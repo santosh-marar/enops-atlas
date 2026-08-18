@@ -22,20 +22,20 @@ export function getLayoutedElements(
     const rowHeight = 45;
     const height = Math.max(baseHeight, baseHeight + columnCount * rowHeight);
 
-    return { width: baseWidth, height };
+    return { height, width: baseWidth };
   };
 
   dagreGraph.setGraph({
-    rankdir: direction,
-    nodesep: 60,
-    ranksep: 100,
     marginx: 50,
     marginy: 50,
+    nodesep: 60,
+    rankdir: direction,
+    ranksep: 100,
   });
 
   nodes.forEach((node) => {
     const { width, height } = getNodeDimensions(node);
-    dagreGraph.setNode(node.id, { width, height });
+    dagreGraph.setNode(node.id, { height, width });
   });
 
   edges.forEach((edge) => {
@@ -57,5 +57,5 @@ export function getLayoutedElements(
     };
   });
 
-  return { nodes: layoutedNodes, edges };
+  return { edges, nodes: layoutedNodes };
 }

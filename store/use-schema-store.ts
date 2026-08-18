@@ -88,28 +88,45 @@ export function formatDefaultValue(column: Column): string {
 const MAX_HISTORY = 50;
 
 export const useSchemaStore = create<SchemaState>((set, get) => ({
+  addToHistory: (nodes: Node[]) => {
+    const { history, historyIndex } = get();
+
+    // Remove any future history if we're not at the end
+    const newHistory = history.slice(0, historyIndex + 1);
+
+    // Add new state
+    newHistory.push({
+      nodes: JSON.parse(JSON.stringify(nodes)), // Deep clone
+      timestamp: Date.now(),
+    });
+
+    // Limit history size
+    if (newHistory.length > MAX_HISTORY) {
+      newHistory.shift();
+    }
+
+    set({
+      canRedo: false,
+      canUndo: newHistory.length > 1,
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
+  },
+  canRedo: false,
+  canUndo: false,
   dbml: "",
-  sql: "",
-  tables: [],
-  nodes: [],
   edges: [],
-  warnings: [],
   error: null,
-  isUpdating: false,
-  isLoading: false,
   history: [],
   historyIndex: -1,
-  canUndo: false,
-  canRedo: false,
+  isLoading: false,
   isLocked: false,
-  showIde: true,
-
-  setNodes: (nodes) => {
-    set({ nodes });
-    get().addToHistory(nodes);
-  },
-
-  setEdges: (edges) => set({ edges }),
+  isUpdating: false,
+  nodes: [],
+  onEdgesChange: (changes) =>
+    set((state) => ({
+      edges: applyEdgeChanges(changes, state.edges),
+    })),
   onNodesChange: (changes) => {
     const state = get();
     const newNodes = applyNodeChanges(changes, state.nodes);
@@ -125,10 +142,22 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       state.addToHistory(newNodes);
     }
   },
-  onEdgesChange: (changes) =>
-    set((state) => ({
-      edges: applyEdgeChanges(changes, state.edges),
-    })),
+
+  redo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      const nextState = history[newIndex];
+
+      set({
+        canRedo: newIndex < history.length - 1,
+        canUndo: true,
+        historyIndex: newIndex,
+        nodes: nextState.nodes,
+      });
+    }
+  },
   setEdgeAnimated: (id, isHovered) =>
     set((state) => {
       // Optimized: only update edges that need updating
@@ -142,16 +171,16 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
           return {
             ...edge,
             animated: isHovered,
+            markerEnd: {
+              color: isHovered ? PRIMARY_STROKE : DEFAULT_STROKE,
+              height: 16,
+              type: MarkerType.ArrowClosed,
+              width: 16,
+            },
             style: {
               ...edge.style,
               stroke: isHovered ? PRIMARY_STROKE : DEFAULT_STROKE,
               strokeWidth: isHovered ? 2 : 1.2,
-            },
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              width: 16,
-              height: 16,
-              color: isHovered ? PRIMARY_STROKE : DEFAULT_STROKE,
             },
           };
         }
@@ -161,16 +190,16 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
           return {
             ...edge,
             animated: false,
+            markerEnd: {
+              color: DEFAULT_STROKE,
+              height: 16,
+              type: MarkerType.ArrowClosed,
+              width: 16,
+            },
             style: {
               ...edge.style,
               stroke: DEFAULT_STROKE,
               strokeWidth: 1.2,
-            },
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              width: 16,
-              height: 16,
-              color: DEFAULT_STROKE,
             },
           };
         }
@@ -180,6 +209,40 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
       return { edges: updatedEdges };
     }),
+
+  setEdges: (edges) => set({ edges }),
+
+  setNodes: (nodes) => {
+    set({ nodes });
+    get().addToHistory(nodes);
+  },
+  showIde: true,
+  sql: "",
+  tables: [],
+
+  toggleIde: () => {
+    set((state) => ({ showIde: !state.showIde }));
+  },
+
+  toggleLock: () => {
+    set((state) => ({ isLocked: !state.isLocked }));
+  },
+
+  undo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      const previousState = history[newIndex];
+
+      set({
+        canRedo: true,
+        canUndo: newIndex > 0,
+        historyIndex: newIndex,
+        nodes: previousState.nodes,
+      });
+    }
+  },
 
   updateFromDBML: async (dbml: string, preservePositions = false) => {
     if (get().isUpdating) {
@@ -191,19 +254,19 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
     if (!dbml || dbml.trim() === "") {
       set({
         dbml: "",
+        edges: [],
+        error: null,
+        isLoading: false,
+        isUpdating: false,
+        nodes: [],
         sql: "",
         tables: [],
-        nodes: [],
-        edges: [],
         warnings: [],
-        error: null,
-        isUpdating: false,
-        isLoading: false,
       });
       return;
     }
 
-    set({ isUpdating: true, isLoading: true, error: null });
+    set({ error: null, isLoading: true, isUpdating: true });
 
     try {
       const result = transformDbml(dbml);
@@ -263,8 +326,8 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
         if (!(parentTable && childTable)) {
           derivedWarnings.push({
-            message: "Relationship references unknown table",
             context: `${relationship.parent.schema}.${relationship.parent.table} -> ${relationship.child.schema}.${relationship.child.table}`,
+            message: "Relationship references unknown table",
           });
           return;
         }
@@ -278,31 +341,31 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
         if (!(parentColumn && childColumn)) {
           derivedWarnings.push({
-            message: "Relationship references unknown column",
             context: `${parentTable.displayLabel}.${relationship.parent.column} -> ${childTable.displayLabel}.${relationship.child.column}`,
+            message: "Relationship references unknown column",
           });
           return;
         }
 
         edges.push({
+          animated: false,
           id: relationship.id,
+          markerEnd: {
+            color: DEFAULT_STROKE,
+            height: 16,
+            type: MarkerType.ArrowClosed,
+            width: 16,
+          },
           source: parentTable.id,
           sourceHandle: `${parentTable.id}-${relationship.parent.column}-source`,
+          // label: `${parentTable.displayLabel}.${relationship.parent.column} → ${childTable.displayLabel}.${relationship.child.column}`,
+          style: {
+            stroke: DEFAULT_STROKE,
+            strokeWidth: 1.2,
+          },
           target: childTable.id,
           targetHandle: `${childTable.id}-${relationship.child.column}-target`,
           type: "smoothstep",
-          animated: false,
-          // label: `${parentTable.displayLabel}.${relationship.parent.column} → ${childTable.displayLabel}.${relationship.child.column}`,
-          style: {
-            strokeWidth: 1.2,
-            stroke: DEFAULT_STROKE,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 16,
-            height: 16,
-            color: DEFAULT_STROKE,
-          },
         });
       });
 
@@ -311,16 +374,16 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
         const sourceColumnSet = sourceColumns.get(tableKey) || new Set();
 
         return {
-          id: table.id,
-          type: "table",
-          position: table.position,
           data: {
-            label: table.name,
-            schema: table.schema,
             alias: table.alias,
             columns: table.columns,
+            label: table.name,
+            schema: table.schema,
             sourceColumns: Array.from(sourceColumnSet), // columns that are sources for relationships
           },
+          id: table.id,
+          position: table.position,
+          type: "table",
         };
       });
 
@@ -332,91 +395,27 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
       set({
         dbml,
+        edges,
+        error: null,
+        isLoading: false,
+        isUpdating: false,
+        nodes,
         sql: result.sql,
         tables: flowTables,
-        nodes,
-        edges,
         warnings: [...result.warnings, ...derivedWarnings],
-        error: null,
-        isUpdating: false,
-        isLoading: false,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to parse DBML";
 
       set({
-        isUpdating: false,
-        isLoading: false,
         error: errorMessage,
+        isLoading: false,
+        isUpdating: false,
       });
 
       throw new Error(errorMessage);
     }
   },
-
-  addToHistory: (nodes: Node[]) => {
-    const { history, historyIndex } = get();
-
-    // Remove any future history if we're not at the end
-    const newHistory = history.slice(0, historyIndex + 1);
-
-    // Add new state
-    newHistory.push({
-      nodes: JSON.parse(JSON.stringify(nodes)), // Deep clone
-      timestamp: Date.now(),
-    });
-
-    // Limit history size
-    if (newHistory.length > MAX_HISTORY) {
-      newHistory.shift();
-    }
-
-    set({
-      history: newHistory,
-      historyIndex: newHistory.length - 1,
-      canUndo: newHistory.length > 1,
-      canRedo: false,
-    });
-  },
-
-  undo: () => {
-    const { history, historyIndex } = get();
-
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      const previousState = history[newIndex];
-
-      set({
-        nodes: previousState.nodes,
-        historyIndex: newIndex,
-        canUndo: newIndex > 0,
-        canRedo: true,
-      });
-    }
-  },
-
-  redo: () => {
-    const { history, historyIndex } = get();
-
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      const nextState = history[newIndex];
-
-      set({
-        nodes: nextState.nodes,
-        historyIndex: newIndex,
-        canUndo: true,
-        canRedo: newIndex < history.length - 1,
-      });
-    }
-  },
-
-  toggleLock: () => {
-    set((state) => ({ isLocked: !state.isLocked }));
-  },
-
-  toggleIde: () => {
-    set((state) => ({ showIde: !state.showIde }));
-  },
+  warnings: [],
 }));

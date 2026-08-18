@@ -24,13 +24,17 @@
         "useConsistentBuiltinInstantiation": "off",
         "noSubstr": "off",
         "useDefaultSwitchClause": "off",
-        "useThrowNewError": "off"
+        "useThrowNewError": "off",
+        "useDestructuring": "off",
+        "useErrorCause": "off",
+        "noIncrementDecrement": "off"
       },
       "performance": {
         "noBarrelFile": "off",
         "noNamespaceImport": "off",
         "useTopLevelRegex": "off",
-        "noDelete": "off"
+        "noDelete": "off",
+        "noJsxPropsBind": "off"
       },
       "a11y": {
         "noSvgWithoutTitle": "off",
@@ -49,7 +53,11 @@
         "noAssignInExpressions": "off",
         "noVar": "off",
         "noImplicitAnyLet": "off",
-        "noReactForwardRef": "off"
+        "noReactForwardRef": "off",
+        "noLeakedRender": "off",
+        "noEqualsToNull": "off",
+        "noShadow": "off",
+        "noUnnecessaryConditions": "off"
       },
       "correctness": {
         "noUnusedVariables": "off",

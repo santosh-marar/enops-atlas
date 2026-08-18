@@ -72,12 +72,12 @@ export async function saveTechStack(
 
     // Modify the project object
     project.techStack = {
-      database: techStack.database,
-      orm: techStack.orm,
-      language: techStack.language,
-      backendFramework: techStack.backendFramework,
       authLibrary: techStack.authLibrary,
+      backendFramework: techStack.backendFramework,
       billingLibrary: techStack.billingLibrary,
+      database: techStack.database,
+      language: techStack.language,
+      orm: techStack.orm,
     };
     project.updatedAt = new Date();
 
@@ -96,13 +96,13 @@ export function AITechStackDialog({
   projectId,
 }: AITechStackDialogProps) {
   const [techStack, setTechStack] = useState<TechStackType>({
-    database: "postgresql",
-    orm: "prisma",
-    language: "typescript",
-    backendFramework: "nextjs",
     authLibrary: "clerk",
+    backendFramework: "nextjs",
     billingLibrary: "stripe",
+    database: "postgresql",
     description: "",
+    language: "typescript",
+    orm: "prisma",
   });
 
   useEffect(() => {
@@ -112,13 +112,13 @@ export function AITechStackDialog({
           setTechStack(saved);
         } else {
           setTechStack({
-            database: "postgresql",
-            orm: "prisma",
-            language: "typescript",
-            backendFramework: "nextjs",
             authLibrary: "clerk",
+            backendFramework: "nextjs",
             billingLibrary: "stripe",
+            database: "postgresql",
             description: "",
+            language: "typescript",
+            orm: "prisma",
           });
         }
       });

@@ -12,12 +12,12 @@ import { useProjectManager } from "@/hooks/use-project-manager";
 import { createCommands, SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { Button } from "../ui/button";
-import { AIExportDialog } from "./ai-export-dialog";
 import { APISettingsDialog } from "./api-settings-dialog";
 import { CommandPalette } from "./command-palette";
 import { HelpDialog } from "./help-dialog";
 import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
 import { ActionMenu } from "./toolbar/action-menu";
+import { Export } from "./toolbar/export/export";
 import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
 import { ProjectDialogs } from "./toolbar/project-dialogs";
 import { ProjectNameEditor } from "./toolbar/project-name-editor";
@@ -264,7 +264,7 @@ export function TopToolbar({
         onCancel={handleCancelExport}
       />
 
-      <div className="flex h-12 items-center justify-between bg-background px-4 shadow-sm">
+      <div className="flex items-center justify-between bg-background px-4 shadow-sm">
         {/* Left Section */}
         <div className="flex items-center gap-4">
           <div className="flex items-center">
@@ -278,39 +278,41 @@ export function TopToolbar({
             <span className="font-bold text-sm">Enops</span>
           </div>
 
-          <ActionMenu
-            hasCurrentProject={!!currentProject}
-            onBrowse={onBrowse}
-            onDelete={handleDeleteWithDialog}
-            // onExport={handleExportImage}
-            onImportDb={() => setShowImportDbDialog(true)}
-            onNew={handleNewWithConfirmation}
-          />
+          <div className="flex items-center gap-2">
+            <ActionMenu
+              hasCurrentProject={!!currentProject}
+              onBrowse={onBrowse}
+              onDelete={handleDeleteWithDialog}
+              // onExport={handleExportImage}
+              onImportDb={() => setShowImportDbDialog(true)}
+              onNew={handleNewWithConfirmation}
+            />
 
-          <Button
-            onClick={() => setShowHelpDialog(true)}
-            size={"sm"}
-            variant={"ghost"}
-          >
-            Help
-          </Button>
-
-          <APISettingsDialog>
-            <Button size={"sm"} variant="ghost">
-              AI Settings
-            </Button>
-          </APISettingsDialog>
-
-          <AIExportDialog edges={edges} nodes={nodes} />
-
-          <Button size={"sm"} variant="outline">
-            <Link
-              className="flex items-center justify-center gap-1"
-              href={"https://cloud.enops.dev/pricing"}
+            <Button
+              onClick={() => setShowHelpDialog(true)}
+              size={"sm"}
+              variant={"ghost"}
             >
-              <Crown className="size-4" /> Try Pro
-            </Link>
-          </Button>
+              Help
+            </Button>
+
+            <APISettingsDialog>
+              <Button size={"sm"} variant="ghost">
+                AI Settings
+              </Button>
+            </APISettingsDialog>
+
+            <Export />
+
+            <Button size={"sm"} variant="outline">
+              <Link
+                className="flex items-center justify-center gap-1"
+                href={"https://cloud.enops.dev/pricing"}
+              >
+                <Crown className="size-4" /> Try Pro
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Middle Section - Project Name */}
@@ -324,16 +326,16 @@ export function TopToolbar({
         )}
 
         {/* Right Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <span className="text-muted-foreground text-xs">
             Saved: {formatLastSaved()}
           </span>
-          <Button disabled={isSaving} onClick={handleSaveWithReset} size={"sm"}>
+          <Button disabled={isSaving} onClick={handleSaveWithReset} size="sm">
             {isSaving ? <>Saving...</> : <>Save</>}
           </Button>
           <Button
             onClick={toggleTheme}
-            size={"icon-sm"}
+            size={"sm"}
             title={`Toggle theme (Ctrl + Shift + ${SHORTCUT_CONFIGS.TOGGLE_THEME.key.toUpperCase()})`}
             variant={"ghost"}
           >
@@ -343,7 +345,7 @@ export function TopToolbar({
               <Moon className="h-4 w-4" />
             )}
           </Button>
-          <Button asChild size={"icon-sm"} variant={"link"}>
+          <Button size="sm" variant={"link"}>
             <Link
               href="https://github.com/santosh-marar/enops.dev"
               rel="noopener noreferrer"

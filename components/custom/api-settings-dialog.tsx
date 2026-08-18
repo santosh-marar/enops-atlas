@@ -95,7 +95,7 @@ export function APISettingsDialog({
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+      {children && <DialogTrigger>{children}</DialogTrigger>}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

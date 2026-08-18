@@ -8,7 +8,7 @@ function DBMLHighlighter({ code }: { code: string }) {
     while (remaining.length > 0) {
       // comment
       if (remaining.match(/^\/\/.*/)) {
-        parts.push({ text: remaining, color: "#71717a" });
+        parts.push({ color: "#71717a", text: remaining });
         break;
       }
 
@@ -17,7 +17,7 @@ function DBMLHighlighter({ code }: { code: string }) {
         /^(Table|Ref|Enum|indexes|ref|pk|null|not null|unique|default|note|as|headercolor)\b/i
       );
       if (keyword) {
-        parts.push({ text: keyword[0], color: "#c084fc" });
+        parts.push({ color: "#c084fc", text: keyword[0] });
         remaining = remaining.slice(keyword[0].length);
         continue;
       }
@@ -27,7 +27,7 @@ function DBMLHighlighter({ code }: { code: string }) {
         /^(int|integer|varchar|text|boolean|bool|uuid|timestamp|date|time|float|decimal|bigint|serial|json|jsonb|enum)\b/i
       );
       if (type) {
-        parts.push({ text: type[0], color: "#67e8f9" });
+        parts.push({ color: "#67e8f9", text: type[0] });
         remaining = remaining.slice(type[0].length);
         continue;
       }
@@ -35,7 +35,7 @@ function DBMLHighlighter({ code }: { code: string }) {
       // backtick string
       const backtick = remaining.match(/^`[^`]*`/);
       if (backtick) {
-        parts.push({ text: backtick[0], color: "#86efac" });
+        parts.push({ color: "#86efac", text: backtick[0] });
         remaining = remaining.slice(backtick[0].length);
         continue;
       }
@@ -43,7 +43,7 @@ function DBMLHighlighter({ code }: { code: string }) {
       // string
       const str = remaining.match(/^"[^"]*"|^'[^']*'/);
       if (str) {
-        parts.push({ text: str[0], color: "#86efac" });
+        parts.push({ color: "#86efac", text: str[0] });
         remaining = remaining.slice(str[0].length);
         continue;
       }
@@ -51,7 +51,7 @@ function DBMLHighlighter({ code }: { code: string }) {
       // number
       const num = remaining.match(/^\d+/);
       if (num) {
-        parts.push({ text: num[0], color: "#fb923c" });
+        parts.push({ color: "#fb923c", text: num[0] });
         remaining = remaining.slice(num[0].length);
         continue;
       }
@@ -59,7 +59,7 @@ function DBMLHighlighter({ code }: { code: string }) {
       // operator
       const op = remaining.match(/^[<>\-<>]+/);
       if (op) {
-        parts.push({ text: op[0], color: "#94a3b8" });
+        parts.push({ color: "#94a3b8", text: op[0] });
         remaining = remaining.slice(op[0].length);
         continue;
       }
@@ -67,7 +67,7 @@ function DBMLHighlighter({ code }: { code: string }) {
       // brackets
       const bracket = remaining.match(/^[{}()[\]]/);
       if (bracket) {
-        parts.push({ text: bracket[0], color: "#e4e4e7" });
+        parts.push({ color: "#e4e4e7", text: bracket[0] });
         remaining = remaining.slice(1);
         continue;
       }
@@ -75,13 +75,13 @@ function DBMLHighlighter({ code }: { code: string }) {
       // identifier or fallback
       const ident = remaining.match(/^[^\s{}()[\]<>\-"'`]+/);
       if (ident) {
-        parts.push({ text: ident[0], color: "#e4e4e7" });
+        parts.push({ color: "#e4e4e7", text: ident[0] });
         remaining = remaining.slice(ident[0].length);
         continue;
       }
 
       // whitespace
-      parts.push({ text: remaining[0], color: "#e4e4e7" });
+      parts.push({ color: "#e4e4e7", text: remaining[0] });
       remaining = remaining.slice(1);
     }
 
@@ -93,10 +93,10 @@ function DBMLHighlighter({ code }: { code: string }) {
       style={{
         background: "#27272a",
         borderRadius: "0.5rem",
-        padding: "1rem",
-        overflowX: "auto",
         fontSize: "0.8rem",
         lineHeight: "1.6",
+        overflowX: "auto",
+        padding: "1rem",
       }}
     >
       <code>

@@ -31,11 +31,11 @@ export function useNodeZoom(options?: UseNodeZoomOptions) {
       } else {
         // Zoom to the specific node
         fitView({
-          nodes: [{ id: node.id }],
           duration,
-          padding,
-          minZoom,
           maxZoom,
+          minZoom,
+          nodes: [{ id: node.id }],
+          padding,
         });
         setZoomedNodeId(node.id);
       }
@@ -53,8 +53,8 @@ export function useNodeZoom(options?: UseNodeZoomOptions) {
 
   return {
     handleNodeDoubleClick,
+    isZoomed: zoomedNodeId !== null,
     resetZoom,
     zoomedNodeId,
-    isZoomed: zoomedNodeId !== null,
   };
 }

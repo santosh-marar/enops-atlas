@@ -62,22 +62,22 @@ export function useProjectManager({
     try {
       if (currentProject?.id) {
         await db.projects.update(currentProject.id, {
-          name: projectName,
           dbml,
-          nodes,
           edges,
+          name: projectName,
+          nodes,
           updatedAt: new Date(),
         });
         setLastSaved(new Date());
         return currentProject.id;
       }
       const projectToSave = {
+        createdAt: new Date(),
+        dbml,
+        edges,
         id: nanoId as string,
         name: projectName,
-        dbml,
         nodes,
-        edges,
-        createdAt: new Date(),
         updatedAt: new Date(),
       };
 
@@ -92,7 +92,6 @@ export function useProjectManager({
     } catch (error) {
       // console.error("[handleSave] Error saving project:", error);
       toast.error("Failed to save project. Please try again.");
-      return;
     } finally {
       setIsSaving(false);
     }
@@ -188,16 +187,16 @@ export function useProjectManager({
 
   return {
     currentProject,
-    setCurrentProject,
-    projectName,
-    setProjectName,
-    lastSaved,
-    projects,
-    isSaving,
-    loadProjects,
-    handleSave,
-    handleNew,
     handleDelete,
+    handleNew,
     handleOpenProject,
+    handleSave,
+    isSaving,
+    lastSaved,
+    loadProjects,
+    projectName,
+    projects,
+    setCurrentProject,
+    setProjectName,
   };
 }
