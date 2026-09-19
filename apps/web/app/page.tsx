@@ -1,19 +1,334 @@
-import { Button } from "@workspace/ui/components/button"
+"use client";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { AIChat } from "@/components/custom/ai-chat";
+import {
+  AITechStackDialog,
+  getSavedTechStack,
+  type TechStackType,
+} from "@/components/custom/ai-tech-stack-dialog";
+import { APISettingsDialog } from "@/components/custom/api-settings-dialog";
+import DBMLEditor from "@/components/custom/dbml-editor";
+import { Sidebar } from "@/components/custom/sidebar";
+import { ProjectDialogs } from "@/components/custom/toolbar/project-dialogs";
+import { TopToolbar } from "@/components/custom/top-toolbar";
+import XYFlows from "@/components/custom/xyflows";
+import { Button } from "@/components/ui/button";
+import { useProjectManager } from "@/hooks/use-project-manager";
+import { db } from "@/lib/db";
+import { useSchemaStore } from "@/store/use-schema-store";
 
-export default function Page() {
+export default function Home() {
+  const flowContainerRef = useRef<HTMLDivElement>(null);
+  const {
+    dbml,
+    nodes,
+    edges,
+    updateFromDBML,
+    setNodes,
+    setEdges,
+    showIde,
+    toggleIde,
+  } = useSchemaStore();
+
+  const {
+    currentProject,
+    setCurrentProject,
+    projectName,
+    projects,
+    loadProjects,
+    handleNew,
+    handleOpenProject,
+    handleSave,
+  } = useProjectManager({
+    dbml,
+    edges,
+    nodes,
+    setEdges,
+    setNodes,
+    updateFromDBML,
+  });
+
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [showTechStackDialog, setShowTechStackDialog] = useState(false);
+  const [showAISettings, setShowAISettings] = useState(false);
+  const [currentTechStack, setCurrentTechStack] = useState<
+    TechStackType | undefined
+  >();
+
+  const handleNewWithConfirmation = async () => {
+    if (dbml && dbml.trim().length > 0) {
+      setShowNewProjectDialog(true);
+      return;
+    }
+
+    // Close AI chat and clear tech stack for new project
+    setShowAIChat(false);
+    setCurrentTechStack(undefined);
+
+    await handleNew();
+  };
+
+  // Handle browse
+  const handleBrowse = async () => {
+    setShowAIChat(false);
+    await loadProjects();
+    setShowProjectBrowser(true);
+  };
+
+  // Confirm new project
+  const confirmNewProject = async () => {
+    try {
+      // Close AI chat and clear tech stack for new project
+      setShowAIChat(false);
+      setCurrentTechStack(undefined);
+
+      await handleNew();
+    } catch {
+      toast.error("Failed to create new project.");
+    } finally {
+      setShowNewProjectDialog(false);
+    }
+  };
+
+  // Handle open project with dialog close
+  const handleOpenProjectWithClose = async (project: any) => {
+    setShowAIChat(false);
+    setCurrentTechStack(undefined);
+
+    await handleOpenProject(project);
+    setShowProjectBrowser(false);
+  };
+
+  // Handle AI button click - toggle AI chat
+  const handleAIClick = async () => {
+    if (showAIChat) {
+      setShowAIChat(false);
+      return;
+    }
+
+    let projectId: string | undefined = currentProject?.id;
+
+    if (!projectId) {
+      // Check if there's DBML content to save first
+      if (dbml && dbml.trim().length > 0) {
+        projectId = await handleSave();
+        const savedTechStack = await getSavedTechStack();
+        // console.log("savedTechStack", savedTechStack);
+        if (savedTechStack) {
+          setCurrentTechStack(savedTechStack);
+          setShowAIChat(true);
+          if (showIde) {
+            toggleIde();
+          }
+          return;
+        }
+      }
+      setShowTechStackDialog(true);
+      return;
+    }
+
+    const savedTechStack = await getSavedTechStack();
+
+    // Always update state with fresh data from DB
+    setCurrentTechStack(savedTechStack || undefined);
+
+    if (savedTechStack) {
+      setShowAIChat(true);
+      if (showIde) {
+        toggleIde();
+      }
+    } else {
+      setShowTechStackDialog(true);
+    }
+  };
+
+  // Handle tech stack generation
+  const handleTechStackGenerate = async (techStack: TechStackType) => {
+    setCurrentTechStack(techStack);
+
+    // Ensure project exists and save tech stack
+    let projectId = currentProject?.id;
+
+    // Check if project actually exists in DB
+    if (projectId) {
+      const projectExists = await db.projects.get(projectId);
+      if (!projectExists) {
+        setCurrentProject(null); // Clear the invalid project from state
+        projectId = undefined; // Force creation of new project
+      }
+    }
+
+    if (!projectId) {
+      projectId = await handleSave();
+    }
+
+    if (projectId) {
+      // Save tech stack to the project
+      try {
+        const updateResult = await db.projects.update(projectId, {
+          techStack: {
+            authLibrary: techStack.authLibrary,
+            backendFramework: techStack.backendFramework,
+            billingLibrary: techStack.billingLibrary,
+            database: techStack.database,
+            language: techStack.language,
+            orm: techStack.orm,
+          },
+          updatedAt: new Date(),
+        });
+
+        const verify = await db.projects.get(projectId);
+
+        if (!verify?.techStack) {
+          throw new Error("Tech stack was not saved!");
+        }
+
+        toast.success("Tech stack saved!");
+      } catch (error) {
+        // console.error("Failed to save tech stack:", error);
+        toast.error("Failed to save tech stack");
+      }
+    }
+
+    setShowAIChat(true);
+    // Always close IDE when opening AI chat
+    if (showIde) {
+      toggleIde();
+    }
+  };
+
+  // Handle toggle editor - close AI chat if opening editor
+  const handleToggleEditor = () => {
+    if (!showIde && showAIChat) {
+      setShowAIChat(false);
+    }
+    toggleIde();
+  };
+
+  // Handle schema generated from AI
+  const handleSchemaGenerated = async (dbmlContent: string) => {
+    try {
+      await updateFromDBML(dbmlContent);
+      toast.success("Schema updated successfully!");
+    } catch (error) {
+      // console.error("Failed to update schema:", error);
+      toast.error("Failed to update schema");
+    }
+  };
+
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="text-muted-foreground font-mono text-xs">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
+    <div className="flex h-screen w-full flex-col">
+      <TopToolbar
+        confirmNewProject={confirmNewProject}
+        flowContainerRef={flowContainerRef}
+        handleNewWithConfirmation={handleNewWithConfirmation}
+        onBrowse={handleBrowse}
+        onConfirmNew={confirmNewProject}
+        onNewProjectDialogChange={setShowNewProjectDialog}
+        showNewProjectDialog={showNewProjectDialog}
+      />
+      <div className="flex h-[calc(100vh-3rem)] w-full overflow-hidden">
+        <aside className="shrink-0 border-border border-r bg-background">
+          <Sidebar
+            isAIOpen={showAIChat}
+            isEditorOpen={showIde}
+            onAI={handleAIClick}
+            onBrowse={handleBrowse}
+            onNew={handleNewWithConfirmation}
+            onToggleEditor={handleToggleEditor}
+          />
+        </aside>
+
+        <main className="relative flex flex-1 overflow-hidden">
+          {/* Toggle button for IDE/AI Chat */}
+          {!showAIChat && (
+            <Button
+              className={`absolute top-14 z-10 h-12 w-6 ${
+                showIde ? "left-143.5" : "left-0"
+              }`}
+              onClick={handleToggleEditor}
+              size={"icon-sm"}
+              title={showIde ? "Close IDE" : "Open IDE"}
+              variant={"secondary"}
+            >
+              {showIde ? (
+                <ChevronLeft className="h-5 w-5" />
+              ) : (
+                <ChevronRight className="h-5 w-5" />
+              )}
+            </Button>
+          )}
+
+          {/* AI Chat toggle button */}
+          {showAIChat && (
+            <Button
+              className="absolute top-14 left-144 z-10 h-12 w-6"
+              onClick={() => setShowAIChat(false)}
+              size={"icon-sm"}
+              title="Close AI Chat"
+              variant={"secondary"}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          )}
+
+          {/* Show either IDE or AI Chat, not both */}
+          {showIde && !showAIChat && (
+            <div className="relative z-10 min-w-xl max-w-xl shrink-0 border-border border-r bg-background">
+              <DBMLEditor />
+            </div>
+          )}
+
+          {showAIChat && currentProject?.id && (
+            <div className="relative z-10 min-w-xl max-w-xl shrink-0 border-border border-r bg-background">
+              <AIChat
+                isOpen={showAIChat}
+                key={`ai-chat-${currentProject.id}`}
+                onClose={() => setShowAIChat(false)}
+                onOpenSettings={() => setShowAISettings(true)}
+                onOpenTechStack={() => setShowTechStackDialog(true)}
+                onSchemaGenerated={handleSchemaGenerated}
+                projectId={currentProject.id as string}
+              />
+            </div>
+          )}
+
+          <div className="h-full flex-1" ref={flowContainerRef}>
+            <XYFlows />
+          </div>
+        </main>
+
+        <ProjectDialogs
+          onConfirmDelete={async () => {}}
+          onConfirmNew={confirmNewProject}
+          onDeleteDialogChange={() => {}}
+          onNewProjectDialogChange={setShowNewProjectDialog}
+          onOpenProject={handleOpenProjectWithClose}
+          onProjectBrowserChange={setShowProjectBrowser}
+          projectName={projectName}
+          projects={projects}
+          showDeleteDialog={false}
+          showNewProjectDialog={showNewProjectDialog}
+          showProjectBrowser={showProjectBrowser}
+        />
+
+        {/* AI Dialogs */}
+        <AITechStackDialog
+          isOpen={showTechStackDialog}
+          onClose={() => setShowTechStackDialog(false)}
+          onGenerate={handleTechStackGenerate}
+          projectId={currentProject?.id}
+        />
+
+        <APISettingsDialog
+          onOpenChange={setShowAISettings}
+          open={showAISettings}
+        />
       </div>
     </div>
-  )
+  );
 }
