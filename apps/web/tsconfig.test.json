@@ -4,8 +4,8 @@
     "noEmit": false,
     "outDir": ".test-dist",
     "types": ["node"],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "ES2019",
     "rootDir": ".",
     "strictNullChecks": true
