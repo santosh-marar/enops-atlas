@@ -6,7 +6,16 @@
     "ultracite/biome/next"
   ],
   "files": {
-    "includes": ["!components/ui", "!README.md"]
+    "includes": [
+      "!**/node_modules",
+      "!**/.next",
+      "!**/.turbo",
+      "!**/.test-dist",
+      "!**/dist",
+      "!**/next-env.d.ts",
+      "!apps/web/components/ui",
+      "!**/README.md"
+    ]
   },
   "linter": {
     "rules": {
