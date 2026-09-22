@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-nova",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "stone",
+    "cssVariables": true
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@enops/atlas-ui/components",
+    "utils": "@enops/atlas-ui/lib/utils",
+    "hooks": "@enops/atlas-ui/hooks",
+    "lib": "@enops/atlas-ui/lib",
+    "ui": "@enops/atlas-ui/components"
+  },
+  "rtl": true,
+  "menuColor": "default",
+  "menuAccent": "subtle"
+}

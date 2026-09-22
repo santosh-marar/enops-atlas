@@ -182,7 +182,6 @@ export function useProjectManager({
     };
 
     restoreLastProject();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
   return {

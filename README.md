@@ -5,6 +5,7 @@ Turborepo monorepo for enops — AI-powered database schema design, visualizatio
 ## Layout
 
 - `apps/web` — the enops Next.js app
+- `packages/ui` — shared UI components (`@enops/atlas-ui`, shadcn/Biome monorepo setup)
 - `packages/typescript-config` — shared TypeScript config bases
 
 ## Requirements

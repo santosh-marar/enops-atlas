@@ -5,21 +5,19 @@
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "app/globals.css",
-    "baseColor": "neutral",
-    "cssVariables": true,
-    "prefix": ""
+    "css": "../../packages/ui/src/styles/globals.css",
+    "baseColor": "stone",
+    "cssVariables": true
   },
   "iconLibrary": "lucide",
-  "rtl": false,
   "aliases": {
     "components": "@/components",
-    "utils": "@/lib/utils",
-    "ui": "@/components/ui",
+    "hooks": "@/hooks",
     "lib": "@/lib",
-    "hooks": "@/hooks"
+    "utils": "@enops/atlas-ui/lib/utils",
+    "ui": "@enops/atlas-ui/components"
   },
+  "rtl": true,
   "menuColor": "default",
-  "menuAccent": "bold",
-  "registries": {}
+  "menuAccent": "subtle"
 }

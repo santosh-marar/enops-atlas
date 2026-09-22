@@ -226,7 +226,6 @@ export function TopToolbar({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbml, currentProject]);
 
   // Update lastSavedContentRef when project loads

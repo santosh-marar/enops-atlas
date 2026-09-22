@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@enops/atlas-ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": [
