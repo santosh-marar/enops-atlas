@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo build",
     "check": "ultracite check",
+    "cloc": "cloc . --exclude-dir=node_modules,.next,dist,build,.turbo,coverage,out,.git,.error,.read,graphify-out",
     "dev": "turbo dev",
     "fix": "ultracite fix",
     "prepare": "husky",
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
     "@workspace/typescript-config": "workspace:*",
+    "cloc": "2.6.0-cloc",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "turbo": "^2.9.18",
