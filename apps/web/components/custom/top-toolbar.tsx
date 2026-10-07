@@ -2,7 +2,6 @@
 
 import { IconBrandGithub } from "@tabler/icons-react";
 import { Moon, Sun } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +15,7 @@ import { APISettingsDialog } from "./api-settings-dialog";
 import { CommandPalette } from "./command-palette";
 import { HelpDialog } from "./help-dialog";
 import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
+import { Logo } from "./logo";
 import { ActionMenu } from "./toolbar/action-menu";
 import { Export } from "./toolbar/export/export";
 import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
@@ -256,19 +256,10 @@ export function TopToolbar({
         onCancel={handleCancelExport}
       />
 
-      <div className="flex items-center justify-between bg-background px-4 shadow-sm">
+      <div className="flex items-center justify-between bg-background px-4 py-2 shadow-sm">
         {/* Left Section */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center">
-            <Image
-              alt="Enops.dev Logo"
-              className="rounded-full"
-              height={48}
-              src="/logo.png"
-              width={48}
-            />
-            <span className="font-bold text-sm">Enops</span>
-          </div>
+          <Logo />
 
           <div className="flex items-center gap-2">
             <ActionMenu
