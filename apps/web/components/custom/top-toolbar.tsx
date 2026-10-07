@@ -1,14 +1,14 @@
 "use client";
 
 import { IconBrandGithub } from "@tabler/icons-react";
-import { Crown, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useImageExport } from "@/hooks/use-image-export";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-import { useProjectManager } from "@/hooks/use-project-manager";
+import type { useProjectManager } from "@/hooks/use-project-manager";
 import { createCommands, SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { Button } from "../ui/button";
@@ -29,10 +29,12 @@ interface TopToolbarProps {
   onBrowse: () => void;
   onConfirmNew: () => void;
   onNewProjectDialogChange: (show: boolean) => void;
+  projectManager: ReturnType<typeof useProjectManager>;
   showNewProjectDialog: boolean;
 }
 
 export function TopToolbar({
+  projectManager,
   flowContainerRef,
   handleNewWithConfirmation,
   confirmNewProject,
@@ -41,8 +43,7 @@ export function TopToolbar({
   onConfirmNew,
   onBrowse,
 }: TopToolbarProps) {
-  const { dbml, nodes, edges, updateFromDBML, setNodes, setEdges } =
-    useSchemaStore();
+  const { dbml, nodes, edges } = useSchemaStore();
   const { theme, setTheme } = useTheme();
 
   // Project management
@@ -58,14 +59,7 @@ export function TopToolbar({
     handleNew,
     handleDelete,
     handleOpenProject,
-  } = useProjectManager({
-    dbml,
-    edges,
-    nodes,
-    setEdges,
-    setNodes,
-    updateFromDBML,
-  });
+  } = projectManager;
 
   // Image export
   const { isExporting, isCancelling, handleExportImage, handleCancelExport } =
@@ -187,21 +181,24 @@ export function TopToolbar({
       } else if (cmd.id === "help") {
         setShowHelpDialog(true);
       } else if (cmd.id === "github") {
-        window.open("https://github.com/santosh-marar/enops.dev", "_blank");
+        window.open("https://github.com/santosh-marar/enops-atlas", "_blank");
       }
     },
   }));
 
+  const content = JSON.stringify({ dbml, edges, nodes, projectName });
+
   // resets auto-save timer
   const handleSaveWithReset = useCallback(async () => {
-    await handleSave();
-    lastSavedContentRef.current = dbml;
+    const savedId = await handleSave();
+    if (!savedId) return;
+    lastSavedContentRef.current = content;
     // Clear the timer when manual save happens
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
     }
-  }, [handleSave, dbml]);
+  }, [handleSave, content]);
 
   useEffect(() => {
     if (autoSaveTimerRef.current) {
@@ -209,15 +206,11 @@ export function TopToolbar({
     }
 
     // Only auto-save if there's a current project, content exists, and content has changed
-    if (
-      currentProject &&
-      dbml &&
-      dbml.trim().length > 0 &&
-      dbml !== lastSavedContentRef.current
-    ) {
+    if (currentProject && content !== lastSavedContentRef.current) {
       autoSaveTimerRef.current = setTimeout(() => {
-        handleSave();
-        lastSavedContentRef.current = dbml;
+        handleSave().then((savedId) => {
+          if (savedId) lastSavedContentRef.current = content;
+        });
       }, 30_000); // 30 seconds
     }
 
@@ -226,14 +219,14 @@ export function TopToolbar({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [dbml, currentProject]);
+  }, [content, currentProject, handleSave]);
 
   // Update lastSavedContentRef when project loads
   useEffect(() => {
     if (currentProject) {
-      lastSavedContentRef.current = dbml;
+      lastSavedContentRef.current = content;
     }
-  }, [currentProject, dbml]);
+  }, [currentProject?.id]);
 
   // Format last saved time
   const formatLastSaved = () => {
@@ -302,24 +295,16 @@ export function TopToolbar({
             </APISettingsDialog>
 
             <Export />
-
-            <Button size={"sm"} variant="outline">
-              <Link
-                className="flex items-center justify-center gap-1"
-                href={"https://cloud.enops.dev/pricing"}
-              >
-                <Crown className="size-4" /> Try Pro
-              </Link>
-            </Button>
           </div>
         </div>
 
         {/* Middle Section - Project Name */}
         {currentProject !== null && (
           <ProjectNameEditor
+            key={currentProject.id}
             onEditingChange={setIsEditingName}
             onNameChange={setProjectName}
-            projectId={currentProject.id}
+            onNameCommit={handleSaveWithReset}
             projectName={projectName}
           />
         )}
@@ -346,7 +331,7 @@ export function TopToolbar({
           </Button>
           <Button size="sm" variant={"link"}>
             <Link
-              href="https://github.com/santosh-marar/enops.dev"
+              href="https://github.com/santosh-marar/enops-atlas"
               rel="noopener noreferrer"
               target="_blank"
             >
@@ -366,7 +351,7 @@ export function TopToolbar({
         projectName={projectName}
         projects={projects}
         showDeleteDialog={showDeleteDialog}
-        showNewProjectDialog={showNewProjectDialog}
+        showNewProjectDialog={false}
         showProjectBrowser={showProjectBrowser}
       />
 
