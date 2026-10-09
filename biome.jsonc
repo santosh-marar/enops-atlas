@@ -12,6 +12,7 @@
       "!**/.turbo",
       "!**/.test-dist",
       "!**/dist",
+      "!scripts/exports.snapshot.json",
       "!**/next-env.d.ts",
       "!apps/web/components/ui",
       "!**/README.md"

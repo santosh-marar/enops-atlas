@@ -12,6 +12,9 @@ node_modules
 
 # testing
 coverage
+playwright-report/
+test-results/
+.consumer-*/
 
 # next.js
 .next/
@@ -27,6 +30,13 @@ dist
 # misc
 .DS_Store
 *.pem
+docs
+
+# MCP app — not released yet (kept locally, outside the workspace)
+apps/mcp/
+
+# Code that only serves Enops Cloud (kept locally until it moves to enops-cloud)
+cloud-only/
 
 # debug
 npm-debug.log*

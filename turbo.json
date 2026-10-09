@@ -5,13 +5,15 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "test": {
-      "outputs": []
+      "outputs": [],
+      "dependsOn": ["^build"],
+      "env": ["INTROSPECTION_POSTGRES_URL", "INTROSPECTION_MYSQL_URL"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"]
+      "dependsOn": ["^build", "^typecheck"]
     },
     "dev": {
       "cache": false,
