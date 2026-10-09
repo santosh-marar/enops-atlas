@@ -1,0 +1,94 @@
+{
+  "name": "@enops/atlas-schema-intelligence",
+  "version": "0.1.0",
+  "description": "Browser-safe schema intelligence for Enops Atlas \u2014 repository adapters, validation, confidence scoring, retrieval, AI workflow and live database introspection.",
+  "keywords": [
+    "enops",
+    "atlas",
+    "schema",
+    "introspection",
+    "prisma",
+    "drizzle",
+    "postgres",
+    "mysql"
+  ],
+  "homepage": "https://github.com/santosh-marar/enops-atlas/tree/main/packages/schema-intelligence#readme",
+  "bugs": {
+    "url": "https://github.com/santosh-marar/enops-atlas/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/santosh-marar/enops-atlas.git",
+    "directory": "packages/schema-intelligence"
+  },
+  "license": "MIT",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./ai": {
+      "types": "./dist/ai.d.ts",
+      "import": "./dist/ai.js",
+      "default": "./dist/ai.js"
+    },
+    "./introspection": {
+      "types": "./dist/introspection.d.ts",
+      "import": "./dist/introspection.js",
+      "default": "./dist/introspection.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "check:boundary": "bun run scripts/check-boundary.ts",
+    "check:browser": "bun run scripts/check-browser.ts",
+    "dev": "tsdown --watch",
+    "test": "bun test src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dbml/core": "7.1.2",
+    "@enops/atlas-graph": "workspace:^",
+    "@enops/atlas-schema": "workspace:^",
+    "@noble/hashes": "2.0.1",
+    "@prisma/prisma-schema-wasm": "6.19.0-26.2ba551f319ab1df4bc874a89965d8b3641056773",
+    "mysql2": "^3.24.4",
+    "postgres": "^3.4.9",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "esbuild": "0.25.12",
+    "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5 || ^6 || ^7"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
