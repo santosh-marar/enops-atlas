@@ -34,6 +34,7 @@
     "@enops/atlas-schema-intelligence": "workspace:*",
     "@enops/atlas-ui": "workspace:*",
     "@lezer/highlight": "^1.2.3",
+    "@prisma/prisma-schema-wasm": "6.19.0-26.2ba551f319ab1df4bc874a89965d8b3641056773",
     "@shadcn/react": "^0.3.0",
     "@tabler/icons-react": "^3.46.0",
     "@types/dagre": "^0.7.54",

@@ -102,6 +102,9 @@ importers:
       '@lezer/highlight':
         specifier: ^1.2.3
         version: 1.2.3
+      '@prisma/prisma-schema-wasm':
+        specifier: 6.19.0-26.2ba551f319ab1df4bc874a89965d8b3641056773
+        version: 6.19.0-26.2ba551f319ab1df4bc874a89965d8b3641056773
       '@shadcn/react':
         specifier: ^0.3.0
         version: 0.3.1(@types/react@19.3.0)(react@19.2.8)

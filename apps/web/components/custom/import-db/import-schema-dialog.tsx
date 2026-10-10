@@ -1,7 +1,8 @@
 "use client";
 
 import { sqlToDbml } from "@enops/atlas-schema";
-import { ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { normalizeDirectDbml } from "@enops/atlas-schema-intelligence";
+import { ChevronRight, FileCode, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +25,7 @@ import { useSchemaStore } from "@/store/use-schema-store";
 import type {
   DbType,
   DbTypeConfig,
+  ImportFile,
   ImportSchemaDialogProps,
 } from "@/types/import-db";
 import CommandBlock from "./command-block";
@@ -89,7 +91,59 @@ const DB_TYPE_CONFIGS: DbTypeConfig[] = [
     placeholder:
       "Paste the SQL Server DDL here...\n\nExpected format:\nCREATE TABLE [dbo].[Users] (\n  [Id] INT NOT NULL,\n  [Email] VARCHAR(255) NOT NULL,\n  ...\n);",
   },
+  {
+    command: "Open your schema.dbml file and copy its contents.",
+    description: "A .dbml file (annotations are kept)",
+    example: "Table users {\n  id int [pk]\n}",
+    id: "dbml",
+    isAIPath: false,
+    label: "DBML file",
+    parseFormat: null,
+    placeholder: "Paste your DBML here...",
+  },
+  {
+    command:
+      "Paste prisma/schema.prisma, or choose the .prisma files (a folder with several files works too).",
+    description: "Prisma schema (PostgreSQL)",
+    example: "npx prisma format",
+    id: "prisma",
+    isAIPath: false,
+    label: "Prisma schema",
+    parseFormat: null,
+    placeholder:
+      'Paste your schema.prisma here...\n\ndatasource db {\n  provider = "postgresql"\n  url      = env("DATABASE_URL")\n}\n\nmodel User {\n  id Int @id\n}',
+  },
+  {
+    command:
+      "Paste your Drizzle schema file, or choose the schema .ts files. The code is read, never run.",
+    description: "Drizzle schema (PostgreSQL)",
+    example: "src/db/schema.ts",
+    id: "drizzle",
+    isAIPath: false,
+    label: "Drizzle schema",
+    parseFormat: null,
+    placeholder:
+      'Paste your schema.ts here...\n\nexport const users = pgTable("users", {\n  id: integer("id").primaryKey(),\n});',
+  },
 ];
+
+const FILE_FORMATS = new Set<DbType>(["prisma", "drizzle"]);
+
+async function convertWithServer(
+  format: "prisma" | "drizzle",
+  files: ImportFile[]
+): Promise<string> {
+  const response = await fetch("/api/import", {
+    body: JSON.stringify({ files, format }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error ?? "Could not read the schema.");
+  }
+  return body.dbml as string;
+}
 
 function preprocessSQLiteSchema(sql: string): string {
   return sql
@@ -128,6 +182,7 @@ export function ImportSchemaDialog({
   const [selectedDb, setSelectedDb] = useState<DbType | null>(null);
   const [schemaInput, setSchemaInput] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [pickedFiles, setPickedFiles] = useState<ImportFile[]>([]);
 
   const { updateFromDBML } = useSchemaStore();
 
@@ -142,6 +197,7 @@ export function ImportSchemaDialog({
         setStep(1);
         setSelectedDb(null);
         setSchemaInput("");
+        setPickedFiles([]);
       }, 200);
       return () => clearTimeout(timer);
     }
@@ -151,6 +207,23 @@ export function ImportSchemaDialog({
     schema: string,
     dbType: DbType
   ): Promise<string> {
+    if (dbType === "dbml") {
+      return normalizeDirectDbml(schema);
+    }
+
+    if (dbType === "prisma" || dbType === "drizzle") {
+      const files =
+        pickedFiles.length > 0
+          ? pickedFiles
+          : [
+              {
+                content: schema,
+                path: dbType === "prisma" ? "schema.prisma" : "schema.ts",
+              },
+            ];
+      return await convertWithServer(dbType, files);
+    }
+
     if (dbType === "mongodb") {
       // AI path for MongoDB
       const settings = await db.aiSettings.toArray();
@@ -202,8 +275,21 @@ export function ImportSchemaDialog({
     return dbml;
   }
 
+  async function handlePickFiles(list: FileList | null) {
+    if (!list) return;
+    const files = await Promise.all(
+      [...list].map(async (file) => ({
+        content: await file.text(),
+        path: file.webkitRelativePath || file.name,
+      }))
+    );
+    setPickedFiles(files);
+  }
+
+  const hasInput = schemaInput.trim().length > 0 || pickedFiles.length > 0;
+
   async function handleImport() {
-    if (!(selectedDb && schemaInput.trim())) return;
+    if (!(selectedDb && hasInput)) return;
 
     setIsImporting(true);
     try {
@@ -259,15 +345,20 @@ export function ImportSchemaDialog({
                   onClick={() => {
                     setSelectedDb(config.id);
                     setSchemaInput("");
+                    setPickedFiles([]);
                     setStep(2);
                   }}
                 >
-                  <Image
-                    alt="database icon"
-                    height="24"
-                    src={config?.icon}
-                    width="24"
-                  />
+                  {config.icon ? (
+                    <Image
+                      alt="database icon"
+                      height="24"
+                      src={config.icon}
+                      width="24"
+                    />
+                  ) : (
+                    <FileCode className="h-6 w-6 text-muted-foreground" />
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm leading-tight">
                       {config.label}
@@ -308,6 +399,24 @@ export function ImportSchemaDialog({
                 Paste your schema:
               </p>
               <div className="flex h-full flex-col gap-2">
+                {selectedDb && FILE_FORMATS.has(selectedDb) && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      accept={selectedDb === "prisma" ? ".prisma" : ".ts"}
+                      className="text-xs"
+                      disabled={isImporting}
+                      multiple
+                      onChange={(e) => handlePickFiles(e.target.files)}
+                      type="file"
+                    />
+                    {pickedFiles.length > 0 && (
+                      <span className="text-muted-foreground text-xs">
+                        {pickedFiles.length} file
+                        {pickedFiles.length === 1 ? "" : "s"} chosen
+                      </span>
+                    )}
+                  </div>
+                )}
                 <Label htmlFor="schema-input">
                   {selectedDb === "mongodb"
                     ? "Mongoose Schema"
@@ -340,10 +449,7 @@ export function ImportSchemaDialog({
             <Button variant="ghost">Skip</Button>
           </DialogClose>
           {step === 2 && (
-            <Button
-              disabled={!schemaInput.trim() || isImporting}
-              onClick={handleImport}
-            >
+            <Button disabled={!hasInput || isImporting} onClick={handleImport}>
               {isImporting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
