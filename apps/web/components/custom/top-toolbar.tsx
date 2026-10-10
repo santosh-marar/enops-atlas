@@ -13,6 +13,7 @@ import { useSchemaStore } from "@/store/use-schema-store";
 import { Button } from "../ui/button";
 import { APISettingsDialog } from "./api-settings-dialog";
 import { CommandPalette } from "./command-palette";
+import { FormatButton } from "./format-button";
 import { HelpDialog } from "./help-dialog";
 import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
 import { Logo } from "./logo";
@@ -286,6 +287,8 @@ export function TopToolbar({
             </APISettingsDialog>
 
             <Export />
+
+            <FormatButton />
           </div>
         </div>
 
