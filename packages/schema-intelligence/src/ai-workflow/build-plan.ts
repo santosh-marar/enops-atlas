@@ -254,7 +254,7 @@ export async function buildPlan(params: {
   originalMessage: string; // clean, for display
   transcript: string; // original + clarification history, for the LLM
   retrievedContext: string;
-  /** Committed stack from project_tech_stack — absent when not configured. */
+  /** Committed tech stack — absent when not configured. */
   techStack?: Record<string, string | null> | null;
   /** Singular — most recent approved plan only, per ADR-0003. */
   previousApprovedPlan?: TaskPlan | null;

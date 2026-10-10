@@ -7,7 +7,7 @@
 //
 // CanonicalSchema is the single IR all generators AND graph/LLM-reasoning
 // consumers read. It sits after ParsedSchema in the pipeline and is plain
-// serializable data — no class methods, BullMQ-safe, JSON-serializable.
+// serializable data — no class methods, safe to put on a queue, JSON-serializable.
 //
 // v2 retains native storage semantics alongside the logical type used by
 // graph/reasoning consumers. A logical type alone is NEVER an export recipe.

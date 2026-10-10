@@ -7,10 +7,10 @@ import { sha256Hex } from "@enops/atlas-schema";
 
 // Canonical schema → retrieval chunks.
 //
-// Deterministic and browser-safe: schema vector search must work in Atlas
-// Cloud without a Node runtime, and the same schema element must always
-// produce the same chunk id so re-indexing is idempotent and unchanged
-// elements can be copy-forwarded without re-embedding.
+// Deterministic and browser-safe: schema search must work without a Node
+// runtime, and the same schema element must always produce the same chunk id
+// so re-indexing is idempotent and unchanged elements can be reused without
+// re-embedding.
 //
 // Chunk ids are scoped by projectId but NOT by versionId: a project's
 // `public.users` table keeps one stable id across versions, while the
@@ -116,9 +116,9 @@ function relationshipText(table: CanonicalTable): string[] {
 }
 
 /**
- * Formats a deterministic RFC-4122-shaped UUID from a hash. Qdrant requires
- * UUID (or integer) point ids, so content-addressed chunk identities are
- * projected into UUID form here rather than stored as raw hex.
+ * Formats a deterministic RFC-4122-shaped UUID from a hash. Many vector
+ * stores require UUID (or integer) point ids, so content-addressed chunk
+ * identities are projected into UUID form here rather than stored as raw hex.
  */
 function deterministicUuid(hex: string): string {
   const chars = hex.slice(0, 32).split("");

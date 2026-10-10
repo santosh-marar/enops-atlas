@@ -1,4 +1,4 @@
-// Browser-safe, deterministic schema engine shared by Atlas Cloud and OSS.
+// Browser-safe, deterministic schema engine and the AI workflow.
 // The shared IR now lives in @enops/atlas-schema and the graph in @enops/atlas-graph;
 // this package re-exports them alongside the AI/workflow layers.
 

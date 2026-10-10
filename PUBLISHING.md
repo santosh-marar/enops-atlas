@@ -4,10 +4,10 @@ Four library packages are published from this repo. Everything else is private a
 
 | Package | Source | Version | Notes |
 | --- | --- | --- | --- |
-| `@enops/atlas-schema` | `packages/schema` | 0.1.0 | DBML parsing, schema model, validation |
-| `@enops/atlas-graph` | `packages/graph` | 0.1.0 | Schema graph + layout |
-| `@enops/atlas-generators` | `packages/generators` | 0.1.0 | SQL / Prisma / Drizzle / seed SQL generators |
-| `@enops/atlas-schema-intelligence` | `packages/schema-intelligence` | 0.1.0 | Browser-safe intelligence + live introspection (subpaths `./ai`, `./introspection`, `./node`) |
+| `@enops/atlas-schema` | `packages/schema` | see npm | DBML parsing, canonical schema model, renderer, diff |
+| `@enops/atlas-graph` | `packages/graph` | see npm | Schema graph, neighbourhood and impact analysis |
+| `@enops/atlas-generators` | `packages/generators` | see npm | SQL / Prisma / Drizzle / seed SQL generators |
+| `@enops/atlas-schema-intelligence` | `packages/schema-intelligence` | see npm | Browser-safe intelligence + live introspection (subpaths `./ai`, `./introspection`, `./node`) |
 
 Not published (all `"private": true`): root `enops-atlas`, `web` (`apps/web`), `@enops/atlas-ui` (`packages/ui`), `@workspace/typescript-config` (`packages/typescript-config`).
 

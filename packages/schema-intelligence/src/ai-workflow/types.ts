@@ -94,7 +94,7 @@ export interface TaskPlan {
   tables: TablePlanEntry[];
   /**
    * Committed tech stack (database, orm, language, authLibrary,
-   * billingLibrary, …) — serialized as-is from project_tech_stack. Optional:
+   * billingLibrary, …) — serialized as-is from the project's saved tech stack. Optional:
    * absent on flows that haven't configured a stack yet.
    */
   techStack?: Record<string, string | null> | null;

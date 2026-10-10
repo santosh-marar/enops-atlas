@@ -69,7 +69,7 @@ async function discover(
 /**
  * Produces a loss-aware physical schema snapshot from declarative sources.
  * Competing definitions and stateful migrations fail closed; no source code
- * or migrations are executed on the ingestion worker.
+ * or migrations are executed.
  */
 export async function extractRepositoryDbml(
   root: string

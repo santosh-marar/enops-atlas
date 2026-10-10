@@ -21,7 +21,7 @@ export type SchemaModelRequest<T> = {
   tier?: "fast" | "capable";
 };
 
-/** Runtime boundary implemented independently by Atlas Cloud and Atlas OSS. */
+/** Runtime boundary: the host app implements this with its own AI provider. */
 export interface SchemaModel {
   generateObject: <T>(request: SchemaModelRequest<T>) => Promise<{ object: T }>;
 }

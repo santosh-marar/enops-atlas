@@ -1,7 +1,7 @@
 # `@enops/atlas-schema-intelligence`
 
-The shared schema engine for Atlas Cloud and Atlas OSS. DBML remains the
-editable source; canonical schema v2 is the versioned reasoning contract.
+Schema validation, search, snapshots, AI workflow and importers for Enops
+Atlas. DBML remains the editable source; canonical schema v2 is the versioned reasoning contract.
 
 ## Runtime boundaries
 
@@ -17,15 +17,14 @@ editable source; canonical schema v2 is the versioned reasoning contract.
   `typescript` ^5 or ^6 (declared as an optional peer dependency).
 
 The package depends only on the sibling Atlas core packages
-(`@enops/atlas-schema` and `@enops/atlas-graph`). Cloud and OSS provide
+(`@enops/atlas-schema` and `@enops/atlas-graph`). Your app provides
 adapters from outside this package: model implementations, persistence,
 queues, credentials and UI remain application concerns. The package can be
-consumed by either product without bringing those application dependencies
-along.
+consumed by any app without bringing those application dependencies along.
 
-Atlas Cloud injects its own `SchemaModel` implementation. Atlas OSS injects
-its browser/local model adapter. Both therefore execute the same prompts,
-validation, graph scoping and bounded retry rules.
+Your app injects its own `SchemaModel` implementation (for example over the
+Vercel AI Gateway with the user's key). Every host therefore runs the same
+prompts, validation, graph scoping and bounded retry rules.
 
 ```sh
 npm install @enops/atlas-schema-intelligence

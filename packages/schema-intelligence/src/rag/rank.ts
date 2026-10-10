@@ -2,9 +2,9 @@ import type { SchemaChunk } from "./chunks";
 
 // Hybrid schema retrieval ranking.
 //
-// Pure and deterministic so Atlas Cloud and Atlas OSS rank identically and
-// so the ranking is unit-testable without a vector database. Semantic
-// candidates come from Qdrant; exact-name candidates come from the chunk
+// Pure and deterministic so every host ranks identically and so the ranking
+// is unit-testable without a vector database. Semantic candidates come from
+// a vector store, if the host has one; exact-name candidates come from the chunk
 // set; both are fused with reciprocal rank fusion and then lightly reranked
 // by lexical overlap for relevance.
 
