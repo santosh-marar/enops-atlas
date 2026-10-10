@@ -95,8 +95,18 @@ export function resolveDirection(
     : { cardinality: "one-to-many", fk: e2, ref: e1 };
 }
 
+const REF_ACTIONS = new Set<string>([
+  "cascade",
+  "restrict",
+  "set null",
+  "set default",
+  "no action",
+]);
+
+// DBML allows any letter case ([delete: CASCADE]); the canonical form is lowercase.
 function parseRefAction(raw: string | undefined): RefAction {
-  return (raw as RefAction) ?? "none";
+  const action = raw?.trim().toLowerCase();
+  return action && REF_ACTIONS.has(action) ? (action as RefAction) : "none";
 }
 
 const INDEX_TYPES = new Set<string>([
