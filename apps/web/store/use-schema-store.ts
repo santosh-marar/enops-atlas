@@ -8,9 +8,9 @@ import {
   type NodeChange,
 } from "@xyflow/react";
 import { create } from "zustand";
+import { tableKey } from "@/lib/atlas";
 import { getLayoutedElements } from "@/lib/layout";
 import {
-  type Column,
   type Table as ParsedTable,
   type TransformWarning,
   transformDbml,
@@ -57,33 +57,6 @@ interface SchemaState {
 
 const DEFAULT_STROKE = "var(--muted-foreground)";
 const PRIMARY_STROKE = "var(--primary)";
-
-const makeTableLookupKey = (schema: string, tableName: string) =>
-  `${schema}.${tableName}`;
-
-/**
- * Formats default value for display in UI
- */
-export function formatDefaultValue(column: Column): string {
-  if (column.defaultValue === null || column.defaultValue === undefined) {
-    return "NULL";
-  }
-
-  switch (column.defaultValueType) {
-    case "expression":
-      return String(column.defaultValue);
-    case "string":
-      return `'${column.defaultValue}'`;
-    case "number":
-      return String(column.defaultValue);
-    case "boolean":
-      return column.defaultValue ? "TRUE" : "FALSE";
-    case "null":
-      return "NULL";
-    default:
-      return String(column.defaultValue);
-  }
-}
 
 const MAX_HISTORY = 50;
 
@@ -295,13 +268,13 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
       const tableRegistry = new Map<string, FlowTable>();
       flowTables.forEach((table) => {
-        tableRegistry.set(makeTableLookupKey(table.schema, table.name), table);
+        tableRegistry.set(tableKey(table.schema, table.name), table);
       });
 
       // Track which columns are sources for relationships
       const sourceColumns = new Map<string, Set<string>>(); // tableId -> Set of column names
       result.relationships.forEach((rel) => {
-        const tableId = `${rel.parent.schema}.${rel.parent.table}`;
+        const tableId = tableKey(rel.parent.schema, rel.parent.table);
         if (!sourceColumns.has(tableId)) {
           sourceColumns.set(tableId, new Set());
         }
@@ -312,16 +285,10 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
 
       result.relationships.forEach((relationship) => {
         const parentTable = tableRegistry.get(
-          makeTableLookupKey(
-            relationship.parent.schema,
-            relationship.parent.table
-          )
+          tableKey(relationship.parent.schema, relationship.parent.table)
         );
         const childTable = tableRegistry.get(
-          makeTableLookupKey(
-            relationship.child.schema,
-            relationship.child.table
-          )
+          tableKey(relationship.child.schema, relationship.child.table)
         );
 
         if (!(parentTable && childTable)) {
