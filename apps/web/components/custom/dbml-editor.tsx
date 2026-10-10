@@ -26,11 +26,10 @@ import {
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { useTheme } from "next-themes";
-import { useEffect, useRef } from "react";
-import { SAMPLE_DBML } from "@/data/sample-dbml";
-import { db } from "@/lib/db";
+import { useEffect, useRef, useState } from "react";
+import ProblemsPanel from "@/components/custom/problems-panel";
 import { useSchemaStore } from "@/store/use-schema-store";
-import { validateDBML } from "@/validation/dbml-editor";
+import { type ValidationError, validateDBML } from "@/validation/dbml-editor";
 
 // DBML StreamLanguage
 const KEYWORDS = new Set([
@@ -241,27 +240,30 @@ const dbmlCompletions = autocompletion({
 
 // Linter — wraps existing validateDBML
 function dbmlLinter() {
-  return linter(async (view) => {
-    const code = view.state.doc.toString();
-    let result: Awaited<ReturnType<typeof validateDBML>>;
-    try {
-      result = await validateDBML(code);
-    } catch {
-      return [];
-    }
-    const diagnostics: Diagnostic[] = result.errors.map((err) => {
-      const line = view.state.doc.line(Math.max(1, err.line));
-      const from = line.from + Math.max(0, err.column - 1);
-      const to = Math.min(line.to, from + 30);
-      return {
-        from,
-        message: err.message,
-        severity: err.severity === "error" ? "error" : "warning",
-        to,
-      };
-    });
-    return diagnostics;
-  });
+  return linter(
+    async (view) => {
+      const code = view.state.doc.toString();
+      let result: Awaited<ReturnType<typeof validateDBML>>;
+      try {
+        result = await validateDBML(code);
+      } catch {
+        return [];
+      }
+      const diagnostics: Diagnostic[] = result.errors.map((err) => {
+        const line = view.state.doc.line(Math.max(1, err.line));
+        const from = line.from + Math.max(0, err.column - 1);
+        const to = Math.min(line.to, from + 30);
+        return {
+          from,
+          message: err.message,
+          severity: err.severity === "error" ? "error" : "warning",
+          to,
+        };
+      });
+      return diagnostics;
+    },
+    { delay: 300 }
+  );
 }
 
 // Component
@@ -272,57 +274,48 @@ export default function DBMLEditor() {
   const isUpdatingStoreRef = useRef(false);
 
   const { updateFromDBML, dbml } = useSchemaStore();
+  const [source, setSource] = useState(dbml);
 
-  // Seed store on first mount
-  useEffect(() => {
-    const init = async () => {
-      const projectId = localStorage.getItem("current_project_id");
-
-      if (projectId) {
-        const project = await db.projects.get(projectId);
-        if (project?.dbml) {
-          updateFromDBML(project.dbml);
-          return;
-        }
-      }
-
-      // No project or no dbml in db — fall back to sample
-      if (!dbml || dbml.trim() === "") {
-        updateFromDBML(SAMPLE_DBML);
-      }
-    };
-
-    init();
-  }, []);
+  const jumpTo = (problem: ValidationError) => {
+    const view = viewRef.current;
+    if (!view) return;
+    const line = view.state.doc.line(
+      Math.min(Math.max(1, problem.line), view.state.doc.lines)
+    );
+    view.dispatch({
+      effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+      selection: { anchor: line.from },
+    });
+    view.focus();
+  };
 
   // Build / rebuild editor when theme changes
   useEffect(() => {
     if (!containerRef.current) return;
 
     const isDark = theme === "dark";
-    const initialContent =
-      viewRef.current?.state.doc.toString() ?? dbml ?? SAMPLE_DBML;
+    const initialContent = viewRef.current?.state.doc.toString() ?? dbml;
 
     viewRef.current?.destroy();
 
     // Auto-save to store when valid (fires after linter runs)
     const autoSaveListener = EditorView.updateListener.of(async (update) => {
-      if (!update.docChanged || isUpdatingStoreRef.current) return;
+      if (!update.docChanged) return;
       const value = update.state.doc.toString();
+      setSource(value);
+      if (isUpdatingStoreRef.current) return;
       try {
         const result = await validateDBML(value);
-        if (result.isValid && value) {
+        if (
+          viewRef.current !== update.view ||
+          update.view.state.doc.toString() !== value
+        )
+          return;
+        if (result.isValid || !value.trim()) {
           const currentStoreDbml = useSchemaStore.getState().dbml;
           const isUpdating = useSchemaStore.getState().isUpdating;
           if (value !== currentStoreDbml && !isUpdating) {
-            isUpdatingStoreRef.current = true;
-            try {
-              await updateFromDBML(value, true);
-            } finally {
-              setTimeout(() => {
-                isUpdatingStoreRef.current = false;
-              }, 200);
-            }
+            await updateFromDBML(value, true);
           }
         }
       } catch {
@@ -372,18 +365,24 @@ export default function DBMLEditor() {
     const editorValue = viewRef.current.state.doc.toString();
     if (dbml !== editorValue) {
       isUpdatingStoreRef.current = true;
-      viewRef.current.dispatch({
-        changes: {
-          from: 0,
-          insert: dbml ?? "",
-          to: viewRef.current.state.doc.length,
-        },
-      });
-      setTimeout(() => {
+      try {
+        viewRef.current.dispatch({
+          changes: {
+            from: 0,
+            insert: dbml,
+            to: viewRef.current.state.doc.length,
+          },
+        });
+      } finally {
         isUpdatingStoreRef.current = false;
-      }, 200);
+      }
     }
   }, [dbml]);
 
-  return <div className="h-full flex-1 font-mono" ref={containerRef} />;
+  return (
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 font-mono" ref={containerRef} />
+      <ProblemsPanel dbml={source} onSelect={jumpTo} />
+    </div>
+  );
 }
