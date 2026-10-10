@@ -15,6 +15,7 @@ import { APISettingsDialog } from "./api-settings-dialog";
 import { CommandPalette } from "./command-palette";
 import { FormatButton } from "./format-button";
 import { HelpDialog } from "./help-dialog";
+import { HistoryDialog } from "./history-dialog";
 import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
 import { Logo } from "./logo";
 import { ActionMenu } from "./toolbar/action-menu";
@@ -44,7 +45,7 @@ export function TopToolbar({
   onConfirmNew,
   onBrowse,
 }: TopToolbarProps) {
-  const { dbml, nodes, edges } = useSchemaStore();
+  const { dbml, nodes, edges, updateFromDBML } = useSchemaStore();
   const { theme, setTheme } = useTheme();
 
   // Project management
@@ -73,6 +74,7 @@ export function TopToolbar({
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportDbDialog, setShowImportDbDialog] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>("");
 
@@ -257,6 +259,14 @@ export function TopToolbar({
         onCancel={handleCancelExport}
       />
 
+      <HistoryDialog
+        dbml={dbml}
+        onOpenChange={setShowHistory}
+        onRestore={(text) => updateFromDBML(text)}
+        open={showHistory}
+        projectId={currentProject?.id ?? null}
+      />
+
       <div className="flex items-center justify-between bg-background px-4 py-2 shadow-sm">
         {/* Left Section */}
         <div className="flex items-center gap-4">
@@ -289,6 +299,14 @@ export function TopToolbar({
             <Export />
 
             <FormatButton />
+
+            <Button
+              onClick={() => setShowHistory(true)}
+              size="sm"
+              variant="ghost"
+            >
+              History
+            </Button>
           </div>
         </div>
 

@@ -28,6 +28,17 @@ export interface Project {
   updatedAt: Date;
 }
 
+/** A saved point in a project's history. DBML is the source; the digest decides "same as last". */
+export interface SchemaVersion {
+  createdAt: Date;
+  dbml: string;
+  digest: string;
+  id: string;
+  label?: string;
+  projectId: string;
+  snapshotVersion: number;
+}
+
 export interface AISettings {
   id?: string;
   updatedAt: Date;
@@ -37,6 +48,7 @@ export interface AISettings {
 export class AppDatabase extends Dexie {
   projects!: Table<Project>;
   aiSettings!: Table<AISettings>;
+  versions!: Table<SchemaVersion>;
 
   constructor() {
     super("EnopsDevDB");
@@ -65,6 +77,13 @@ export class AppDatabase extends Dexie {
             }
           })
       );
+
+    // Version 2 only adds the history table; projects and settings are untouched.
+    this.version(2).stores({
+      aiSettings: "++id, updatedAt",
+      projects: "id, name, createdAt, updatedAt",
+      versions: "id, projectId, createdAt",
+    });
   }
 }
 
