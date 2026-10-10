@@ -18,6 +18,7 @@ import { HelpDialog } from "./help-dialog";
 import { HistoryDialog } from "./history-dialog";
 import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
 import { Logo } from "./logo";
+import { QualityBadge } from "./quality-panel";
 import { ActionMenu } from "./toolbar/action-menu";
 import { Export } from "./toolbar/export/export";
 import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
@@ -299,6 +300,8 @@ export function TopToolbar({
             <Export />
 
             <FormatButton />
+
+            <QualityBadge />
 
             <Button
               onClick={() => setShowHistory(true)}
