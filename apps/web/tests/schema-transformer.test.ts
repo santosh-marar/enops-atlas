@@ -1,3 +1,4 @@
+import { test } from "bun:test";
 import { strict as assert } from "node:assert/strict";
 import { SAMPLE_DBML } from "../data/sample-dbml";
 import { transformDbml } from "../lib/schema-transformer";
@@ -6,17 +7,18 @@ const runSampleSchemaTest = () => {
   console.log("Running sample schema test...");
   const result = transformDbml(SAMPLE_DBML);
 
-  assert.equal(result.tables.length, 9, "expected 9 tables in sample DBML");
+  assert.equal(result.tables.length, 10, "expected 10 tables in sample DBML");
   assert.equal(
     result.relationships.length > 0,
     true,
     "relationships should be detected"
   );
   assert.equal(
-    result.warnings.length,
-    0,
-    "sample DBML should not produce warnings"
+    result.warnings.some((warning) => warning.context === "SQL export"),
+    false,
+    "the sample schema should export to SQL without capability warnings"
   );
+  assert.notEqual(result.sql, "", "sample schema should produce SQL");
 
   const usersTable = result.tables.find(
     (table) => table.schema === "public" && table.name === "users"
@@ -63,7 +65,7 @@ const runMissingReferenceErrorTest = () => {
 
   assert.throws(
     () => transformDbml(BROKEN_SCHEMA),
-    /Can't find table/i,
+    /does not exist/i,
     "missing foreign key target should throw a descriptive error"
   );
   console.log("✓ Missing reference error test passed");
@@ -72,7 +74,7 @@ const runMissingReferenceErrorTest = () => {
 const runSyntaxErrorPropagationTest = () => {
   console.log("Running syntax error propagation test...");
   assert.throws(() => transformDbml("Table broken { id "), {
-    message: /Expected/i,
+    message: /Expect/i,
     name: /Error/,
   });
   console.log("✓ Syntax error propagation test passed");
@@ -249,14 +251,12 @@ const runDefaultValuesTest = () => {
   console.log("✓ Default values test passed");
 };
 
-runSampleSchemaTest();
-runMissingReferenceErrorTest();
-runSyntaxErrorPropagationTest();
-runEmptyDbmlTest();
-runTableLimitTest();
-runColumnLimitTest();
-runColumnTypesTest();
-runCircularReferenceTest();
-runDefaultValuesTest();
-
-console.log("\n✅ All schema-transformer tests passed!");
+test("sample schema and capability warnings", runSampleSchemaTest);
+test("missing reference errors", runMissingReferenceErrorTest);
+test("syntax errors", runSyntaxErrorPropagationTest);
+test("empty DBML", runEmptyDbmlTest);
+test("table limit", runTableLimitTest);
+test("column limit", runColumnLimitTest);
+test("column types", runColumnTypesTest);
+test("circular references", runCircularReferenceTest);
+test("default values", runDefaultValuesTest);

@@ -2,7 +2,7 @@ export const SAMPLE_DBML = `
 // Creating tables
 // You can define the tables with full schema names
 Table ecommerce.merchants {
-  id int
+  id int [unique]
   country_code int
   merchant_name varchar
   
@@ -104,7 +104,16 @@ Table posts {
 Ref: posts.user_id > users.id [delete: CASCADE, update: CASCADE]
 
 Ref: ecommerce.products.merchant_id > ecommerce.merchants.id // many-to-one
-Ref: ecommerce.product_tags.id <> ecommerce.products.id // many-to-many
 //composite foreign key
 Ref: ecommerce.merchant_periods.(merchant_id, country_code) > ecommerce.merchants.(id, country_code)
+
+// Many-to-many relationships need an explicit junction table
+Table ecommerce.product_tag_assignments {
+  product_tag_id int [ref: > ecommerce.product_tags.id]
+  product_id int [ref: > ecommerce.products.id]
+
+  Indexes {
+    (product_tag_id, product_id) [pk]
+  }
+}
 `;
