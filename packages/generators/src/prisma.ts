@@ -91,6 +91,16 @@ function defaultAttribute(c: CanonicalColumn): string | null {
     return /^now\(\)$/i.test(String(d.value)) && c.type === "timestamp"
       ? "@default(now())"
       : `@default(dbgenerated(${JSON.stringify(String(d.value))}))`;
+  // Prisma only accepts an RFC 3339 string as a DateTime default. Anything
+  // else (for example 'now()') stays a database-side default, written as-is.
+  if (
+    (c.type === "timestamp" || c.type === "date") &&
+    d.type === "string" &&
+    !/^\d{4}-\d{2}-\d{2}([T ][\d:.]+(Z|[+-]\d{2}:?\d{2})?)?$/.test(
+      String(d.value)
+    )
+  )
+    return `@default(dbgenerated(${JSON.stringify(`'${String(d.value).replaceAll("'", "''")}'`)}))`;
   if (c.type === "enum" && d.type === "string")
     return `@default(${enumValue(String(d.value))})`;
   return `@default(${d.type === "number" ? (d.literal ?? d.value) : JSON.stringify(d.value)})`;

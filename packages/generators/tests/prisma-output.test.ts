@@ -36,3 +36,16 @@ Table users {
   expect(prisma).toContain("usersTeam Users[]");
   expect(prisma).toContain("usersBackupTeam Users[]");
 });
+
+test("a text default on a date column does not produce invalid prisma", () => {
+  const prisma = prismaFor(`
+Table events {
+  id int [pk]
+  created_at timestamp [default: 'now()']
+  day date [default: '2024-01-31']
+}
+`);
+  expect(prisma).toContain(`@default(dbgenerated("'now()'"))`);
+  expect(prisma).not.toContain(`@default("now()")`);
+  expect(prisma).toContain(`@default("2024-01-31")`);
+});
