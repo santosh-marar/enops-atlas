@@ -1,12 +1,18 @@
+import type { ChangeRequest } from "@enops/atlas-graph";
+import { tableKey } from "@enops/atlas-graph";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { memo, useMemo } from "react";
+import { Trash2 } from "lucide-react";
+import { memo, useMemo, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { dbmlAfterRemoval } from "@/lib/schema-edit";
 import type { Column, ForeignKeyMeta } from "@/lib/schema-transformer";
+import { useSchemaStore } from "@/store/use-schema-store";
+import { ImpactDialog } from "./impact-dialog";
 
 export interface TableNodeData {
   alias?: string;
@@ -17,13 +23,24 @@ export interface TableNodeData {
 }
 
 const formatForeignKeyTarget = (fk: ForeignKeyMeta) => {
-  const schemaPrefix =
-    fk.schema && fk.schema !== "public" ? `${fk.schema}.` : "";
-  return `${schemaPrefix}${fk.table}.${fk.column}`;
+  const table =
+    fk.schema === "public" ? fk.table : tableKey(fk.schema, fk.table);
+  return `${table}.${fk.column}`;
 };
 
 export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
   const nodeData = data as unknown as TableNodeData;
+  const dbml = useSchemaStore((state) => state.dbml);
+  const isLocked = useSchemaStore((state) => state.isLocked);
+  const updateFromDBML = useSchemaStore((state) => state.updateFromDBML);
+  const [pendingChange, setPendingChange] = useState<ChangeRequest | null>(
+    null
+  );
+
+  const confirmChange = async (change: ChangeRequest) => {
+    setPendingChange(null);
+    await updateFromDBML(dbmlAfterRemoval(dbml, change), true);
+  };
 
   const schemaTag = useMemo(
     () =>
@@ -151,7 +168,23 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
               </span>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-2">
+            {isLocked ? null : (
+              <button
+                aria-label={`Delete table ${nodeData.label}`}
+                className="text-muted-foreground hover:text-destructive"
+                onClick={() =>
+                  setPendingChange({
+                    kind: "remove-table",
+                    schema: nodeData.schema,
+                    table: nodeData.label,
+                  })
+                }
+                type="button"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            )}
             {aliasTag ? (
               <span className="rounded-full border px-2 py-0.5 font-medium text-[10px] uppercase tracking-[0.18em]">
                 as {aliasTag}
@@ -323,6 +356,24 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                   </div>
                 </div>
 
+                {isLocked ? null : (
+                  <button
+                    aria-label={`Delete column ${column.name}`}
+                    className="text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
+                    onClick={() =>
+                      setPendingChange({
+                        column: column.name,
+                        kind: "remove-column",
+                        schema: nodeData.schema,
+                        table: nodeData.label,
+                      })
+                    }
+                    type="button"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                )}
+
                 {isPrimaryKey || isSourceColumn ? (
                   <Handle
                     className="border! -right-3! h-2! w-2! border-primary/40! bg-primary! shadow-[0_0_0_4px_rgba(56,189,248,0.25)]! transition-transform group-hover:scale-125!"
@@ -336,6 +387,12 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
           })}
         </div>
       </div>
+      <ImpactDialog
+        change={pendingChange}
+        dbml={dbml}
+        onCancel={() => setPendingChange(null)}
+        onConfirm={confirmChange}
+      />
     </TooltipProvider>
   );
 });
