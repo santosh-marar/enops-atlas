@@ -1,6 +1,6 @@
 {
   "name": "@enops/atlas-schema",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.0",
   "description": "Canonical schema IR for Enops Atlas \u2014 DBML parse/render, normalization, validation, diffing and stable digests.",
   "keywords": [
     "enops",

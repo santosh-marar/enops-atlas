@@ -1,6 +1,6 @@
 {
   "name": "@enops/atlas-graph",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.0",
   "description": "In-memory schema graph engine for Enops Atlas \u2014 build, traverse, impact analysis and serialization.",
   "keywords": [
     "enops",
