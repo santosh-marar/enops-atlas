@@ -19,6 +19,7 @@ import { AIDialog } from "./ai-dialog";
 import { exportFlowAsImage, type ImageFormat } from "./image";
 import { ExportORMDialog, type OrmFormat } from "./orm-dialog";
 import { exportCanonicalDBML, exportDBML, exportSchemaJSON } from "./schema";
+import { ExportSeedDialog } from "./seed-dialog";
 import { type SQLDialect, sqlDatabases } from "./sql-databases";
 import { ExportSQLDialog } from "./sql-dialog";
 
@@ -28,6 +29,7 @@ export function Export() {
   const [sqlDialogOpen, setSqlDialogOpen] = useState(false);
   const [sqlDialect, setSqlDialect] = useState<SQLDialect>("postgres");
   const [ormDialogOpen, setOrmDialogOpen] = useState(false);
+  const [seedDialogOpen, setSeedDialogOpen] = useState(false);
   const [ormFormat, setOrmFormat] = useState<OrmFormat>("prisma");
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
@@ -192,6 +194,10 @@ export function Export() {
             </DropdownMenuPortal>
           </DropdownMenuSub>
 
+          <DropdownMenuItem onClick={() => setSeedDialogOpen(true)}>
+            Export seed data (SQL)
+          </DropdownMenuItem>
+
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>Export as ORM</DropdownMenuSubTrigger>
             <DropdownMenuPortal>
@@ -222,6 +228,10 @@ export function Export() {
       </DropdownMenu>
 
       <AIDialog onOpenChange={setAiDialogOpen} open={aiDialogOpen} />
+      <ExportSeedDialog
+        onOpenChange={setSeedDialogOpen}
+        open={seedDialogOpen}
+      />
       <ExportORMDialog
         format={ormFormat}
         onFormatChange={setOrmFormat}

@@ -1,4 +1,4 @@
-import { generateFromCanonical } from "@enops/atlas-generators";
+import { generateFromCanonical, renderSeedSql } from "@enops/atlas-generators";
 import { type CanonicalSchema, dbmlToSql } from "@enops/atlas-schema";
 import { analyzeDbml } from "./atlas";
 
@@ -53,4 +53,31 @@ export function exportProblems(
   if (!dbml.trim()) return [];
   const result = generateCode(dbml, format, dialect);
   return result.ok ? [] : result.messages;
+}
+
+export type SeedResult =
+  | { ok: true; sql: string; tablesSeeded: string[] }
+  | { message: string; ok: false };
+
+/** INSERT statements for the `records` blocks, parents first. */
+export function generateSeed(
+  dbml: string,
+  dialect: "postgres" | "mysql" = "postgres"
+): SeedResult {
+  try {
+    const { canonical } = analyzeDbml(dbml);
+    const { sql, tablesSeeded } = renderSeedSql(canonical, { dialect });
+    if (tablesSeeded.length === 0) {
+      return {
+        message: "No seed data. Add a records block to a table first.",
+        ok: false,
+      };
+    }
+    return { ok: true, sql, tablesSeeded };
+  } catch (error) {
+    return {
+      message: error instanceof Error ? error.message : "Seed export failed",
+      ok: false,
+    };
+  }
 }

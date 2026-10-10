@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { SAMPLE_DBML } from "../data/sample-dbml";
-import { exportProblems, generateCode } from "../lib/code-export";
+import { exportProblems, generateCode, generateSeed } from "../lib/code-export";
 
 test("the sample schema exports as sql, prisma and drizzle", () => {
   for (const format of ["sql", "prisma", "drizzle"] as const) {
@@ -54,4 +54,39 @@ test("problems are listed before opening a dialog", () => {
     exportProblems("Table g {\n  id int [pk]\n  loc geometry\n}\n", "sql")
       .length
   ).toBeGreaterThan(0);
+});
+
+const SEEDED = `
+Table users {
+  id int [pk]
+  name varchar
+}
+
+Table posts {
+  id int [pk]
+  user_id int [ref: > users.id]
+}
+
+records posts(id, user_id) {
+  1, 1
+}
+
+records users(id, name) {
+  1, 'a'
+}
+`;
+
+test("seed sql inserts parents before children", () => {
+  const result = generateSeed(SEEDED);
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.tablesSeeded).toEqual(["public.users", "public.posts"]);
+  expect(result.sql.indexOf('"users"')).toBeLessThan(
+    result.sql.indexOf('"posts"')
+  );
+});
+
+test("a schema without records says there is nothing to seed", () => {
+  const result = generateSeed("Table t {\n  id int [pk]\n}\n");
+  expect(result.ok).toBe(false);
 });
