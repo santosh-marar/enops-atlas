@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@enops/atlas-ui/globals.css";
-import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "sonner";
 import { ThemeProviders } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,7 +35,6 @@ export default function RootLayout({
           <Toaster position="top-right" richColors />
           <TooltipProvider>{children}</TooltipProvider>
         </ThemeProviders>
-        <Analytics />
       </body>
     </html>
   );

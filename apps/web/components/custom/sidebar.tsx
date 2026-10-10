@@ -85,7 +85,7 @@ export function Sidebar({
       <div className="mt-auto flex flex-col gap-2">
         <a
           className="group relative flex h-12 w-12 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent"
-          href="https://github.com/santosh-marar/enops.dev"
+          href="https://github.com/santosh-marar/enops-atlas"
           rel="noopener noreferrer"
           target="_blank"
           title="GitHub"

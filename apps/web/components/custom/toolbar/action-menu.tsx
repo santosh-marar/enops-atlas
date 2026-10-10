@@ -38,10 +38,12 @@ export function ActionMenu({
 
   return (
     <DropdownMenu modal={false} onOpenChange={setOpen} open={open}>
-      <DropdownMenuTrigger onMouseEnter={handleOpen} onMouseLeave={handleClose}>
-        <Button size={"sm"} variant={"ghost"}>
-          Action
-        </Button>
+      <DropdownMenuTrigger
+        onMouseEnter={handleOpen}
+        onMouseLeave={handleClose}
+        render={<Button size="sm" variant="ghost" />}
+      >
+        Action
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
