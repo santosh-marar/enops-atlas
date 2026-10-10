@@ -39,9 +39,13 @@ Ref: ecommerce.merchants.country_code > countries.code
 // -- Adding column settings
 
 Table ecommerce.order_items {
-  order_id int [ref: > ecommerce.orders.id] // inline relationship (many-to-one)
-  product_id int
+  order_id int [not null, ref: > ecommerce.orders.id] // inline relationship (many-to-one)
+  product_id int [not null]
   quantity int [default: 1] // default value
+
+  Indexes {
+    (order_id, product_id) [pk]
+  }
 }
 
 Ref: ecommerce.order_items.product_id > ecommerce.products.id

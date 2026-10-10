@@ -1,6 +1,5 @@
 "use client";
 
-import { ModelExporter, Parser } from "@dbml/core";
 import { Check, Copy, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { generateCode } from "@/lib/code-export";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { type SQLDialect, sqlDatabases } from "./sql-databases";
 
@@ -48,16 +48,14 @@ export function ExportSQLDialog({
     }
 
     setIsGenerating(true);
-    try {
-      const model = new Parser().parse(dbml, "dbmlv2");
-      const sql = ModelExporter.export(model, targetDialect);
-      setGeneratedSQL(sql);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to generate SQL");
+    const result = generateCode(dbml, "sql", targetDialect);
+    if (result.ok) {
+      setGeneratedSQL(result.code);
+    } else {
+      toast.error(result.messages.join("; ") || "Failed to generate SQL");
       setGeneratedSQL("");
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
   useEffect(() => {

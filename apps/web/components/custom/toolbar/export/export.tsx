@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { exportProblems } from "@/lib/code-export";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { AIDialog } from "./ai-dialog";
 import { exportFlowAsImage, type ImageFormat } from "./image";
@@ -30,6 +31,15 @@ export function Export() {
   );
 
   const { nodes, edges, dbml } = useSchemaStore();
+
+  // Why an SQL export would be refused, per database, shown next to the item.
+  const sqlProblems = useMemo(
+    () =>
+      Object.fromEntries(
+        sqlDatabases.map((d) => [d.value, exportProblems(dbml, "sql", d.value)])
+      ),
+    [dbml]
+  );
 
   const handleOpen = () => {
     clearTimeout(closeTimeoutRef.current);
@@ -152,6 +162,14 @@ export function Export() {
                     onClick={() => handleSqlDatabaseSelect(d.value)}
                   >
                     {d.label}
+                    {sqlProblems[d.value]?.length ? (
+                      <span
+                        className="ml-auto text-yellow-600"
+                        title={sqlProblems[d.value]?.join("\n")}
+                      >
+                        !
+                      </span>
+                    ) : null}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuSubContent>
