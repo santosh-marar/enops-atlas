@@ -1,35 +1,23 @@
-import { useEffect, useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
-import { db } from "@/lib/db";
+import { useState } from "react";
 
 interface ProjectNameEditorProps {
   onEditingChange?: (isEditing: boolean) => void;
   onNameChange: (name: string) => void;
-  projectId: string;
+  onNameCommit: () => void;
   projectName: string;
 }
 
 export function ProjectNameEditor({
   projectName,
-  projectId,
+  onNameCommit,
   onNameChange,
   onEditingChange,
 }: ProjectNameEditorProps) {
   const [isEditingName, setIsEditingName] = useState(false);
-  const debouncedName = useDebounce(projectName, 1500);
-
-  // auto trigger when user stops typing for 1.5s
-  useEffect(() => {
-    if (!debouncedName) return;
-    db.projects.update(projectId, {
-      name: debouncedName,
-      updatedAt: new Date(),
-    });
-  }, [debouncedName, projectId]);
-
   const handleEditingChange = (editing: boolean) => {
     setIsEditingName(editing);
     onEditingChange?.(editing);
+    if (!editing) onNameCommit();
   };
 
   return (

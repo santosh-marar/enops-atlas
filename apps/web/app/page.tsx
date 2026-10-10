@@ -32,6 +32,14 @@ export default function Home() {
     toggleIde,
   } = useSchemaStore();
 
+  const projectManager = useProjectManager({
+    dbml,
+    edges,
+    nodes,
+    setEdges,
+    setNodes,
+    updateFromDBML,
+  });
   const {
     currentProject,
     setCurrentProject,
@@ -41,14 +49,7 @@ export default function Home() {
     handleNew,
     handleOpenProject,
     handleSave,
-  } = useProjectManager({
-    dbml,
-    edges,
-    nodes,
-    setEdges,
-    setNodes,
-    updateFromDBML,
-  });
+  } = projectManager;
 
   const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
@@ -229,6 +230,7 @@ export default function Home() {
         onBrowse={handleBrowse}
         onConfirmNew={confirmNewProject}
         onNewProjectDialogChange={setShowNewProjectDialog}
+        projectManager={projectManager}
         showNewProjectDialog={showNewProjectDialog}
       />
       <div className="flex h-[calc(100vh-3rem)] w-full overflow-hidden">
