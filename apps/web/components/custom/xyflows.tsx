@@ -1,5 +1,6 @@
 "use client";
 
+import { getNeighborhood, tableKey } from "@enops/atlas-graph";
 import {
   Background,
   BackgroundVariant,
@@ -11,11 +12,12 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useNodeZoom } from "@/hooks/use-node-zoom";
 import { useTableFilter } from "@/hooks/use-table-filter";
+import { analyzeDbml } from "@/lib/atlas";
 import { SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { ErrorBoundary } from "./error-boundary";
@@ -26,6 +28,9 @@ import { TableSearch } from "./table-search";
 const nodeTypes = {
   table: TableNode as any,
 };
+
+const MAX_HIGHLIGHTED_TABLES = 40;
+const DIMMED_OPACITY = 0.2;
 
 const defaultEdgeOptions = {
   markerEnd: {
@@ -39,6 +44,12 @@ const defaultEdgeOptions = {
     strokeWidth: 1.2,
   },
   type: "smoothstep" as const,
+};
+
+// Node ids use the table alias; the graph uses schema.name.
+const graphKeyOf = (node: { data: unknown }) => {
+  const data = node.data as { label?: string; schema?: string };
+  return tableKey(data.schema ?? "public", data.label ?? "");
 };
 
 function XYFlowsInner() {
@@ -56,12 +67,56 @@ function XYFlowsInner() {
     setEdgeAnimated,
     isLoading,
     isLocked,
+    dbml,
   } = useSchemaStore();
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
 
   const { filteredNodes, filteredEdges } = useTableFilter(
     nodes,
     edges,
     debouncedSearchQuery
+  );
+
+  // Tables one hop away from the clicked table; everything else is dimmed.
+  const graph = useMemo(() => {
+    try {
+      return analyzeDbml(dbml).graph;
+    } catch {
+      return null;
+    }
+  }, [dbml]);
+
+  const related = useMemo(() => {
+    const selected = nodes.find((node) => node.id === selectedTable);
+    if (!(selected && graph)) return null;
+    return getNeighborhood(graph, [graphKeyOf(selected)], {
+      hops: 1,
+      maxNodes: MAX_HIGHLIGHTED_TABLES,
+    });
+  }, [graph, nodes, selectedTable]);
+
+  const displayNodes = useMemo(
+    () =>
+      related
+        ? filteredNodes.map((node) =>
+            related.tables.has(graphKeyOf(node))
+              ? node
+              : { ...node, style: { ...node.style, opacity: DIMMED_OPACITY } }
+          )
+        : filteredNodes,
+    [filteredNodes, related]
+  );
+
+  const displayEdges = useMemo(
+    () =>
+      related
+        ? filteredEdges.map((edge) =>
+            edge.source === selectedTable || edge.target === selectedTable
+              ? edge
+              : { ...edge, style: { ...edge.style, opacity: DIMMED_OPACITY } }
+          )
+        : filteredEdges,
+    [filteredEdges, related, selectedTable]
   );
 
   const { handleNodeDoubleClick, isZoomed } = useNodeZoom({
@@ -102,13 +157,13 @@ function XYFlowsInner() {
                   : ""
               }`}
               defaultEdgeOptions={defaultEdgeOptions}
-              edges={filteredEdges}
+              edges={displayEdges}
               edgesFocusable={!isLocked}
               elementsSelectable={!isLocked}
               fitView
               maxZoom={2}
               minZoom={0.2}
-              nodes={filteredNodes}
+              nodes={displayNodes}
               nodesConnectable={!isLocked}
               nodesDraggable={!isLocked}
               nodesFocusable={!isLocked}
@@ -129,8 +184,14 @@ function XYFlowsInner() {
                   : (_, edge) => setEdgeAnimated(edge.id, false)
               }
               onEdgesChange={onEdgesChange}
+              onNodeClick={(_, node) =>
+                setSelectedTable((current) =>
+                  current === node.id ? null : node.id
+                )
+              }
               onNodeDoubleClick={isLocked ? undefined : handleNodeDoubleClick}
               onNodesChange={isLocked ? undefined : onNodesChange}
+              onPaneClick={() => setSelectedTable(null)}
               panOnDrag={isLocked ? true : [1, 2]}
               selectNodesOnDrag={!isLocked}
             >
@@ -152,6 +213,9 @@ function XYFlowsInner() {
                     📊 {filteredNodes.length}/{nodes.length} Tables
                   </span>
                   <span>🔗 {filteredEdges.length} Relations</span>
+                  {related?.truncated && (
+                    <span>Showing {MAX_HIGHLIGHTED_TABLES} related tables</span>
+                  )}
                 </div>
               </Panel>
 

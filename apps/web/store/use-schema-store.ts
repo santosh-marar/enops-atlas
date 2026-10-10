@@ -337,8 +337,8 @@ export const useSchemaStore = create<SchemaState>((set, get) => ({
       });
 
       let nodes: Node[] = flowTables.map((table) => {
-        const tableKey = `${table.schema}.${table.name}`;
-        const sourceColumnSet = sourceColumns.get(tableKey) || new Set();
+        const sourceColumnSet =
+          sourceColumns.get(tableKey(table.schema, table.name)) || new Set();
 
         return {
           data: {
