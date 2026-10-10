@@ -16,7 +16,7 @@ import {
 import { useSchemaStore } from "@/store/use-schema-store";
 import { AIDialog } from "./ai-dialog";
 import { exportFlowAsImage, type ImageFormat } from "./image";
-import { exportDBML, exportSchemaJSON } from "./schema";
+import { exportCanonicalDBML, exportDBML, exportSchemaJSON } from "./schema";
 import { type SQLDialect, sqlDatabases } from "./sql-databases";
 import { ExportSQLDialog } from "./sql-dialog";
 
@@ -50,8 +50,29 @@ export function Export() {
   };
 
   const handleSchemaJSONExport = () => {
-    exportSchemaJSON(nodes);
-    toast.success("Schema JSON exported");
+    if (!dbml) {
+      toast.error("No schema to export. Please create a schema first.");
+      return;
+    }
+    try {
+      exportSchemaJSON(dbml);
+      toast.success("Schema JSON exported");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed");
+    }
+  };
+
+  const handleCanonicalDBMLExport = () => {
+    if (!dbml) {
+      toast.error("No schema to export. Please create a schema first.");
+      return;
+    }
+    try {
+      exportCanonicalDBML(dbml);
+      toast.success("Canonical DBML exported");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed");
+    }
   };
 
   const handleDBMLExport = () => {
@@ -113,6 +134,9 @@ export function Export() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDBMLExport}>
                   .dbml
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCanonicalDBMLExport}>
+                  .dbml (canonical)
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuPortal>

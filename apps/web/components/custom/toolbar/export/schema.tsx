@@ -1,4 +1,6 @@
+import { exportCanonicalDbml } from "@enops/atlas-schema";
 import type { Edge, Node } from "@xyflow/react";
+import { analyzeDbml } from "@/lib/atlas";
 
 function downloadTextFile(
   content: string,
@@ -31,13 +33,31 @@ export function exportDiagramJSON(
   downloadTextFile(JSON.stringify(payload, null, 2), `${fileName}.json`);
 }
 
-/** Schema-only JSON — tables/fields, no canvas positions. */
-export function exportSchemaJSON(nodes: Node[], fileName = "schema") {
-  const schema = nodes.map((node) => ({
-    fields: node.data.fields ?? [],
-    table: node.data.label,
-  }));
-  downloadTextFile(JSON.stringify(schema, null, 2), `${fileName}.json`);
+/** The canonical schema as JSON: tables, columns, keys, enums. No canvas positions. */
+export function canonicalSchemaJson(dbml: string): string {
+  return JSON.stringify(analyzeDbml(dbml).canonical, null, 2);
+}
+
+/** The schema rewritten in the canonical DBML layout. Comments are not kept. */
+export function canonicalDbmlText(
+  dbml: string
+): { ok: true; dbml: string } | { message: string; ok: false } {
+  const result = exportCanonicalDbml(analyzeDbml(dbml).canonical);
+  if (result.ok) return result;
+  return {
+    message: result.diagnostics.map((issue) => issue.message).join("; "),
+    ok: false,
+  };
+}
+
+export function exportSchemaJSON(dbml: string, fileName = "schema") {
+  downloadTextFile(canonicalSchemaJson(dbml), `${fileName}.json`);
+}
+
+export function exportCanonicalDBML(dbml: string, fileName = "schema") {
+  const result = canonicalDbmlText(dbml);
+  if (!result.ok) throw new Error(result.message);
+  downloadTextFile(result.dbml, `${fileName}.dbml`, "text/plain");
 }
 
 /** Raw DBML text, straight from the store. */
