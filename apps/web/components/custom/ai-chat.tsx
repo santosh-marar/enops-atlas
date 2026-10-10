@@ -1,6 +1,9 @@
 "use client";
 
-import type { TaskPlan } from "@enops/atlas-schema-intelligence";
+import type {
+  ClarificationRound,
+  TaskPlan,
+} from "@enops/atlas-schema-intelligence";
 import {
   Loader2,
   Send,
@@ -14,12 +17,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  generateFromPlan,
-  type PlanStep,
-  type Proposal,
-  planRequest,
-} from "@/lib/ai/schema-flow";
+import { mentionSuggestions, planEdit } from "@/lib/ai/edit-workflow";
+import { generateFromPlan, type Proposal } from "@/lib/ai/schema-flow";
 import { schemaModel } from "@/lib/ai/schema-model";
 import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
@@ -32,8 +31,16 @@ const MODEL_KEY = "claude-haiku-4-5" as const;
 
 /** What waits for the user: nothing is written to the editor until they choose. */
 type Pending =
-  | { kind: "plan"; plan: TaskPlan }
+  | { kind: "plan"; plan: TaskPlan; retrievedContext: string }
   | { kind: "proposal"; proposal: Proposal };
+
+/** The assistant asked a question; the user's next message is the answer. */
+interface Awaiting {
+  message: string;
+  options?: string[];
+  question: string;
+  rounds: ClarificationRound[];
+}
 
 //  Types
 interface Message {
@@ -68,6 +75,7 @@ export function AIChat({
   const [isLoading, setIsLoading] = useState(false);
   const [techStack, setTechStack] = useState<TechStackType | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [awaiting, setAwaiting] = useState<Awaiting | null>(null);
   const dbml = useSchemaStore((state) => state.dbml);
 
   // Load tech stack when panel opens
@@ -179,14 +187,34 @@ export function AIChat({
 
     try {
       const model = schemaModel(MODEL_KEY, settings.vercelAIKey);
-      const step: PlanStep = await planRequest({
+      // Answering a question continues the same request.
+      const rounds: ClarificationRound[] = awaiting
+        ? [
+            ...awaiting.rounds,
+            { answer: userMessage.content, question: awaiting.question },
+          ]
+        : [];
+      const message = awaiting?.message ?? userMessage.content;
+      const step = await planEdit({
         dbml,
-        message: userMessage.content,
+        history: rounds,
+        message,
         model,
         techStack: { ...techStack },
       });
+      setAwaiting(
+        step.kind === "question"
+          ? { message, options: step.options, question: step.text, rounds }
+          : null
+      );
       setPending(
-        step.kind === "plan" ? { kind: "plan", plan: step.plan } : null
+        step.kind === "plan"
+          ? {
+              kind: "plan",
+              plan: step.plan,
+              retrievedContext: step.retrievedContext,
+            }
+          : null
       );
       addAssistantMessage(step.kind === "plan" ? step.markdown : step.text);
     } catch (error) {
@@ -207,7 +235,10 @@ export function AIChat({
     ]);
 
   // The user approved the plan: now the schema is written and checked.
-  const handleApprovePlan = async (plan: TaskPlan) => {
+  const handleApprovePlan = async (
+    plan: TaskPlan,
+    retrievedContext: string
+  ) => {
     const settings = await getAISettings();
     if (!settings?.vercelAIKey) {
       onOpenSettings();
@@ -220,11 +251,16 @@ export function AIChat({
         dbml,
         model: schemaModel(MODEL_KEY, settings.vercelAIKey),
         plan,
+        retrievedContext,
       });
       setPending({ kind: "proposal", proposal });
       addAssistantMessage(
         proposal.valid
-          ? `Here is the schema. It parses and passes the checks.\n\n\`\`\`dbml\n${proposal.dbml.trim()}\n\`\`\``
+          ? `Here is the schema. It parses and passes the checks.${
+              proposal.outsidePlan.length > 0
+                ? `\n\n**Careful:** it also changes ${proposal.outsidePlan.join(", ")}, which were not in the plan.`
+                : ""
+            }\n\n\`\`\`dbml\n${proposal.dbml.trim()}\n\`\`\``
           : `I could not produce a valid schema, so nothing was applied:\n\n${proposal.problems.map((problem) => `- ${problem}`).join("\n")}`
       );
     } catch (error) {
@@ -242,6 +278,12 @@ export function AIChat({
     setPending(null);
     toast.success("Schema applied");
   };
+
+  // "@po" suggests tables and columns that exist.
+  const mention = /@([\w.]*)$/.exec(input);
+  const suggestions = mention ? mentionSuggestions(dbml, mention[1] ?? "") : [];
+  const insertMention = (name: string) =>
+    setInput((current) => current.replace(/@[\w.]*$/, `${name} `));
 
   const handleClearChat = async () => {
     if (!confirm("Clear chat history? This cannot be undone.")) return;
@@ -381,9 +423,28 @@ export function AIChat({
           <NoTechStackState onOpenTechStack={onOpenTechStack} />
         )}
 
+        {awaiting?.options && awaiting.options.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {awaiting.options.map((option) => (
+              <Button
+                key={option}
+                onClick={() => setInput(option)}
+                size="sm"
+                variant="outline"
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+        )}
         {pending?.kind === "plan" && (
           <div className="flex gap-2">
-            <Button onClick={() => handleApprovePlan(pending.plan)} size="sm">
+            <Button
+              onClick={() =>
+                handleApprovePlan(pending.plan, pending.retrievedContext)
+              }
+              size="sm"
+            >
               Approve plan
             </Button>
             <Button
@@ -402,7 +463,9 @@ export function AIChat({
               onClick={() => handleApplyProposal(pending.proposal)}
               size="sm"
             >
-              Apply to editor
+              {pending.proposal.outsidePlan.length > 0
+                ? "Apply anyway"
+                : "Apply to editor"}
             </Button>
             <Button
               onClick={() => setPending(null)}
@@ -429,6 +492,20 @@ export function AIChat({
         className="border-border border-t bg-card p-4"
         onSubmit={handleSubmit}
       >
+        {suggestions.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1">
+            {suggestions.map((name) => (
+              <button
+                className="rounded border px-2 py-0.5 text-xs hover:bg-muted"
+                key={name}
+                onClick={() => insertMention(name)}
+                type="button"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <Textarea
             className="resize-none text-sm"
@@ -437,7 +514,7 @@ export function AIChat({
             onKeyDown={handleKeyDown}
             placeholder={
               techStack
-                ? "E.g., Create a SaaS app with user authentication, subscription billing, and team management..."
+                ? "Describe what to create or change. Type @ to mention a table or column."
                 : "Please configure your tech stack first..."
             }
             rows={3}
