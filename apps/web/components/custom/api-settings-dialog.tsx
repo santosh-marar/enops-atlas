@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { type AISettings as DBAISettings, db } from "@/lib/db";
 
 interface APISettingsDialogProps {
-  children?: React.ReactNode;
+  children?: React.ReactElement;
   onOpenChange?: (open: boolean) => void;
   open?: boolean;
 }
@@ -95,7 +95,7 @@ export function APISettingsDialog({
 
   return (
     <Dialog onOpenChange={setOpen} open={open}>
-      {children && <DialogTrigger>{children}</DialogTrigger>}
+      {children && <DialogTrigger render={children} />}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -159,8 +159,9 @@ export function APISettingsDialog({
                     Privacy & Security
                   </p>
                   <p>
-                    Your key is stored locally in your browser and never leaves
-                    your device.
+                    Your key is stored in this browser and sent to Vercel AI
+                    Gateway when you use AI features. Schema content is also
+                    sent to the selected model provider.
                   </p>
                 </div>
               </div>
