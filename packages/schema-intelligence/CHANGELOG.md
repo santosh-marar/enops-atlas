@@ -1,5 +1,11 @@
 # @enops/atlas-schema-intelligence
 
+## 0.1.0-beta.1
+
+### Patch Changes
+
+- 1afa78c: `@enops/atlas-schema-intelligence/node` no longer fails to load when `typescript` is not installed. TypeScript is loaded only when `drizzleToDbml` runs, and a clear error says to install it. Prisma import and everything else work without it.
+
 ## 0.1.0-beta.0
 
 ### Minor Changes
