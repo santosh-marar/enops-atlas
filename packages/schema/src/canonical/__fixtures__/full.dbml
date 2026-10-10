@@ -1,0 +1,35 @@
+Enum order_status {
+  pending
+  shipped
+  delivered
+}
+
+Table users {
+  id uuid [pk, increment]
+  email varchar(255) [unique, not null]
+  bio text
+  login_count int [default: 0]
+  is_active boolean [default: true]
+  created_at timestamp [default: `now()`]
+  status order_status [default: 'pending']
+}
+
+Table orders {
+  id uuid [pk]
+  user_id uuid [not null]
+  status order_status [not null, default: 'pending']
+  total_cents int [not null]
+  weight_kg decimal(10,2)
+  routing geometry
+}
+
+Table user_profiles {
+  user_id uuid [pk]
+  bio text
+}
+
+// many-side-first syntax
+Ref: orders.user_id > users.id [delete: cascade, update: restrict]
+
+// one-side-first syntax — this is the direction-bug regression case
+Ref: users.id < user_profiles.user_id

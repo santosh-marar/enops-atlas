@@ -1,0 +1,519 @@
+{
+  "parsed": {
+    "tables": {
+      "public.users": {
+        "name": "users",
+        "schema": "public",
+        "fullName": "public.users",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": true,
+            "unique": false,
+            "increment": true,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "email",
+            "type": "varchar(255)",
+            "typeArgs": "255",
+            "enumRef": null,
+            "nullable": false,
+            "primaryKey": false,
+            "unique": true,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "bio",
+            "type": "text",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "login_count",
+            "type": "int",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": {
+              "value": 0,
+              "type": "number"
+            },
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "is_active",
+            "type": "boolean",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": {
+              "value": true,
+              "type": "boolean"
+            },
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": {
+              "value": "now()",
+              "type": "expression"
+            },
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "status",
+            "type": "order_status",
+            "typeArgs": null,
+            "enumRef": "order_status",
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": {
+              "value": "pending",
+              "type": "string"
+            },
+            "checks": [],
+            "note": null
+          }
+        ],
+        "indexes": [],
+        "checks": [],
+        "records": null,
+        "note": null
+      },
+      "public.orders": {
+        "name": "orders",
+        "schema": "public",
+        "fullName": "public.orders",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": true,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": false,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "status",
+            "type": "order_status",
+            "typeArgs": null,
+            "enumRef": "order_status",
+            "nullable": false,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": {
+              "value": "pending",
+              "type": "string"
+            },
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "total_cents",
+            "type": "int",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": false,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "weight_kg",
+            "type": "decimal(10,2)",
+            "typeArgs": "10,2",
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "routing",
+            "type": "geometry",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          }
+        ],
+        "indexes": [],
+        "checks": [],
+        "records": null,
+        "note": null
+      },
+      "public.user_profiles": {
+        "name": "user_profiles",
+        "schema": "public",
+        "fullName": "public.user_profiles",
+        "columns": [
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": true,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          },
+          {
+            "name": "bio",
+            "type": "text",
+            "typeArgs": null,
+            "enumRef": null,
+            "nullable": true,
+            "primaryKey": false,
+            "unique": false,
+            "increment": false,
+            "default": null,
+            "checks": [],
+            "note": null
+          }
+        ],
+        "indexes": [],
+        "checks": [],
+        "records": null,
+        "note": null
+      }
+    },
+    "relationships": [
+      {
+        "from": {
+          "schema": "public",
+          "table": "orders",
+          "columns": ["user_id"]
+        },
+        "to": {
+          "schema": "public",
+          "table": "users",
+          "columns": ["id"]
+        },
+        "cardinality": "one-to-many",
+        "onDelete": "cascade",
+        "onUpdate": "restrict"
+      },
+      {
+        "from": {
+          "schema": "public",
+          "table": "user_profiles",
+          "columns": ["user_id"]
+        },
+        "to": {
+          "schema": "public",
+          "table": "users",
+          "columns": ["id"]
+        },
+        "cardinality": "one-to-many",
+        "onDelete": "none",
+        "onUpdate": "none"
+      }
+    ],
+    "enums": {
+      "public.order_status": {
+        "name": "order_status",
+        "schema": "public",
+        "values": [
+          {
+            "name": "pending",
+            "note": null
+          },
+          {
+            "name": "shipped",
+            "note": null
+          },
+          {
+            "name": "delivered",
+            "note": null
+          }
+        ],
+        "note": null
+      }
+    }
+  },
+  "canonicalResult": {
+    "schema": {
+      "tables": [
+        {
+          "name": "users",
+          "schema": "public",
+          "columns": [
+            {
+              "name": "id",
+              "type": "uuid",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": true,
+              "autoIncrement": true
+            },
+            {
+              "name": "email",
+              "type": "string",
+              "length": 255,
+              "nullable": false,
+              "unique": true,
+              "primaryKey": false,
+              "autoIncrement": false
+            },
+            {
+              "name": "bio",
+              "type": "text",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false
+            },
+            {
+              "name": "login_count",
+              "type": "int",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false,
+              "default": {
+                "value": 0,
+                "type": "number"
+              }
+            },
+            {
+              "name": "is_active",
+              "type": "boolean",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false,
+              "default": {
+                "value": true,
+                "type": "boolean"
+              }
+            },
+            {
+              "name": "created_at",
+              "type": "timestamp",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false,
+              "default": {
+                "value": "now()",
+                "type": "expression"
+              }
+            },
+            {
+              "name": "status",
+              "type": "enum",
+              "enumName": "order_status",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false,
+              "default": {
+                "value": "pending",
+                "type": "string"
+              }
+            }
+          ],
+          "primaryKey": {
+            "columns": ["id"]
+          },
+          "uniqueConstraints": [],
+          "indexes": [],
+          "foreignKeys": []
+        },
+        {
+          "name": "orders",
+          "schema": "public",
+          "columns": [
+            {
+              "name": "id",
+              "type": "uuid",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": true,
+              "autoIncrement": false
+            },
+            {
+              "name": "user_id",
+              "type": "uuid",
+              "nullable": false,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false
+            },
+            {
+              "name": "status",
+              "type": "enum",
+              "enumName": "order_status",
+              "nullable": false,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false,
+              "default": {
+                "value": "pending",
+                "type": "string"
+              }
+            },
+            {
+              "name": "total_cents",
+              "type": "int",
+              "nullable": false,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false
+            },
+            {
+              "name": "weight_kg",
+              "type": "decimal",
+              "precision": [10, 2],
+              "nullable": true,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false
+            }
+          ],
+          "primaryKey": {
+            "columns": ["id"]
+          },
+          "uniqueConstraints": [],
+          "indexes": [],
+          "foreignKeys": [
+            {
+              "columns": ["user_id"],
+              "refTable": {
+                "schema": "public",
+                "table": "users"
+              },
+              "refColumns": ["id"],
+              "cardinality": "one-to-many",
+              "onDelete": "cascade",
+              "onUpdate": "restrict"
+            }
+          ]
+        },
+        {
+          "name": "user_profiles",
+          "schema": "public",
+          "columns": [
+            {
+              "name": "user_id",
+              "type": "uuid",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": true,
+              "autoIncrement": false
+            },
+            {
+              "name": "bio",
+              "type": "text",
+              "nullable": true,
+              "unique": false,
+              "primaryKey": false,
+              "autoIncrement": false
+            }
+          ],
+          "primaryKey": {
+            "columns": ["user_id"]
+          },
+          "uniqueConstraints": [],
+          "indexes": [],
+          "foreignKeys": [
+            {
+              "columns": ["user_id"],
+              "refTable": {
+                "schema": "public",
+                "table": "users"
+              },
+              "refColumns": ["id"],
+              "cardinality": "one-to-many",
+              "onDelete": "none",
+              "onUpdate": "none"
+            }
+          ]
+        }
+      ],
+      "enums": [
+        {
+          "name": "order_status",
+          "schema": "public",
+          "values": ["pending", "shipped", "delivered"]
+        }
+      ]
+    },
+    "errors": [
+      {
+        "code": "UNSUPPORTED_TYPE",
+        "message": "Column \"public.orders.routing\" has unsupported type \"geometry\".",
+        "table": "public.orders",
+        "column": "routing"
+      }
+    ]
+  }
+}
