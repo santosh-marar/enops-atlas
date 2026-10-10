@@ -15,3 +15,9 @@ export function analyzeDbml(dbml: string) {
 export type AtlasAnalysis = ReturnType<typeof analyzeDbml>;
 
 export { tableKey };
+
+/** Graph key of a diagram node. Node ids use the table alias; the graph uses schema.name. */
+export function tableKeyOfNode(node: { data: unknown }): string {
+  const data = node.data as { label?: string; schema?: string };
+  return tableKey(data.schema ?? "public", data.label ?? "");
+}

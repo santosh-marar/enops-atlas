@@ -1,6 +1,6 @@
 "use client";
 
-import { getNeighborhood, tableKey } from "@enops/atlas-graph";
+import { getNeighborhood } from "@enops/atlas-graph";
 import {
   Background,
   BackgroundVariant,
@@ -17,7 +17,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useNodeZoom } from "@/hooks/use-node-zoom";
 import { useTableFilter } from "@/hooks/use-table-filter";
-import { analyzeDbml } from "@/lib/atlas";
+import { analyzeDbml, tableKeyOfNode } from "@/lib/atlas";
 import { SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { ErrorBoundary } from "./error-boundary";
@@ -44,12 +44,6 @@ const defaultEdgeOptions = {
     strokeWidth: 1.2,
   },
   type: "smoothstep" as const,
-};
-
-// Node ids use the table alias; the graph uses schema.name.
-const graphKeyOf = (node: { data: unknown }) => {
-  const data = node.data as { label?: string; schema?: string };
-  return tableKey(data.schema ?? "public", data.label ?? "");
 };
 
 function XYFlowsInner() {
@@ -89,7 +83,7 @@ function XYFlowsInner() {
   const related = useMemo(() => {
     const selected = nodes.find((node) => node.id === selectedTable);
     if (!(selected && graph)) return null;
-    return getNeighborhood(graph, [graphKeyOf(selected)], {
+    return getNeighborhood(graph, [tableKeyOfNode(selected)], {
       hops: 1,
       maxNodes: MAX_HIGHLIGHTED_TABLES,
     });
@@ -99,7 +93,7 @@ function XYFlowsInner() {
     () =>
       related
         ? filteredNodes.map((node) =>
-            related.tables.has(graphKeyOf(node))
+            related.tables.has(tableKeyOfNode(node))
               ? node
               : { ...node, style: { ...node.style, opacity: DIMMED_OPACITY } }
           )
