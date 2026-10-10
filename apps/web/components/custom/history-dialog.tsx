@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { SchemaVersion } from "@/lib/db";
 import { checkMigration, describeChange } from "@/lib/schema-history";
@@ -45,6 +46,7 @@ export function HistoryDialog({
   const [versions, setVersions] = useState<SchemaVersion[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [sql, setSql] = useState("");
+  const [message, setMessage] = useState("");
 
   const refresh = useCallback(
     async (selectNewest = false) => {
@@ -64,10 +66,11 @@ export function HistoryDialog({
 
   const handleSave = async () => {
     if (!projectId) return;
-    const { saved } = await saveVersion(projectId, dbml);
+    const { saved } = await saveVersion(projectId, dbml, message);
     toast[saved ? "success" : "info"](
       saved ? "Version saved" : "No schema changes since the last version"
     );
+    if (saved) setMessage("");
     await refresh(saved);
   };
 
@@ -105,6 +108,11 @@ export function HistoryDialog({
         {projectId && (
           <div className="grid grid-cols-[14rem_1fr] gap-4">
             <div className="flex flex-col gap-2">
+              <Input
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Describe what changed (optional)"
+                value={message}
+              />
               <Button onClick={handleSave} size="sm">
                 Save version
               </Button>
@@ -121,7 +129,11 @@ export function HistoryDialog({
                       onClick={() => setSelected(version.id)}
                       type="button"
                     >
-                      {version.createdAt.toLocaleString()}
+                      <span className="font-medium">v{version.number}</span>
+                      {version.label && <span> · {version.label}</span>}
+                      <span className="block text-muted-foreground text-xs">
+                        {version.createdAt.toLocaleString()}
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -149,6 +161,12 @@ export function HistoryDialog({
                     title="Needs review"
                   />
                 </>
+              )}
+              {chosen && (
+                <p className="font-medium">
+                  v{chosen.number}
+                  {chosen.label && ` · ${chosen.label}`}
+                </p>
               )}
               {chosen && (
                 <Button

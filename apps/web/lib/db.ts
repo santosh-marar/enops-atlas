@@ -35,6 +35,8 @@ export interface SchemaVersion {
   digest: string;
   id: string;
   label?: string;
+  /** Sequential per project (v1, v2, ...). Missing on versions saved before numbering. */
+  number?: number;
   projectId: string;
   snapshotVersion: number;
 }

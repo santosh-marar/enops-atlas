@@ -57,6 +57,8 @@ test("history keeps one version per real change and shows what changed", async (
   await expect
     .poll(async () => (await readStore(page, "versions")).length)
     .toBe(2);
+  await expect(dialog).toContainText("v2");
+  await expect(dialog).toContainText("v1");
   await expect(dialog).toContainText("public.version_two");
   await expect(dialog).toContainText("Tables removed");
 });
