@@ -1,6 +1,6 @@
 "use client";
 
-import { importer } from "@dbml/core";
+import { sqlToDbml } from "@enops/atlas-schema";
 import { ChevronRight, Loader2, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -197,7 +197,7 @@ export function ImportSchemaDialog({
 
     const parseFormat =
       DB_TYPE_CONFIGS.find((c) => c.id === dbType)?.parseFormat || "postgres";
-    const dbml = importer.import(sqlToProcess, parseFormat as any);
+    const dbml = sqlToDbml(sqlToProcess, parseFormat);
 
     return dbml;
   }
