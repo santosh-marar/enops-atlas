@@ -1,4 +1,22 @@
-import ts from "typescript";
+import { createRequire } from "node:module";
+import type ts from "typescript";
+
+const requireModule = createRequire(import.meta.url);
+
+/**
+ * TypeScript is only needed to read Drizzle schemas, so it is loaded when
+ * `drizzleToDbml` runs, not when this package is imported. Prisma import and
+ * everything else work without it.
+ */
+function loadTypescript(): typeof ts {
+  try {
+    return requireModule("typescript") as typeof ts;
+  } catch {
+    throw new Error(
+      'Reading Drizzle schemas needs the "typescript" package. Install it with: npm install typescript'
+    );
+  }
+}
 
 const q = JSON.stringify;
 /** DBML name for a table or enum: "schema"."name", or just "name" in public. */
@@ -25,6 +43,7 @@ export function drizzleToDbml(sources: Source[]): {
   dbml: string;
   warnings: string[];
 } {
+  const ts = loadTypescript();
   const tables: Table[] = [];
   const enums = new Map<
     string,

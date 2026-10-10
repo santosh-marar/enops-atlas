@@ -50,14 +50,7 @@ try {
   const tarballs = readdirSync(packs).map((file) => join(packs, file));
   execFileSync(
     "npm",
-    [
-      "install",
-      "--no-audit",
-      "--no-fund",
-      "--loglevel=error",
-      ...tarballs,
-      "typescript@6.0.3",
-    ],
+    ["install", "--no-audit", "--no-fund", "--loglevel=error", ...tarballs],
     { cwd: app, stdio: "pipe" }
   );
 

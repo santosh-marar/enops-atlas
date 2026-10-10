@@ -5,7 +5,10 @@ import { normalize, parseDbml } from "@enops/atlas-schema";
 import { validate } from "@enops/atlas-schema-intelligence";
 import { generateDbmlPipeline } from "@enops/atlas-schema-intelligence/ai";
 import { introspectedToCanonical } from "@enops/atlas-schema-intelligence/introspection";
-import { prismaToDbml } from "@enops/atlas-schema-intelligence/node";
+import {
+  drizzleToDbml,
+  prismaToDbml,
+} from "@enops/atlas-schema-intelligence/node";
 
 const DBML = [
   "Table users {",
@@ -42,5 +45,13 @@ assert.equal(
   "introspection entry loads"
 );
 assert.equal(typeof prismaToDbml, "function", "node entry exports adapters");
+
+// Reading Drizzle needs `typescript`. This project does not install it, so the
+// package must still load and must explain what to install.
+assert.throws(
+  () => drizzleToDbml([{ content: "export {}", path: "schema.ts" }]),
+  /typescript/,
+  "drizzle reader explains the missing typescript package"
+);
 
 console.log("Artifact smoke passed: all package entries import and work");
