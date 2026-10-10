@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm typecheck
+      - run: pnpm build:packages
+      - run: pnpm -r --filter @enops/atlas-schema --filter @enops/atlas-graph --filter @enops/atlas-generators --filter @enops/atlas-schema-intelligence test
+      - run: pnpm --filter web test
+      - run: pnpm --filter @enops/atlas-schema-intelligence check:boundary
+      - run: pnpm --filter @enops/atlas-schema-intelligence check:browser
+      - run: pnpm --filter web build
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+        if: matrix.node == 24
+      - run: pnpm --filter web test:e2e
+        if: matrix.node == 24
+      - run: pnpm audit --prod --audit-level=moderate
+      - run: pnpm api:check
+      - run: pnpm check:packages
+      - run: pnpm smoke
+
+  introspection:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: enops_test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: enops_intro
+          MYSQL_ROOT_PASSWORD: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -ptest"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+      - run: pnpm -r --filter @enops/atlas-schema-intelligence --filter @enops/atlas-generators test
+        env:
+          INTROSPECTION_MYSQL_URL: mysql://root:test@127.0.0.1:3306/enops_intro
+          INTROSPECTION_POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:5432/enops_test
