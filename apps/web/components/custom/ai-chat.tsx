@@ -1,5 +1,6 @@
 "use client";
 
+import type { TaskPlan } from "@enops/atlas-schema-intelligence";
 import {
   Loader2,
   Send,
@@ -13,21 +14,26 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { EnhancedSchemaGenPrompt, streamAI } from "@/lib/ai";
+import {
+  generateFromPlan,
+  type PlanStep,
+  type Proposal,
+  planRequest,
+} from "@/lib/ai/schema-flow";
+import { schemaModel } from "@/lib/ai/schema-model";
 import { db } from "@/lib/db";
+import { useSchemaStore } from "@/store/use-schema-store";
 import type { TechStackType } from "./ai-tech-stack-dialog";
 import { getAISettings } from "./api-settings-dialog";
 import { SchemaMessages } from "./chat/schema-message";
 
 //  Constants
 const MODEL_KEY = "claude-haiku-4-5" as const;
-const CONVERSATION_HISTORY_LIMIT = 8;
 
-//  Utils
-function extractDBML(content: string): string | null {
-  const match = content.match(/```dbml\n([\s\S]*?)\n```/);
-  return match?.[1]?.trim() ?? null;
-}
+/** What waits for the user: nothing is written to the editor until they choose. */
+type Pending =
+  | { kind: "plan"; plan: TaskPlan }
+  | { kind: "proposal"; proposal: Proposal };
 
 //  Types
 interface Message {
@@ -61,9 +67,8 @@ export function AIChat({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [techStack, setTechStack] = useState<TechStackType | null>(null);
-
-  // Derived
-  const conversationHistory = messages.slice(-CONVERSATION_HISTORY_LIMIT);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const dbml = useSchemaStore((state) => state.dbml);
 
   // Load tech stack when panel opens
   useEffect(() => {
@@ -173,54 +178,69 @@ export function AIChat({
     setIsLoading(true);
 
     try {
-      const aiMessages = [
-        ...messages.map((m) => ({
-          content: m.content,
-          role: m.role as "user" | "assistant",
-        })),
-        { content: input, role: "user" as const },
-      ];
-
-      const systemPrompt = EnhancedSchemaGenPrompt({
-        conversationHistory,
-        techStack,
+      const model = schemaModel(MODEL_KEY, settings.vercelAIKey);
+      const step: PlanStep = await planRequest({
+        dbml,
+        message: userMessage.content,
+        model,
+        techStack: { ...techStack },
       });
-
-      const result = await streamAI({
-        apiKey: settings.vercelAIKey,
-        messages: aiMessages,
-        modelKey: MODEL_KEY,
-        system: systemPrompt,
-      });
-
-      const assistantMessage: Message = {
-        content: "",
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-
-      let fullResponse = "";
-      for await (const textPart of result.textStream) {
-        fullResponse += textPart;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMessage.id ? { ...m, content: fullResponse } : m
-          )
-        );
-      }
-
-      const dbml = extractDBML(fullResponse);
-      if (dbml) onSchemaGenerated(dbml);
+      setPending(
+        step.kind === "plan" ? { kind: "plan", plan: step.plan } : null
+      );
+      addAssistantMessage(step.kind === "plan" ? step.markdown : step.text);
     } catch (error) {
-      console.error("AI generation failed:", error);
+      console.error("AI request failed:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to generate response"
+        error instanceof Error ? error.message : "Failed to get a response"
       );
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const addAssistantMessage = (content: string) =>
+    setMessages((prev) => [
+      ...prev,
+      { content, id: `${Date.now()}-a`, role: "assistant" },
+    ]);
+
+  // The user approved the plan: now the schema is written and checked.
+  const handleApprovePlan = async (plan: TaskPlan) => {
+    const settings = await getAISettings();
+    if (!settings?.vercelAIKey) {
+      onOpenSettings();
+      return;
+    }
+    setPending(null);
+    setIsLoading(true);
+    try {
+      const proposal = await generateFromPlan({
+        dbml,
+        model: schemaModel(MODEL_KEY, settings.vercelAIKey),
+        plan,
+      });
+      setPending({ kind: "proposal", proposal });
+      addAssistantMessage(
+        proposal.valid
+          ? `Here is the schema. It parses and passes the checks.\n\n\`\`\`dbml\n${proposal.dbml.trim()}\n\`\`\``
+          : `I could not produce a valid schema, so nothing was applied:\n\n${proposal.problems.map((problem) => `- ${problem}`).join("\n")}`
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to generate the schema"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApplyProposal = (proposal: Proposal) => {
+    if (!proposal.valid) return;
+    onSchemaGenerated(proposal.dbml);
+    setPending(null);
+    toast.success("Schema applied");
   };
 
   const handleClearChat = async () => {
@@ -361,13 +381,44 @@ export function AIChat({
           <NoTechStackState onOpenTechStack={onOpenTechStack} />
         )}
 
+        {pending?.kind === "plan" && (
+          <div className="flex gap-2">
+            <Button onClick={() => handleApprovePlan(pending.plan)} size="sm">
+              Approve plan
+            </Button>
+            <Button
+              onClick={() => setPending(null)}
+              size="sm"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+        {pending?.kind === "proposal" && (
+          <div className="flex gap-2">
+            <Button
+              disabled={!pending.proposal.valid}
+              onClick={() => handleApplyProposal(pending.proposal)}
+              size="sm"
+            >
+              Apply to editor
+            </Button>
+            <Button
+              onClick={() => setPending(null)}
+              size="sm"
+              variant="outline"
+            >
+              Discard
+            </Button>
+          </div>
+        )}
+
         {isLoading && (
           <div className="flex justify-start">
             <div className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-muted-foreground">
-                Generating schema...
-              </span>
+              <span className="text-muted-foreground">Working on it...</span>
             </div>
           </div>
         )}
