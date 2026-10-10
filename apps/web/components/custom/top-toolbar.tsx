@@ -1,14 +1,16 @@
 "use client";
 
 import { IconBrandGithub } from "@tabler/icons-react";
-import { Moon, Sun } from "lucide-react";
+import { GitBranch, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useImageExport } from "@/hooks/use-image-export";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import type { useProjectManager } from "@/hooks/use-project-manager";
 import { createCommands, SHORTCUT_CONFIGS } from "@/lib/shortcuts-config";
+import { saveVersion } from "@/lib/versions";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { Button } from "../ui/button";
 import { APISettingsDialog } from "./api-settings-dialog";
@@ -19,6 +21,7 @@ import { HistoryDialog } from "./history-dialog";
 import { ImportSchemaDialog } from "./import-db/import-schema-dialog";
 import { Logo } from "./logo";
 import { QualityBadge } from "./quality-panel";
+import { SaveVersionModal } from "./save-version-modal";
 import { ActionMenu } from "./toolbar/action-menu";
 import { Export } from "./toolbar/export/export";
 import { ExportLoadingOverlay } from "./toolbar/export-loading-overlay";
@@ -76,6 +79,7 @@ export function TopToolbar({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportDbDialog, setShowImportDbDialog] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showSaveVersion, setShowSaveVersion] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef<string>("");
 
@@ -202,6 +206,7 @@ export function TopToolbar({
       clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = null;
     }
+    return savedId;
   }, [handleSave, content]);
 
   useEffect(() => {
@@ -231,6 +236,19 @@ export function TopToolbar({
       lastSavedContentRef.current = content;
     }
   }, [currentProject?.id]);
+
+  // Saves the project (creating it if new), then records a numbered version.
+  const handleSaveVersion = useCallback(
+    async (changeDescription: string) => {
+      const projectId = await handleSaveWithReset();
+      if (!projectId) return;
+      const { saved } = await saveVersion(projectId, dbml, changeDescription);
+      toast[saved ? "success" : "info"](
+        saved ? "Version saved" : "No schema changes since the last version"
+      );
+    },
+    [handleSaveWithReset, dbml]
+  );
 
   // Format last saved time
   const formatLastSaved = () => {
@@ -332,6 +350,21 @@ export function TopToolbar({
           <Button disabled={isSaving} onClick={handleSaveWithReset} size="sm">
             {isSaving ? <>Saving...</> : <>Save</>}
           </Button>
+          <Button
+            onClick={() => setShowSaveVersion(true)}
+            size="sm"
+            title="Save this schema as a new version"
+            variant="ghost"
+          >
+            <GitBranch />
+            New version
+          </Button>
+          <SaveVersionModal
+            isOpen={showSaveVersion}
+            isSaving={isSaving}
+            onClose={() => setShowSaveVersion(false)}
+            onSave={handleSaveVersion}
+          />
           <Button
             onClick={toggleTheme}
             size={"sm"}

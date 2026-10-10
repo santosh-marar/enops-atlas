@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,11 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { SchemaVersion } from "@/lib/db";
 import { checkMigration, describeChange } from "@/lib/schema-history";
-import { listVersions, saveVersion } from "@/lib/versions";
+import { listVersions } from "@/lib/versions";
 
 interface HistoryDialogProps {
   dbml: string;
@@ -46,33 +44,17 @@ export function HistoryDialog({
   const [versions, setVersions] = useState<SchemaVersion[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [sql, setSql] = useState("");
-  const [message, setMessage] = useState("");
 
-  const refresh = useCallback(
-    async (selectNewest = false) => {
-      if (!projectId) return;
-      const list = await listVersions(projectId);
-      setVersions(list);
-      setSelected((current) =>
-        selectNewest ? (list[0]?.id ?? null) : (current ?? list[0]?.id ?? null)
-      );
-    },
-    [projectId]
-  );
+  const refresh = useCallback(async () => {
+    if (!projectId) return;
+    const list = await listVersions(projectId);
+    setVersions(list);
+    setSelected((current) => current ?? list[0]?.id ?? null);
+  }, [projectId]);
 
   useEffect(() => {
     if (open) refresh();
   }, [open, refresh]);
-
-  const handleSave = async () => {
-    if (!projectId) return;
-    const { saved } = await saveVersion(projectId, dbml, message);
-    toast[saved ? "success" : "info"](
-      saved ? "Version saved" : "No schema changes since the last version"
-    );
-    if (saved) setMessage("");
-    await refresh(saved);
-  };
 
   // The selected version compared with the one before it (versions are newest first).
   const change = useMemo(() => {
@@ -100,7 +82,7 @@ export function HistoryDialog({
           <DialogTitle>History</DialogTitle>
           <DialogDescription>
             {projectId
-              ? "Saved versions of this project, and a check for migrations that lose data."
+              ? "Saved versions of this project, and a check for migrations that lose data. Use New version in the toolbar to save one."
               : "Save the project first. History is kept per project."}
           </DialogDescription>
         </DialogHeader>
@@ -108,14 +90,6 @@ export function HistoryDialog({
         {projectId && (
           <div className="grid grid-cols-[14rem_1fr] gap-4">
             <div className="flex flex-col gap-2">
-              <Input
-                onChange={(event) => setMessage(event.target.value)}
-                placeholder="Describe what changed (optional)"
-                value={message}
-              />
-              <Button onClick={handleSave} size="sm">
-                Save version
-              </Button>
               <ul className="max-h-64 overflow-y-auto text-sm">
                 {versions.length === 0 && (
                   <li className="text-muted-foreground">No versions yet.</li>
