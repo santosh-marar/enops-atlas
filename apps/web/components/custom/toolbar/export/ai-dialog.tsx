@@ -33,20 +33,11 @@ import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { APISettingsDialog } from "../../api-settings-dialog";
 
-type ORM = "prisma" | "drizzle" | "mongoose" | "typeorm" | "sequelize";
+// Prisma and Drizzle are generated exactly (orm-dialog.tsx); AI covers the rest.
+type ORM = "mongoose" | "typeorm" | "sequelize";
 type Database = "postgresql" | "mysql" | "mongodb" | "sqlite" | "mariadb";
 
 const ormOptions = [
-  {
-    description: "Next-generation ORM for TypeScript",
-    label: "Prisma",
-    value: "prisma",
-  },
-  {
-    description: "TypeScript ORM with SQL-like syntax",
-    label: "Drizzle ORM",
-    value: "drizzle",
-  },
   {
     description: "MongoDB object modeling",
     label: "Mongoose",
@@ -66,27 +57,27 @@ const ormOptions = [
 
 const databaseOptions = [
   {
-    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    compatibleWith: ["typeorm", "sequelize"],
     label: "PostgreSQL",
     value: "postgresql",
   },
   {
-    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    compatibleWith: ["typeorm", "sequelize"],
     label: "MySQL",
     value: "mysql",
   },
   {
-    compatibleWith: ["mongoose", "prisma"],
+    compatibleWith: ["mongoose"],
     label: "MongoDB",
     value: "mongodb",
   },
   {
-    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    compatibleWith: ["typeorm", "sequelize"],
     label: "SQLite",
     value: "sqlite",
   },
   {
-    compatibleWith: ["prisma", "drizzle", "typeorm", "sequelize"],
+    compatibleWith: ["typeorm", "sequelize"],
     label: "MariaDB",
     value: "mariadb",
   },
@@ -106,32 +97,13 @@ export function AIDialog({ open, onOpenChange }: AIDialogProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("configure");
   const textareaRef = useRef<HTMLPreElement>(null);
-  const { nodes, edges } = useSchemaStore();
+  const { dbml } = useSchemaStore();
 
-  const generatePrompt = () => {
-    const schemaDescription = nodes
-      .map((node) => {
-        const { data } = node;
-        const fields = data.fields as any[] | undefined;
-        return `Table: ${data.label}\n\nFields: ${fields?.map((f: any) => `${f.name} (${f.type}${f.required ? ", required" : ""})`).join(", ") || "No fields"}`;
-      })
-      .join("\n\n");
+  // The model gets the DBML itself, so it sees every column, key and enum.
+  const generatePrompt =
+    () => `Generate ${selectedORM} schema for ${selectedDatabase} database from this DBML schema:
 
-    const relationships = edges
-      .map((edge) => {
-        const sourceNode = nodes.find((n) => n.id === edge.source);
-        const targetNode = nodes.find((n) => n.id === edge.target);
-        return `${sourceNode?.data.label} -> ${targetNode?.data.label} (${edge.data?.relationType || "relation"})`;
-      })
-      .join("\n");
-
-    return `Generate ${selectedORM} schema for ${selectedDatabase} database:
-
-Schema:
-${schemaDescription}
-
-Relationships:
-${relationships || "No relationships defined"}
+${dbml}
 
 Please provide complete, production-ready code with:
 1. Proper data types for ${selectedDatabase}
@@ -139,7 +111,6 @@ Please provide complete, production-ready code with:
 3. Indexes where appropriate
 4. Validation rules
 5. Best practices for ${selectedORM}`;
-  };
 
   const handleGenerate = async () => {
     if (!(selectedORM && selectedDatabase)) return;
@@ -204,15 +175,7 @@ Please provide complete, production-ready code with:
   };
 
   const handleDownload = () => {
-    const fileExtensions: Record<ORM, string> = {
-      drizzle: "ts",
-      mongoose: "ts",
-      prisma: "prisma",
-      sequelize: "ts",
-      typeorm: "ts",
-    };
-
-    const ext = selectedORM ? fileExtensions[selectedORM] : "txt";
+    const ext = selectedORM ? "ts" : "txt";
     const blob = new Blob([generatedCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -246,7 +209,7 @@ Please provide complete, production-ready code with:
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              AI-Powered Schema Export
+              AI-Powered Schema Export (other ORMs)
             </DialogTitle>
             <APISettingsDialog>
               <Button size={"icon-sm"} variant="outline">

@@ -76,7 +76,7 @@ Table ecommerce.products {
   merchant_id int [not null]
   price int
   status ecommerce.products_status
-  created_at datetime [default: 'now()']
+  created_at datetime [default: \`now()\`]
   
   Indexes {
     (merchant_id, status) [name:'product_status']
@@ -102,7 +102,7 @@ Table posts {
   user_id integer [not null, note: 'References users.id']
   title varchar(200) [not null]
   content text
-  created_at timestamp [default: 'now()']
+  created_at timestamp [default: \`now()\`]
 }
 
 Ref: posts.user_id > users.id [delete: CASCADE, update: CASCADE]

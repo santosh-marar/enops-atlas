@@ -17,6 +17,7 @@ import { exportProblems } from "@/lib/code-export";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { AIDialog } from "./ai-dialog";
 import { exportFlowAsImage, type ImageFormat } from "./image";
+import { ExportORMDialog, type OrmFormat } from "./orm-dialog";
 import { exportCanonicalDBML, exportDBML, exportSchemaJSON } from "./schema";
 import { type SQLDialect, sqlDatabases } from "./sql-databases";
 import { ExportSQLDialog } from "./sql-dialog";
@@ -26,11 +27,21 @@ export function Export() {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [sqlDialogOpen, setSqlDialogOpen] = useState(false);
   const [sqlDialect, setSqlDialect] = useState<SQLDialect>("postgres");
+  const [ormDialogOpen, setOrmDialogOpen] = useState(false);
+  const [ormFormat, setOrmFormat] = useState<OrmFormat>("prisma");
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   );
 
   const { nodes, edges, dbml } = useSchemaStore();
+
+  const ormProblems = useMemo(
+    () => ({
+      drizzle: exportProblems(dbml, "drizzle"),
+      prisma: exportProblems(dbml, "prisma"),
+    }),
+    [dbml]
+  );
 
   // Why an SQL export would be refused, per database, shown next to the item.
   const sqlProblems = useMemo(
@@ -92,6 +103,11 @@ export function Export() {
     }
     exportDBML(dbml);
     toast.success("DBML exported");
+  };
+
+  const handleOrmSelect = (format: OrmFormat) => {
+    setOrmFormat(format);
+    setOrmDialogOpen(true);
   };
 
   const handleSqlDatabaseSelect = (dialect: SQLDialect) => {
@@ -176,13 +192,42 @@ export function Export() {
             </DropdownMenuPortal>
           </DropdownMenuSub>
 
-          <DropdownMenuItem onClick={() => setAiDialogOpen(true)}>
-            Export as ORM
-          </DropdownMenuItem>
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>Export as ORM</DropdownMenuSubTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuSubContent className="w-44">
+                {(["prisma", "drizzle"] as const).map((format) => (
+                  <DropdownMenuItem
+                    key={format}
+                    onClick={() => handleOrmSelect(format)}
+                  >
+                    {format === "prisma" ? "Prisma" : "Drizzle ORM"}
+                    {ormProblems[format].length > 0 ? (
+                      <span
+                        className="ml-auto text-yellow-600"
+                        title={ormProblems[format].join("\n")}
+                      >
+                        !
+                      </span>
+                    ) : null}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem onClick={() => setAiDialogOpen(true)}>
+                  Other ORMs (AI)
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuPortal>
+          </DropdownMenuSub>
         </DropdownMenuContent>
       </DropdownMenu>
 
       <AIDialog onOpenChange={setAiDialogOpen} open={aiDialogOpen} />
+      <ExportORMDialog
+        format={ormFormat}
+        onFormatChange={setOrmFormat}
+        onOpenChange={setOrmDialogOpen}
+        open={ormDialogOpen}
+      />
       <ExportSQLDialog
         dialect={sqlDialect}
         onDialectChange={setSqlDialect}
