@@ -82,7 +82,7 @@ export function HistoryDialog({
           <DialogTitle>History</DialogTitle>
           <DialogDescription>
             {projectId
-              ? "Saved versions of this project, and a check for migrations that lose data. Use New version in the toolbar to save one."
+              ? "Saved versions of this project, and a check for migrations that lose data. Save one from Action > New Version."
               : "Save the project first. History is kept per project."}
           </DialogDescription>
         </DialogHeader>
