@@ -137,7 +137,7 @@ Please provide complete, production-ready code with:
         return;
       }
 
-      const modelKey: ModelKey = "claude-sonnet-5";
+      const modelKey: ModelKey = "claude-sonnet-5-5";
       const prompt = generatePrompt();
       let streamedCode = "";
 

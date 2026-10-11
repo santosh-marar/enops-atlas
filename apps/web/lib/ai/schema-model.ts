@@ -3,7 +3,11 @@ import type {
   SchemaModelRequest,
 } from "@enops/atlas-schema-intelligence/ai";
 import { generateObject } from "ai";
-import { providerOptionsFor, type ReasoningEffort } from "./execution-policy";
+import {
+  providerOptionsFor,
+  type ReasoningEffort,
+  reasoningFor,
+} from "./execution-policy";
 import type { ModelKey } from "./model-registory";
 import { resolveModel } from "./provider";
 
@@ -45,31 +49,31 @@ export const schemaModel = (
       const input = request.messages
         ? { messages: request.messages }
         : { prompt: request.prompt ?? "" };
-      const run = (providerOptions: ReturnType<typeof providerOptionsFor>) =>
+      const run = (reasoning: ReturnType<typeof reasoningFor>) =>
         generateObject({
           ...input,
           abortSignal: options.signal,
           maxOutputTokens: request.maxOutputTokens,
           maxRetries: options.maxRetries ?? 2,
           model: resolveModel(key, apiKey),
-          providerOptions: providerOptions as never,
+          providerOptions: providerOptionsFor(key) as never,
+          reasoning,
           schema: request.schema,
           system: request.system,
         });
 
       // Reasoning effort only applies to the capable steps.
-      const effort =
+      const reasoning =
         tier === "capable"
-          ? (options.reasoningEffort ?? "automatic")
-          : "automatic";
-      const withEffort = providerOptionsFor(key, effort);
+          ? reasoningFor(key, options.reasoningEffort ?? "automatic")
+          : undefined;
       try {
-        const { object } = await run(withEffort);
+        const { object } = await run(reasoning);
         return { object: object as T };
       } catch (error) {
         // A model that rejects the reasoning setting still gets answered.
-        if (effort === "automatic" || options.signal?.aborted) throw error;
-        const { object } = await run(providerOptionsFor(key, "automatic"));
+        if (!reasoning || options.signal?.aborted) throw error;
+        const { object } = await run(undefined);
         return { object: object as T };
       }
     },

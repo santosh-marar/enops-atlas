@@ -29,14 +29,14 @@ export const DEFAULT_POLICY: ExecutionPolicy = {
 };
 
 /** Small questions go to the cheap model for every step. */
-const FAST_MODEL: ModelKey = "claude-haiku-4-5";
+const FAST_MODEL: ModelKey = "claude-haiku-5-5";
 const COMPLEXITY_MODEL: Record<
   Exclude<ExecutionComplexity, "auto">,
   ModelKey
 > = {
-  balanced: "claude-sonnet-4-6",
-  deep: "claude-sonnet-5",
-  fast: "claude-haiku-4-5",
+  balanced: "claude-sonnet-5-5",
+  deep: "claude-opus-5-5",
+  fast: "claude-haiku-5-5",
 };
 
 const RISKY_WORDS = /\b(rename|remove|drop|delete|migrate|split|merge)\b/i;
@@ -90,41 +90,27 @@ export function chooseModels(
 
 type ProviderOptions = Record<string, Record<string, unknown>> | undefined;
 
-const GOOGLE_BUDGET = { high: 24_576, low: 1024, medium: 8192 } as const;
-
 /**
  * Provider settings for one request. OpenAI rejects the pipeline's schemas in
  * strict mode (they have optional fields), so strict mode is always off there.
- * Reasoning effort is added where the model accepts it. Undefined when nothing
- * should be sent: the model then uses its own defaults.
+ * Reasoning is not set here: it goes through the SDK's own `reasoning` option,
+ * which the gateway maps for every provider.
  */
-export function providerOptionsFor(
+export function providerOptionsFor(modelKey: ModelKey): ProviderOptions {
+  return MODELS[modelKey].startsWith("openai/")
+    ? { openai: { strictJsonSchema: false } }
+    : undefined;
+}
+
+/** The SDK's `reasoning` value for an effort, or undefined to leave it to the model. */
+export function reasoningFor(
   modelKey: ModelKey,
   effort: ReasoningEffort
-): ProviderOptions {
-  const id = MODELS[modelKey];
-  const effortOk =
-    effort !== "automatic" &&
-    MODEL_INFO[modelKey].reasoningEfforts.includes(effort);
-
-  if (id.startsWith("openai/")) {
-    return {
-      openai: {
-        strictJsonSchema: false,
-        ...(effortOk ? { reasoningEffort: effort } : {}),
-      },
-    };
-  }
-  if (id.startsWith("google/") && effortOk) {
-    return {
-      google: {
-        thinkingConfig: {
-          thinkingBudget: GOOGLE_BUDGET[effort as keyof typeof GOOGLE_BUDGET],
-        },
-      },
-    };
-  }
-  return undefined;
+): Exclude<ReasoningEffort, "automatic"> | undefined {
+  if (effort === "automatic") return undefined;
+  return MODEL_INFO[modelKey].reasoningEfforts.includes(effort)
+    ? effort
+    : undefined;
 }
 
 const STORAGE_KEY = "atlas-ai-policy";
@@ -160,9 +146,12 @@ export function loadPolicy(): ExecutionPolicy {
       modelKey,
       reasoningEffort: isOneOf(saved.reasoningEffort, [
         "automatic",
+        "none",
+        "minimal",
         "low",
         "medium",
         "high",
+        "xhigh",
       ])
         ? saved.reasoningEffort
         : "automatic",

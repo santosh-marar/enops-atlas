@@ -245,7 +245,7 @@ export function ImportSchemaDialog({
         apiKey: vercelAIKey,
         maxOutputTokens: 8192,
         messages: [{ content: prompt, role: "user" }],
-        modelKey: "claude-haiku-4-5" as ModelKey,
+        modelKey: "claude-haiku-5-5" as ModelKey,
         system:
           "You are an expert at converting database schemas to DBML format. Output ONLY valid DBML, no explanation.",
         temperature: 0.1,
