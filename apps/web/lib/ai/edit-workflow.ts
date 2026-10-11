@@ -65,16 +65,21 @@ export async function planEdit(input: {
   history?: ClarificationRound[];
   message: string;
   model: SchemaModel;
+  /** Called as each step starts, so the chat can show what is happening. */
+  onProgress?: (step: string) => void;
   techStack?: Record<string, string | null> | null;
 }): Promise<EditStep> {
   // Nothing to edit yet: this is a new schema.
   if (input.dbml.trim().length === 0) {
+    input.onProgress?.("Planning the new schema");
     const step = await planRequest(input);
     return step.kind === "plan" ? { ...step, retrievedContext: "" } : step;
   }
 
   const schema = toSchemaIR(input.dbml);
+  input.onProgress?.("Understanding your request");
   const { intentType } = await resolveIntent(input.message, input.model);
+  input.onProgress?.("Finding the table or column you mean");
   const entity = await resolveEntity(
     input.message,
     intentType,
@@ -98,6 +103,7 @@ export async function planEdit(input: {
   }
 
   const { entityId } = resolveContext(entity.entityName, schema);
+  input.onProgress?.("Reading the tables around it");
   const retrieval = planRetrieval({
     entityId,
     intentType,
@@ -105,6 +111,7 @@ export async function planEdit(input: {
   });
   const { context } = await retrieveGraph(retrieval, entityId, schema);
 
+  input.onProgress?.("Writing the plan");
   const result = await buildPlan({
     entityName: entity.entityName,
     intentType,
