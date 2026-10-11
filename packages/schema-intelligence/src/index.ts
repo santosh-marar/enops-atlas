@@ -48,6 +48,12 @@ export {
   schemaSynchronizationLosses,
 } from "./schema-snapshot";
 export {
+  blocksSchemaSync,
+  SCHEMA_CHANGE_FORMATS,
+  schemaChangeTask,
+  schemaSyncDirection,
+} from "./sync-direction";
+export {
   checkDirectionSanity,
   type DirectionFlag,
   type DirectionFlagReason,
