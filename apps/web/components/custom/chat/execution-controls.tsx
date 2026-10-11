@@ -33,6 +33,8 @@ import {
   MODEL_INFO,
   MODELS,
   type ModelKey,
+  PROVIDERS,
+  REASONING_LABEL,
   type ReasoningEffort,
 } from "@/lib/ai/model-registory";
 
@@ -72,15 +74,9 @@ const COMPLEXITY_NAME: Record<ExecutionPolicy["complexity"], string> = {
   fast: "Fast",
 };
 
-const effortLabel = (effort: ReasoningEffort) =>
-  effort === "automatic"
-    ? "Auto thinking"
-    : `${effort[0]?.toUpperCase()}${effort.slice(1)} thinking`;
+const effortLabel = (effort: ReasoningEffort) => REASONING_LABEL[effort];
 
 const MODEL_KEYS = Object.keys(MODELS) as ModelKey[];
-const PROVIDERS = [
-  ...new Set(MODEL_KEYS.map((key) => MODEL_INFO[key].provider)),
-].sort();
 
 /** What the model chip says: who chooses, or which model and how hard it thinks. */
 function modelSummary(value: ExecutionPolicy) {
@@ -210,7 +206,7 @@ function ModelSettings({
               onClick={() =>
                 patch({
                   control: "manual",
-                  modelKey: value.modelKey ?? "claude-sonnet-4-6",
+                  modelKey: value.modelKey ?? "claude-sonnet-5-5",
                   reasoningEffort: "automatic",
                 })
               }

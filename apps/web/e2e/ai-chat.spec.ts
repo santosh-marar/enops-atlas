@@ -203,7 +203,7 @@ test("the mode and model can be chosen, and the choice is remembered", async ({
   await page.getByRole("button", { name: "Manual" }).click();
   await expect(page.getByRole("combobox", { name: "Model" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Model" })).toContainText(
-    "Claude Sonnet 4.6"
+    "Claude Sonnet 5.5"
   );
   await page.keyboard.press("Escape");
 
@@ -216,7 +216,7 @@ test("the mode and model can be chosen, and the choice is remembered", async ({
   await expect(page.getByRole("button", { name: "Mode: Plan" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Model settings" })
-  ).toContainText("Claude Sonnet 4.6");
+  ).toContainText("Claude Sonnet 5.5");
 });
 
 test("a running request shows its steps and can be stopped, then retried", async ({
