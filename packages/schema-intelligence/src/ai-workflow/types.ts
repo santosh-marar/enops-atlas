@@ -93,6 +93,11 @@ export interface TaskPlan {
   originalPrompt: string;
   tables: TablePlanEntry[];
   /**
+   * Technology knowledge captured at planning time (generated facts and docs
+   * excerpts). Frozen with the plan so the executor builds what was approved.
+   */
+  technologyContext?: string;
+  /**
    * Committed tech stack (database, orm, language, authLibrary,
    * billingLibrary, …) — serialized as-is from the project's saved tech stack. Optional:
    * absent on flows that haven't configured a stack yet.
