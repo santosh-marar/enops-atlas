@@ -27,6 +27,7 @@ export type {
   TaskPlan,
   ValidationOutput,
 } from "./ai-workflow/types";
+export { assessAtlasProposal } from "./atlas-guardrails";
 // Confidence scoring
 export {
   type ConfidenceIssue,
