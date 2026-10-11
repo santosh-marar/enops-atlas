@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { analyzeImpact, getNeighborhood } from "@enops/atlas-graph";
 import { analyzeDbml } from "../lib/atlas";
-import { applyRemoval, dbmlAfterRemoval } from "../lib/schema-edit";
 
 const DBML = `
 Table users { id int [pk] }
@@ -57,42 +56,4 @@ test("deleting an unused table affects nothing else", () => {
   if (!result.ok) return;
   expect(result.report.affectedTables).toEqual([]);
   expect(result.report.affectedRelationships).toEqual([]);
-});
-
-test("removing a table also removes foreign keys that pointed at it", () => {
-  const { canonical } = analyzeDbml(DBML);
-  const next = applyRemoval(canonical, {
-    kind: "remove-table",
-    schema: "public",
-    table: "users",
-  });
-  expect(next.tables.map((t) => t.name)).not.toContain("users");
-  expect(
-    next.tables.flatMap((t) => t.foreignKeys.map((f) => f.refTable.table))
-  ).not.toContain("users");
-});
-
-test("the schema is untouched until a removal is applied", () => {
-  const { canonical } = analyzeDbml(DBML);
-  const before = JSON.stringify(canonical);
-  applyRemoval(canonical, {
-    column: "user_id",
-    kind: "remove-column",
-    schema: "public",
-    table: "posts",
-  });
-  expect(JSON.stringify(canonical)).toBe(before);
-});
-
-test("removing a column gives DBML that still parses", () => {
-  const dbml = dbmlAfterRemoval(DBML, {
-    column: "user_id",
-    kind: "remove-column",
-    schema: "public",
-    table: "posts",
-  });
-  const { canonical } = analyzeDbml(dbml);
-  const posts = canonical.tables.find((t) => t.name === "posts");
-  expect(posts?.columns.map((c) => c.name)).toEqual(["id"]);
-  expect(posts?.foreignKeys).toEqual([]);
 });

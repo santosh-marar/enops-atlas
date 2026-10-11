@@ -16,8 +16,7 @@ import { analyzeDbml } from "@/lib/atlas";
 interface ImpactDialogProps {
   change: ChangeRequest | null;
   dbml: string;
-  onCancel: () => void;
-  onConfirm: (change: ChangeRequest) => void;
+  onClose: () => void;
 }
 
 const describe = (change: ChangeRequest) => {
@@ -30,12 +29,7 @@ const describe = (change: ChangeRequest) => {
   return `enum ${change.enumName}`;
 };
 
-export function ImpactDialog({
-  change,
-  dbml,
-  onCancel,
-  onConfirm,
-}: ImpactDialogProps) {
+export function ImpactDialog({ change, dbml, onClose }: ImpactDialogProps) {
   const result = useMemo(() => {
     if (!change) return null;
     try {
@@ -57,19 +51,21 @@ export function ImpactDialog({
   return (
     <Dialog
       onOpenChange={(open) => {
-        if (!open) onCancel();
+        if (!open) onClose();
       }}
       open={change !== null}
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete {change ? describe(change) : ""}?</DialogTitle>
+          <DialogTitle>
+            What depends on {change ? describe(change) : ""}?
+          </DialogTitle>
           <DialogDescription>
             {result && !result.ok
               ? result.error.message
               : report?.severity === "breaking"
-                ? "This is a breaking change. It affects the items below."
-                : "Nothing else depends on this."}
+                ? "Removing this would break the items below."
+                : "Nothing else depends on this, so it can be removed safely."}
           </DialogDescription>
         </DialogHeader>
 
@@ -118,15 +114,8 @@ export function ImpactDialog({
         )}
 
         <DialogFooter>
-          <Button onClick={onCancel} variant="outline">
-            Cancel
-          </Button>
-          <Button
-            disabled={!change || (result !== null && !result.ok)}
-            onClick={() => change && onConfirm(change)}
-            variant="destructive"
-          >
-            Delete
+          <Button onClick={onClose} variant="outline">
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

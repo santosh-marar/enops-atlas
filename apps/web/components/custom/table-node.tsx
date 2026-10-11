@@ -1,7 +1,7 @@
 import type { ChangeRequest } from "@enops/atlas-graph";
 import { tableKey } from "@enops/atlas-graph";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
-import { Trash2 } from "lucide-react";
+import { Network } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import {
   Tooltip,
@@ -9,7 +9,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { dbmlAfterRemoval } from "@/lib/schema-edit";
 import type { Column, ForeignKeyMeta } from "@/lib/schema-transformer";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { ImpactDialog } from "./impact-dialog";
@@ -31,16 +30,11 @@ const formatForeignKeyTarget = (fk: ForeignKeyMeta) => {
 export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
   const nodeData = data as unknown as TableNodeData;
   const dbml = useSchemaStore((state) => state.dbml);
-  const isLocked = useSchemaStore((state) => state.isLocked);
-  const updateFromDBML = useSchemaStore((state) => state.updateFromDBML);
+  // The change whose impact is shown. Nothing is deleted here; the schema is
+  // edited in the DBML editor.
   const [pendingChange, setPendingChange] = useState<ChangeRequest | null>(
     null
   );
-
-  const confirmChange = async (change: ChangeRequest) => {
-    setPendingChange(null);
-    await updateFromDBML(dbmlAfterRemoval(dbml, change), true);
-  };
 
   const schemaTag = useMemo(
     () =>
@@ -169,22 +163,21 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {isLocked ? null : (
-              <button
-                aria-label={`Delete table ${nodeData.label}`}
-                className="text-muted-foreground hover:text-destructive"
-                onClick={() =>
-                  setPendingChange({
-                    kind: "remove-table",
-                    schema: nodeData.schema,
-                    table: nodeData.label,
-                  })
-                }
-                type="button"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
-            )}
+            <button
+              aria-label={`What depends on table ${nodeData.label}`}
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() =>
+                setPendingChange({
+                  kind: "remove-table",
+                  schema: nodeData.schema,
+                  table: nodeData.label,
+                })
+              }
+              title="What depends on this table?"
+              type="button"
+            >
+              <Network className="size-3.5" />
+            </button>
             {aliasTag ? (
               <span className="rounded-full border px-2 py-0.5 font-medium text-[10px] uppercase tracking-[0.18em]">
                 as {aliasTag}
@@ -356,23 +349,22 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
                   </div>
                 </div>
 
-                {isLocked ? null : (
-                  <button
-                    aria-label={`Delete column ${column.name}`}
-                    className="text-muted-foreground opacity-0 hover:text-destructive group-hover:opacity-100"
-                    onClick={() =>
-                      setPendingChange({
-                        column: column.name,
-                        kind: "remove-column",
-                        schema: nodeData.schema,
-                        table: nodeData.label,
-                      })
-                    }
-                    type="button"
-                  >
-                    <Trash2 className="size-3" />
-                  </button>
-                )}
+                <button
+                  aria-label={`What depends on column ${column.name}`}
+                  className="text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100"
+                  onClick={() =>
+                    setPendingChange({
+                      column: column.name,
+                      kind: "remove-column",
+                      schema: nodeData.schema,
+                      table: nodeData.label,
+                    })
+                  }
+                  title="What depends on this column?"
+                  type="button"
+                >
+                  <Network className="size-3" />
+                </button>
 
                 {isPrimaryKey || isSourceColumn ? (
                   <Handle
@@ -390,8 +382,7 @@ export const TableNode = memo(function TableNode({ data, id }: NodeProps) {
       <ImpactDialog
         change={pendingChange}
         dbml={dbml}
-        onCancel={() => setPendingChange(null)}
-        onConfirm={confirmChange}
+        onClose={() => setPendingChange(null)}
       />
     </TooltipProvider>
   );
