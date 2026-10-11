@@ -1,11 +1,8 @@
 import type { Edge, Node } from "@xyflow/react";
 import Dexie, { type Table } from "dexie";
+import type { ChatMessage } from "./ai/chat-types";
 
-export interface ChatMessage {
-  content: string;
-  id: string;
-  role: "user" | "assistant";
-}
+export type { ChatMessage } from "./ai/chat-types";
 
 export interface ProjectTechStack {
   authLibrary: string;
