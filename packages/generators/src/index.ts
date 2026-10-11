@@ -11,7 +11,7 @@ import { generatePostgresSql } from "./sql";
 
 export { generateDrizzleSchema } from "./drizzle";
 export * from "./migration-analysis";
-export { generatePrismaSchema } from "./prisma";
+export { generatePrismaConfig, generatePrismaSchema } from "./prisma";
 export * from "./seed-sql";
 export { generatePostgresSql } from "./sql";
 

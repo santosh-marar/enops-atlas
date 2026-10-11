@@ -241,3 +241,15 @@ export function generatePrismaSchema(schema: CanonicalSchema): string {
   const header = `generator client {\n  provider = "prisma-client-js"\n}\n\ndatasource db {\n  provider = "postgresql"\n  url = env("DATABASE_URL")${multi ? `\n  schemas = ${JSON.stringify(spaces)}` : ""}\n}`;
   return `${[header, ...schema.enums.map((e) => enumBlock(e, multi)), ...blocks].join("\n\n")}\n`;
 }
+
+/** `prisma.config.ts` for Prisma 7, where the connection URL lives. */
+export function generatePrismaConfig(): string {
+  return `import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  migrations: { path: "prisma/migrations" },
+  datasource: { url: env("DATABASE_URL") },
+});
+`;
+}
