@@ -93,13 +93,13 @@ async function buildAnswer(params: {
 const PlanSchema = z.object({
   clarifyingQuestion: z.string().optional(),
   confidence: z.number().min(0).max(1),
-  decisions: z.array(z.string()).max(8).optional(),
+  // Lenient on purpose: the model may list more, or send an empty list while
+  // asking a question. Both are handled after parsing, not as a hard error.
+  decisions: z.array(z.string()).optional(),
   needsClarification: z.boolean(),
   suggestedOptions: z.array(z.string()).optional(),
   tables: z
     .array(z.object({ isNew: z.boolean(), name: z.string() }))
-    .min(1)
-    .max(60)
     .optional(),
 });
 
@@ -150,6 +150,7 @@ function buildPlanningPrompt(params: {
   previousApprovedPlan?: TaskPlan | null;
   userPreferences?: Record<string, string>;
   projectConstraints?: string[];
+  forcePlan?: boolean;
 }): string {
   const {
     intentType,
@@ -161,6 +162,7 @@ function buildPlanningPrompt(params: {
     previousApprovedPlan,
     userPreferences,
     projectConstraints,
+    forcePlan,
   } = params;
 
   const grounding = retrievedContext
@@ -189,8 +191,12 @@ ${grounding}`,
 If this includes prior clarifying questions and answers above, treat them as established facts — the answers refine what was asked, they don't replace it.
 
 Rules:
-- If anything material is still unstated or ambiguous after accounting for any prior answers, do NOT guess. Set needsClarification true, ask ONE specific focused question, and include suggestedOptions if there's a natural small answer set.
-- Otherwise, output "tables": every table this request needs, each with name (snake_case) and isNew. For a narrow add/remove/rename on one existing table, this is usually just that one table with isNew:false. For "generate", list the full table set in dependency order.
+${
+  forcePlan
+    ? `- You may NOT ask a question now. Questions have already been asked, or the user wants you to go ahead. Make the most reasonable choice for anything still unstated and record each one in "decisions", starting with "Assumed:". Always output "tables".`
+    : `- Ask a question ONLY when the missing answer would change WHICH TABLES are needed and you cannot pick a sensible default. Never ask about column details, naming, types, or things the tech stack or earlier answers already settle. When you can go ahead, do: make a reasonable choice and record it in "decisions", starting with "Assumed:". If you do ask, set needsClarification true and ask ONE specific question (never a generic "can you give more detail"), with suggestedOptions when there is a small natural answer set.`
+}
+- Otherwise, output "tables": every table this request needs, each with name (snake_case) and isNew. When the request adds a feature, always include the NEW tables it needs (isNew true) as well as any existing tables it connects to; never list only existing tables for something that is being added. For a narrow add/remove/rename on one existing table, this is usually just that one table with isNew:false. For "generate", list the full table set in dependency order.
 - Output "decisions": plain-English rationale for judgment calls only — things that could genuinely have gone multiple ways. Do not record a decision for an existing table or an already-stated fact. Cap at 8.
 - Do not include a table from EXISTING TABLES that this request has no reason to reference.
 
@@ -260,8 +266,14 @@ export async function buildPlan(params: {
   previousApprovedPlan?: TaskPlan | null;
   userPreferences?: Record<string, string>;
   projectConstraints?: string[];
+  /**
+   * No more questions: plan with stated assumptions. Used once the user has
+   * answered enough, or asked to go ahead.
+   */
+  forcePlan?: boolean;
 }): Promise<BuildPlanResult> {
   const {
+    forcePlan,
     intentType,
     entityName,
     isNewEntity,
@@ -291,6 +303,7 @@ export async function buildPlan(params: {
     schema: PlanSchema,
     system: buildPlanningPrompt({
       entityName,
+      forcePlan,
       intentType,
       isNewEntity,
       previousApprovedPlan,
@@ -303,22 +316,40 @@ export async function buildPlan(params: {
     tier: "capable",
   });
 
-  if (
-    raw.needsClarification ||
-    raw.confidence < CONFIDENCE_THRESHOLD ||
-    !raw.tables ||
-    raw.tables.length === 0
-  ) {
+  const hasTables = Boolean(raw.tables && raw.tables.length > 0);
+
+  // A specific question is worth asking, unless asking is no longer allowed.
+  // Low confidence alone is not: with tables in hand, the plan goes ahead and
+  // the user reviews it, instead of being asked something vague.
+  if (!forcePlan && raw.needsClarification && raw.clarifyingQuestion) {
     return {
-      clarifyingQuestion:
-        raw.clarifyingQuestion ??
-        "Could you give a bit more detail on what you want here?",
+      clarifyingQuestion: raw.clarifyingQuestion,
+      status: "needs_clarification",
+      suggestedOptions: raw.suggestedOptions,
+    };
+  }
+  if (!hasTables) {
+    if (forcePlan) {
+      throw new Error(
+        "I could not turn that into a plan. Try describing the tables or features you want."
+      );
+    }
+    // No tables and no specific question: asking something vague helps nobody.
+    // Try again once, this time going ahead on stated assumptions.
+    if (!raw.clarifyingQuestion) {
+      return buildPlan({ ...params, forcePlan: true });
+    }
+    return {
+      clarifyingQuestion: raw.clarifyingQuestion,
       status: "needs_clarification",
       suggestedOptions: raw.suggestedOptions,
     };
   }
 
-  const { decisions = [], tables = [] } = raw;
+  const MAX_DECISIONS = 8;
+  const MAX_TABLES = 60;
+  const decisions = (raw.decisions ?? []).slice(0, MAX_DECISIONS);
+  const tables = (raw.tables ?? []).slice(0, MAX_TABLES);
   const generationPrompt = assembleGenerationPrompt({
     decisions,
     retrievedContext,
