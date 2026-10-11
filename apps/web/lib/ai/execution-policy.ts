@@ -88,9 +88,7 @@ export function chooseModels(
   };
 }
 
-type ProviderOptions =
-  | Record<string, Record<string, number | string>>
-  | undefined;
+type ProviderOptions = Record<string, Record<string, unknown>> | undefined;
 
 const GOOGLE_BUDGET = { high: 24_576, low: 1024, medium: 8192 } as const;
 
@@ -109,7 +107,7 @@ export function providerOptionsFor(
   if (id.startsWith("google/")) {
     return {
       google: { thinkingConfig: { thinkingBudget: GOOGLE_BUDGET[effort] } },
-    } as never;
+    };
   }
   return undefined;
 }

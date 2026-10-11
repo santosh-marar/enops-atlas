@@ -16,6 +16,17 @@ describe("request credentials", () => {
     resolveModel("claude-haiku-4-5", " dummy-B ");
     expect(keys).toEqual(["dummy-A", "dummy-B"]);
   });
+  test("gives the gateway the provider-prefixed model id", () => {
+    expect(resolveModel("claude-haiku-4-5", "k")).toMatchObject({
+      modelId: "anthropic/claude-haiku-4-5",
+    });
+    expect(resolveModel("gpt-5-5", "k")).toMatchObject({
+      modelId: "openai/gpt-5.5",
+    });
+  });
+  test("refuses an unknown model", () => {
+    expect(() => resolveModel("nope" as never, "k")).toThrow("Select");
+  });
   test("refuses a cleared credential", () => {
     expect(() => resolveModel("claude-haiku-4-5", " ")).toThrow("Configure");
   });
