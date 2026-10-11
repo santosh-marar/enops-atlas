@@ -42,13 +42,6 @@ export type {
   SchemaModelRequest,
 } from "./model";
 export {
-  type BuildSchemaChunksOptions,
-  buildSchemaChunks,
-  type SchemaChunk,
-  type SchemaChunkKind,
-} from "./rag/chunks";
-export * from "./rag/rank";
-export {
   SCHEMA_SNAPSHOT_VERSION,
   schemaChanges,
   schemaSnapshot,

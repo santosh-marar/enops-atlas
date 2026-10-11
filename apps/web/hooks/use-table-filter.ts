@@ -1,47 +1,34 @@
-import {
-  buildSchemaChunks,
-  hybridSchemaSearch,
-  type SchemaChunk,
-} from "@enops/atlas-schema-intelligence";
+import type { CanonicalSchema } from "@enops/atlas-schema";
 import type { Edge, Node } from "@xyflow/react";
 import { useMemo } from "react";
 import { analyzeDbml, tableKey, tableKeyOfNode } from "@/lib/atlas";
 import { useSchemaStore } from "@/store/use-schema-store";
 
-const MAX_HITS = 200;
-
 /**
- * Table keys matching the query, best match first. Names are ranked by the
- * shared search; a query that is part of a schema name also matches that
- * schema's tables.
+ * Table keys matching the query, best match first: an exact table name, an
+ * exact column name, then partial table and column names. A query that is
+ * part of a schema name also matches that schema's tables.
  */
-export function searchTables(chunks: SchemaChunk[], query: string): string[] {
-  const text = query.trim();
+export function searchTables(schema: CanonicalSchema, query: string): string[] {
+  const text = query.trim().toLowerCase();
   if (!text) return [];
 
-  const byId = new Map(chunks.map((chunk) => [chunk.id, chunk]));
-  const keys: string[] = [];
-  const add = (key: string) => {
-    if (!keys.includes(key)) keys.push(key);
-  };
-
-  for (const hit of hybridSchemaSearch({
-    chunks,
-    limit: MAX_HITS,
-    query: text,
-  })) {
-    const chunk = byId.get(hit.chunkId);
-    if (chunk?.table) add(tableKey(chunk.schema, chunk.table));
-  }
-
-  const lower = text.toLowerCase();
-  for (const chunk of chunks) {
-    if (chunk.kind === "table" && chunk.schema.toLowerCase().includes(lower)) {
-      add(tableKey(chunk.schema, chunk.name));
+  const scored: { key: string; score: number }[] = [];
+  for (const table of schema.tables) {
+    const name = table.name.toLowerCase();
+    const columns = table.columns.map((column) => column.name.toLowerCase());
+    let score = 0;
+    if (name === text) score = 100;
+    else if (columns.includes(text)) score = 90;
+    else if (name.includes(text)) score = 60;
+    else if (columns.some((column) => column.includes(text))) score = 40;
+    else if (table.schema.toLowerCase().includes(text)) score = 20;
+    if (score > 0) {
+      scored.push({ key: tableKey(table.schema, table.name), score });
     }
   }
 
-  return keys;
+  return scored.sort((a, b) => b.score - a.score).map((hit) => hit.key);
 }
 
 export function useTableFilter(
@@ -51,20 +38,21 @@ export function useTableFilter(
 ) {
   const dbml = useSchemaStore((state) => state.dbml);
 
-  // Rebuilt only when the schema changes, not on every keystroke.
-  const chunks = useMemo(() => {
+  // Parsed only when the schema changes, not on every keystroke.
+  const schema = useMemo(() => {
     try {
-      return buildSchemaChunks(analyzeDbml(dbml).canonical);
+      return analyzeDbml(dbml).canonical;
     } catch {
-      return [];
+      return null;
     }
   }, [dbml]);
 
   const filteredNodes = useMemo(() => {
     if (!searchQuery.trim()) return nodes;
-    const matches = new Set(searchTables(chunks, searchQuery));
+    if (!schema) return [];
+    const matches = new Set(searchTables(schema, searchQuery));
     return nodes.filter((node) => matches.has(tableKeyOfNode(node)));
-  }, [chunks, nodes, searchQuery]);
+  }, [schema, nodes, searchQuery]);
 
   // Filter edges to only show connections between visible nodes
   const filteredEdges = useMemo(() => {

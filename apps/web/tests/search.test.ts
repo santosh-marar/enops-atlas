@@ -1,5 +1,4 @@
 import { expect, test } from "bun:test";
-import { buildSchemaChunks } from "@enops/atlas-schema-intelligence";
 import { searchTables } from "../hooks/use-table-filter";
 import { analyzeDbml } from "../lib/atlas";
 
@@ -19,7 +18,7 @@ Table audit.events {
 }
 `;
 
-const chunks = buildSchemaChunks(analyzeDbml(DBML).canonical);
+const chunks = analyzeDbml(DBML).canonical;
 
 test("a column name finds its table", () => {
   expect(searchTables(chunks, "title")).toContain("public.posts");
