@@ -16,7 +16,8 @@ import { analyzeDbml } from "@/lib/atlas";
 interface ImpactDialogProps {
   change: ChangeRequest | null;
   dbml: string;
-  onClose: () => void;
+  onCancel: () => void;
+  onConfirm: (change: ChangeRequest) => void;
 }
 
 const describe = (change: ChangeRequest) => {
@@ -29,7 +30,12 @@ const describe = (change: ChangeRequest) => {
   return `enum ${change.enumName}`;
 };
 
-export function ImpactDialog({ change, dbml, onClose }: ImpactDialogProps) {
+export function ImpactDialog({
+  change,
+  dbml,
+  onCancel,
+  onConfirm,
+}: ImpactDialogProps) {
   const result = useMemo(() => {
     if (!change) return null;
     try {
@@ -51,21 +57,19 @@ export function ImpactDialog({ change, dbml, onClose }: ImpactDialogProps) {
   return (
     <Dialog
       onOpenChange={(open) => {
-        if (!open) onClose();
+        if (!open) onCancel();
       }}
       open={change !== null}
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            What depends on {change ? describe(change) : ""}?
-          </DialogTitle>
+          <DialogTitle>Delete {change ? describe(change) : ""}?</DialogTitle>
           <DialogDescription>
             {result && !result.ok
               ? result.error.message
               : report?.severity === "breaking"
-                ? "Removing this would break the items below."
-                : "Nothing else depends on this, so it can be removed safely."}
+                ? "This is a breaking change. It affects the items below."
+                : "Nothing else depends on this."}
           </DialogDescription>
         </DialogHeader>
 
@@ -114,8 +118,15 @@ export function ImpactDialog({ change, dbml, onClose }: ImpactDialogProps) {
         )}
 
         <DialogFooter>
-          <Button onClick={onClose} variant="outline">
-            Close
+          <Button onClick={onCancel} variant="outline">
+            Cancel
+          </Button>
+          <Button
+            disabled={!change || (result !== null && !result.ok)}
+            onClick={() => change && onConfirm(change)}
+            variant="destructive"
+          >
+            Delete
           </Button>
         </DialogFooter>
       </DialogContent>
