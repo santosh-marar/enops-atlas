@@ -86,7 +86,6 @@ export function AIChat({
 
   // Keep the newest message, and the step being worked on, in view.
   const lastSteps = messages.at(-1)?.steps?.length ?? 0;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when the content grows
   useEffect(() => {
     const element = scrollRef.current;
     if (element) element.scrollTop = element.scrollHeight;
@@ -276,11 +275,6 @@ export function AIChat({
               />
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              <p className="mr-1.5 hidden text-[11px] text-muted-foreground sm:block">
-                {techStack
-                  ? "Enter to send · Shift+Enter for new line"
-                  : "Configure tech stack to start"}
-              </p>
               {isWorking ? (
                 <Button
                   aria-label="Stop"
@@ -302,6 +296,7 @@ export function AIChat({
                   className="h-9 w-9 rounded-full"
                   disabled={!canSend}
                   size="icon"
+                  title="Send (Enter). Shift+Enter for a new line"
                   type="submit"
                 >
                   <Send className="h-4 w-4" />

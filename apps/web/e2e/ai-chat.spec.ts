@@ -190,22 +190,33 @@ test("a proposal is refused once the schema has changed", async ({ page }) => {
   ).toBeDisabled();
 });
 
-test("the model can be chosen, and the choice is remembered", async ({
+test("the mode and model can be chosen, and the choice is remembered", async ({
   page,
 }) => {
   await seed(page, []);
-  await page.getByRole("button", { name: "Manual control" }).click();
+  await expect(page.getByRole("button", { name: "Mode: Auto" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Model settings" })
+  ).toContainText("Agent");
+
+  await page.getByRole("button", { name: "Model settings" }).click();
+  await page.getByRole("button", { name: "Manual" }).click();
   await expect(page.getByRole("combobox", { name: "Model" })).toBeVisible();
-  await page.getByRole("button", { name: /^Plan:/ }).click();
+  await expect(page.getByRole("combobox", { name: "Model" })).toContainText(
+    "Claude Sonnet 4.6"
+  );
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "Mode: Auto" }).click();
+  await page.getByRole("menuitem", { name: /^Plan/ }).click();
+  await expect(page.getByRole("button", { name: "Mode: Plan" })).toBeVisible();
+
   await page.reload();
   await page.getByTitle("AI Schema Assistant").click();
+  await expect(page.getByRole("button", { name: "Mode: Plan" })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Manual control" })
-  ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: /^Plan:/ })).toHaveAttribute(
-    "aria-pressed",
-    "true"
-  );
+    page.getByRole("button", { name: "Model settings" })
+  ).toContainText("Claude Sonnet 4.6");
 });
 
 test("a running request shows its steps and can be stopped, then retried", async ({
