@@ -34,6 +34,7 @@ for (const [file, source] of sources) {
       relative.includes("/tests/") ||
       relative.includes("/__tests__/") ||
       relative.startsWith("node-entry") ||
+      relative.startsWith("adapters/") ||
       relative.startsWith("repository-dbml")
     ) &&
     nodeImport.test(source)
