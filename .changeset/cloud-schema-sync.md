@@ -10,4 +10,4 @@ Schema sync tools, moved over from Enops Cloud.
 - `schemaChanges` now reports changes per field, and only flags removals, changed constraints and new required fields without a default for review.
 - `drizzleToDbml` ignores runtime-only hooks (`$defaultFn`, `$onUpdate`, …), reads `default(sql\`...\`)`, keeps `text({ enum })` values as a note, and returns `applicationBehavior` (property names and hooks DBML cannot hold).
 - The AI workflow sends schema, notes and project facts as marked data in the user message, never in the system prompt. `buildPlan` takes `technologyContext`; `generateDbmlFromPlan` takes `codeUsage`.
-- `@enops/atlas-generators`: `generatePrismaConfig` writes a Prisma 7 `prisma.config.ts`.
+- `@enops/atlas-generators`: `generatePrismaConfig` writes a Prisma 7 `prisma.config.ts`, and `generatePrismaSchema` no longer puts `url` in the datasource block (Prisma 7 rejects it). Breaking for Prisma 6 users: add `url = env("DATABASE_URL")` back to the datasource, or move to Prisma 7 with the generated `prisma.config.ts`.

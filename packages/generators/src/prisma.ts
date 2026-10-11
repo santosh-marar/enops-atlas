@@ -238,7 +238,7 @@ export function generatePrismaSchema(schema: CanonicalSchema): string {
     if (multi) lines.push(`  @@schema(${JSON.stringify(table.schema)})`);
     return `model ${modelName(table)} {\n${lines.join("\n")}\n}`;
   });
-  const header = `generator client {\n  provider = "prisma-client-js"\n}\n\ndatasource db {\n  provider = "postgresql"\n  url = env("DATABASE_URL")${multi ? `\n  schemas = ${JSON.stringify(spaces)}` : ""}\n}`;
+  const header = `generator client {\n  provider = "prisma-client-js"\n}\n\ndatasource db {\n  provider = "postgresql"${multi ? `\n  schemas = ${JSON.stringify(spaces)}` : ""}\n}`;
   return `${[header, ...schema.enums.map((e) => enumBlock(e, multi)), ...blocks].join("\n\n")}\n`;
 }
 
