@@ -1,33 +1,34 @@
-import { Sparkles } from "lucide-react";
-
-const CAPABILITIES = [
-  "Foreign key relationships",
-  "Optimized indexes",
-  "Data constraints",
-  "Scalability patterns",
+const EXAMPLES = [
+  "Design a schema for a SaaS app with teams and billing",
+  "Add created_at and updated_at to every table",
+  "Add a notification system",
+  "Explain how my tables relate",
 ];
 
-export function EmptyState() {
+/** Where an empty chat starts: one line on what it does, and a few things to try. */
+export function EmptyState({ onPick }: { onPick: (prompt: string) => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="rounded-lg border border-border bg-card p-8">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-          <Sparkles className="h-6 w-6 text-primary" />
-        </div>
-        <h3 className="mb-2 font-semibold text-base">AI Schema Assistant</h3>
-        <p className="mb-4 max-w-sm text-muted-foreground text-sm">
-          Describe your application and I will generate a production-ready
-          database schema.
+    <div className="flex h-full flex-col justify-center gap-5 px-1">
+      <div>
+        <h3 className="font-medium text-base">What should we build?</h3>
+        <p className="mt-1 max-w-sm text-muted-foreground text-sm">
+          Describe your app or a change. I plan it with you first, then write
+          the schema, and nothing is applied until you say so.
         </p>
-        <div className="space-y-1.5 text-left text-muted-foreground text-xs">
-          {CAPABILITIES.map((item) => (
-            <p className="flex items-center gap-2" key={item}>
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              {item}
-            </p>
-          ))}
-        </div>
       </div>
+      <ul className="space-y-1">
+        {EXAMPLES.map((prompt) => (
+          <li key={prompt}>
+            <button
+              className="w-full border-border border-l-2 py-1 pl-3 text-left text-muted-foreground text-sm transition-colors hover:border-primary hover:text-foreground"
+              onClick={() => onPick(prompt)}
+              type="button"
+            >
+              {prompt}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

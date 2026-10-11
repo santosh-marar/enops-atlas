@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ChatMessage } from "@/lib/ai/chat-types";
+import { cn } from "@/lib/utils";
 
 function AnswerBox({ onSubmit }: { onSubmit: (value: string) => void }) {
   const [value, setValue] = useState("");
@@ -38,7 +39,7 @@ function AnswerBox({ onSubmit }: { onSubmit: (value: string) => void }) {
   );
 }
 
-/** A question from the assistant. It freezes, showing the answer, once answered. */
+/** A question from the assistant. Once answered it freezes and shows the answer. */
 export function ClarificationPrompt({
   disabled,
   message,
@@ -51,47 +52,49 @@ export function ClarificationPrompt({
   const { question } = message;
   if (!question) return null;
   const answered = message.answeredValue;
+  const options = question.options ?? [];
   const answer = (value: string) => {
     if (!(answered || disabled)) onAnswer(value);
   };
 
   return (
-    <div className="mt-2 rounded-lg border border-border bg-card px-3 py-2.5">
-      <p className="mb-2 font-medium text-xs">{question.text}</p>
-      <div className="space-y-2">
-        {(question.options ?? []).length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {(question.options ?? []).map((option) => {
-              const selected = answered === option;
-              return (
-                <Button
-                  className={`h-7 text-xs ${answered && !selected ? "opacity-40" : ""}`}
-                  disabled={Boolean(answered) || disabled}
-                  key={option}
-                  onClick={() => answer(option)}
-                  size="sm"
-                  variant={selected ? "default" : "outline"}
-                >
-                  {selected && <Check className="mr-1 size-3" />}
-                  {option}
-                </Button>
-              );
-            })}
-          </div>
-        )}
-        {!answered && (
-          <div className="space-y-1">
-            {(question.options ?? []).length > 0 && (
-              <p className="text-[11px] text-muted-foreground">
-                Or type your own answer:
-              </p>
-            )}
-            <AnswerBox onSubmit={answer} />
-          </div>
-        )}
-      </div>
+    <div className="space-y-2.5">
+      <p className="font-medium text-[13px]">{question.text}</p>
+      {options.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {options.map((option) => {
+            const selected = answered === option;
+            return (
+              <Button
+                className={cn(
+                  "h-7 text-xs",
+                  answered && !selected && "opacity-40"
+                )}
+                disabled={Boolean(answered) || disabled}
+                key={option}
+                onClick={() => answer(option)}
+                size="sm"
+                variant={selected ? "default" : "outline"}
+              >
+                {selected && <Check className="mr-1 size-3" />}
+                {option}
+              </Button>
+            );
+          })}
+        </div>
+      )}
+      {!answered && (
+        <div className="space-y-1">
+          {options.length > 0 && (
+            <p className="text-[11px] text-muted-foreground">
+              Or type your own answer, or say "just go ahead":
+            </p>
+          )}
+          <AnswerBox onSubmit={answer} />
+        </div>
+      )}
       {answered && (
-        <p className="mt-2 flex items-center gap-1.5 text-emerald-700 text-xs dark:text-emerald-400">
+        <p className="flex items-center gap-1.5 text-emerald-700 text-xs dark:text-emerald-400">
           <Check className="size-3.5" /> You answered: {answered}
         </p>
       )}

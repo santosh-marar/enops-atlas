@@ -1,12 +1,13 @@
-import { Brain, Check, ChevronDown, Loader2 } from "lucide-react";
+import { Check, ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ThinkingStep } from "@/lib/ai/chat-types";
+import { cn } from "@/lib/utils";
 
 const seconds = (ms: number) => `${Math.max(1, Math.round(ms / 1000))}s`;
 
 /**
- * What the assistant is doing, step by step. While it works the list stays
- * open; afterwards it folds into "Thought for 6s" and can be opened again.
+ * What the assistant is doing, as quiet transcript lines. While it works the
+ * list stays open; afterwards it folds into "Thought for 6s · 4 steps".
  */
 export function ThinkingSteps({
   isWorking,
@@ -31,47 +32,49 @@ export function ThinkingSteps({
 
   const elapsed = steps[0] ? now - steps[0].at : 0;
   const expanded = isWorking || open;
+  const summary = isWorking
+    ? `Thinking${elapsed ? ` · ${seconds(elapsed)}` : "..."}`
+    : `Thought for ${seconds(thinkingMs ?? 0)} · ${steps.length} step${steps.length === 1 ? "" : "s"}`;
 
   return (
-    <div className="rounded-xl border border-border bg-card text-xs">
+    <div>
       <button
         aria-expanded={expanded}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-muted-foreground"
+        className="flex items-center gap-2 py-0.5 text-muted-foreground text-xs hover:text-foreground disabled:cursor-default disabled:hover:text-muted-foreground"
         disabled={isWorking}
         onClick={() => setOpen((value) => !value)}
         type="button"
       >
-        {isWorking ? (
-          <Loader2 className="size-3.5 animate-spin text-primary" />
-        ) : (
-          <Brain className="size-3.5" />
-        )}
-        <span className="flex-1 font-medium">
-          {isWorking
-            ? `Thinking${elapsed ? ` · ${seconds(elapsed)}` : "..."}`
-            : `Thought for ${seconds(thinkingMs ?? 0)} · ${steps.length} step${steps.length === 1 ? "" : "s"}`}
-        </span>
+        <span
+          className={cn(
+            "size-1.5 shrink-0 rounded-full",
+            isWorking ? "animate-pulse bg-primary" : "bg-emerald-500"
+          )}
+        />
+        <span className={cn(isWorking && "animate-pulse")}>{summary}</span>
         {!isWorking && (
-          <ChevronDown
-            className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+          <ChevronRight
+            className={cn("size-3 transition-transform", open && "rotate-90")}
           />
         )}
       </button>
       {expanded && steps.length > 0 && (
-        <ol className="space-y-1 border-border border-t px-3 py-2">
+        <ol className="mt-1">
           {steps.map((step, index) => {
-            const last = index === steps.length - 1;
+            const live = isWorking && index === steps.length - 1;
             return (
               <li
-                className="flex items-center gap-2 text-muted-foreground"
+                className="flex items-start gap-2.5 py-1 text-muted-foreground text-xs"
                 key={`${step.at}-${step.label}`}
               >
-                {isWorking && last ? (
-                  <Loader2 className="size-3 animate-spin text-primary" />
+                {live ? (
+                  <Loader2 className="mt-0.5 size-3.5 shrink-0 animate-spin text-primary" />
                 ) : (
-                  <Check className="size-3 text-green-600 dark:text-green-400" />
+                  <Check className="mt-0.5 size-3.5 shrink-0" />
                 )}
-                {step.label}
+                <span className={cn(live && "animate-pulse")}>
+                  {step.label}
+                </span>
               </li>
             );
           })}

@@ -1,36 +1,19 @@
-import { Check, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Check, ChevronRight, X } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ChatMessage } from "@/lib/ai/chat-types";
+import { cn } from "@/lib/utils";
 import { SchemaMessages } from "./schema-message";
 
 type Status = NonNullable<ChatMessage["planStatus"]>;
 
-const BADGE: Record<Status, { className: string; label: string }> = {
-  approved: {
-    className: "bg-green-500/15 text-green-700 dark:text-green-400",
-    label: "Approved",
-  },
-  pending: {
-    className: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
-    label: "Awaiting approval",
-  },
-  rejected: {
-    className: "bg-red-500/15 text-red-700 dark:text-red-400",
-    label: "Rejected",
-  },
+const STATUS: Record<Status, { dot: string; label: string }> = {
+  approved: { dot: "bg-emerald-500", label: "Approved" },
+  pending: { dot: "bg-amber-500", label: "Awaiting approval" },
+  rejected: { dot: "bg-destructive", label: "Rejected" },
 };
 
-function StatusBadge({ status }: { status: Status }) {
-  return (
-    <Badge className={BADGE[status].className} variant="secondary">
-      {BADGE[status].label}
-    </Badge>
-  );
-}
-
-/** The plan: open for a decision, and folded once it has been decided. */
+/** The plan, set off by a rule instead of a box. Open for a decision, folded after. */
 export function PlanCard({
   busy,
   message,
@@ -47,43 +30,43 @@ export function PlanCard({
   if (!message.planMarkdown) return null;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <div className="flex items-center justify-between gap-2 border-border border-b bg-muted/40 px-3.5 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">Schema Plan</span>
-          <StatusBadge status={status} />
-        </div>
+    <section className="space-y-2">
+      <div className="flex items-center gap-2 text-xs">
+        <span className="font-medium text-foreground">Schema Plan</span>
+        <span className="flex items-center gap-1.5 text-muted-foreground">
+          <span className={cn("size-1.5 rounded-full", STATUS[status].dot)} />
+          {STATUS[status].label}
+        </span>
         {status !== "pending" && (
           <button
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-muted-foreground text-xs hover:bg-muted"
+            aria-expanded={open}
+            className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-foreground"
             onClick={() => setOpen((value) => !value)}
             type="button"
           >
             {open ? "Hide" : "Show"}
-            {open ? (
-              <ChevronUp className="size-3.5" />
-            ) : (
-              <ChevronDown className="size-3.5" />
-            )}
+            <ChevronRight
+              className={cn("size-3 transition-transform", open && "rotate-90")}
+            />
           </button>
         )}
       </div>
 
       {open && (
-        <div className="max-h-80 overflow-y-auto px-3.5 py-3">
+        <div className="max-h-80 overflow-y-auto border-border border-l-2 pl-3.5">
           <SchemaMessages content={message.planMarkdown} />
         </div>
       )}
 
       {status === "pending" && (
-        <div className="flex items-center justify-between gap-2 border-border border-t bg-muted/40 px-3.5 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
           {message.planOnly ? (
             <p className="text-muted-foreground text-xs">
               Plan mode only plans. Switch to Auto or Build to write the schema.
             </p>
           ) : (
             <Button
-              className="h-7 bg-green-600 text-white hover:bg-green-700"
+              className="h-7 bg-emerald-600 text-white hover:bg-emerald-700"
               disabled={busy}
               onClick={onApprove}
               size="sm"
@@ -97,13 +80,13 @@ export function PlanCard({
             disabled={busy}
             onClick={onReject}
             size="sm"
-            variant="outline"
+            variant="ghost"
           >
             <X className="mr-1 size-3" />
             Reject
           </Button>
         </div>
       )}
-    </div>
+    </section>
   );
 }

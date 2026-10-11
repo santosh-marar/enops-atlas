@@ -1,4 +1,11 @@
-import { Check, History, Loader2, RotateCcw, X } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  History,
+  Loader2,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ChatMessage } from "@/lib/ai/chat-types";
 
@@ -23,17 +30,19 @@ export function SchemaReview({
   if (!proposal) return null;
 
   return (
-    <div className="mt-2 space-y-3 rounded-xl border bg-card p-3">
-      <p className="font-medium text-sm">Review schema proposal</p>
-      <p className="text-muted-foreground text-xs">
-        Your schema stays unchanged until you apply this. A checkpoint is saved
-        first so you can go back.
-      </p>
+    <section className="space-y-3">
+      <div>
+        <p className="font-medium text-[13px]">Review schema proposal</p>
+        <p className="mt-0.5 text-muted-foreground text-xs">
+          Your schema stays unchanged until you apply this. A checkpoint is
+          saved first so you can go back.
+        </p>
+      </div>
 
       {proposal.problems.length > 0 && (
-        <div className="space-y-1 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+        <div className="space-y-1 border-destructive/60 border-l-2 pl-3.5">
           <p className="font-medium text-xs">Why it can't be applied</p>
-          <ul className="list-disc space-y-1 pl-4 text-xs">
+          <ul className="list-disc space-y-0.5 pl-4 text-muted-foreground text-xs">
             {proposal.problems.map((problem) => (
               <li key={problem}>{problem}</li>
             ))}
@@ -42,27 +51,28 @@ export function SchemaReview({
       )}
 
       {proposal.outsidePlan.length > 0 && (
-        <div className="space-y-1 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+        <div className="space-y-1 border-amber-500/70 border-l-2 pl-3.5">
           <p className="font-medium text-xs">Changes that need attention</p>
-          <p className="text-xs">
+          <p className="text-muted-foreground text-xs">
             It also changes {proposal.outsidePlan.join(", ")}, which were not in
             the plan.
           </p>
         </div>
       )}
 
-      <details className="rounded-lg border">
-        <summary className="cursor-pointer px-3 py-2 text-xs">
+      <details className="group">
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-muted-foreground text-xs hover:text-foreground">
+          <ChevronRight className="size-3 transition-transform group-open:rotate-90" />
           Compare current and proposed DBML
         </summary>
-        <div className="grid gap-2 border-t p-2 lg:grid-cols-2">
+        <div className="mt-2 grid gap-3 lg:grid-cols-2">
           {[
             { code: message.previousDbml, label: "Current schema" },
             { code: proposal.dbml, label: "Proposed schema" },
           ].map(({ code, label }) => (
             <div className="min-w-0" key={label}>
-              <p className="mb-1 font-medium text-xs">{label}</p>
-              <pre className="max-h-64 overflow-auto rounded bg-muted p-2 font-mono text-[11px]">
+              <p className="mb-1 text-[11px] text-muted-foreground">{label}</p>
+              <pre className="max-h-64 overflow-auto border-border border-l-2 pl-3 font-mono text-[11px] leading-relaxed">
                 {code?.trim() || "No schema yet"}
               </pre>
             </div>
@@ -84,6 +94,7 @@ export function SchemaReview({
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
+          className="h-7"
           disabled={busy || !proposal.valid || changedSince}
           onClick={onApply}
           size="sm"
@@ -95,16 +106,28 @@ export function SchemaReview({
           )}
           {proposal.outsidePlan.length > 0 ? "Apply anyway" : "Apply proposal"}
         </Button>
-        <Button disabled={busy} onClick={onRetry} size="sm" variant="outline">
+        <Button
+          className="h-7"
+          disabled={busy}
+          onClick={onRetry}
+          size="sm"
+          variant="outline"
+        >
           <RotateCcw className="mr-1 size-3" />
           Retry
         </Button>
-        <Button disabled={busy} onClick={onDiscard} size="sm" variant="ghost">
+        <Button
+          className="h-7"
+          disabled={busy}
+          onClick={onDiscard}
+          size="sm"
+          variant="ghost"
+        >
           <X className="mr-1 size-3" />
           Discard
         </Button>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -117,25 +140,30 @@ export function SchemaApplied({
   onRestore: () => void;
 }) {
   return (
-    <div className="mt-2 space-y-2 rounded-lg border border-green-500/50 bg-green-500/10 px-3 py-2">
-      <p className="flex items-center gap-2 text-green-700 text-xs dark:text-green-300">
-        <Check className="size-4" />
+    <div className="space-y-1.5 text-xs">
+      <p className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+        <Check className="size-3.5" />
         {message.restored
           ? "Restored the schema from before this change."
           : "Applied to the editor."}
       </p>
       {message.checkpoint ? (
-        <p className="flex items-center gap-2 text-muted-foreground text-xs">
+        <p className="flex items-center gap-2 text-muted-foreground">
           <History className="size-3.5" />
           Checkpoint v{message.checkpoint} saved. Find it in Action &gt; Version
           History.
         </p>
       ) : null}
       {!message.restored && (
-        <Button onClick={onRestore} size="sm" variant="outline">
-          <RotateCcw className="mr-1 size-3" />
+        <button
+          className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+          onClick={onRestore}
+          title="Put the schema back as it was before this change"
+          type="button"
+        >
+          <RotateCcw className="size-3" />
           Restore previous schema
-        </Button>
+        </button>
       )}
     </div>
   );

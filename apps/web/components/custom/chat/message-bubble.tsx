@@ -1,5 +1,4 @@
 import { RotateCcw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { ChatMessage } from "@/lib/ai/chat-types";
 import { ClarificationPrompt } from "./clarification-prompt";
 import { PlanCard } from "./plan-card";
@@ -42,10 +41,8 @@ export function MessageBubble({
   if (message.role === "user") {
     return (
       <div className="group/message flex flex-col items-end gap-0.5">
-        <div className="max-w-full rounded-2xl bg-primary px-4 py-2 text-primary-foreground text-sm">
-          <p className="wrap-break-word whitespace-pre-wrap">
-            {message.content}
-          </p>
+        <div className="max-w-[88%] whitespace-pre-wrap break-words bg-muted px-3.5 py-2.5 text-[13px] text-foreground leading-relaxed">
+          {message.content}
         </div>
         <span className="px-0.5 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
           {timeLabel(message.createdAt)}
@@ -63,30 +60,25 @@ export function MessageBubble({
     !message.discarded;
 
   return (
-    <div className="group/message flex flex-col items-start gap-2">
+    <div className="group/message min-w-0 space-y-3 text-sm leading-relaxed">
       <ThinkingSteps
         isWorking={busy}
         steps={message.steps ?? []}
         thinkingMs={message.thinkingMs}
       />
 
-      {message.content && (
-        <div
-          className={`max-w-full rounded-2xl border px-4 py-2 text-sm ${
-            message.phase === "ERROR"
-              ? "border-destructive/40 bg-destructive/10 text-destructive"
-              : "border-border bg-card"
-          }`}
-        >
-          {message.phase === "ANSWERED" || !message.phase ? (
-            <SchemaMessages content={message.content} />
-          ) : (
-            <p className="wrap-break-word whitespace-pre-wrap">
-              {message.content}
-            </p>
-          )}
-        </div>
-      )}
+      {message.content &&
+        (message.phase === "ERROR" ? (
+          <p className="whitespace-pre-wrap break-words border-destructive/60 border-l-2 pl-3 text-[13px] text-destructive leading-relaxed">
+            {message.content}
+          </p>
+        ) : message.phase === "ANSWERED" || !message.phase ? (
+          <SchemaMessages content={message.content} />
+        ) : (
+          <p className="wrap-break-word whitespace-pre-wrap text-[13px] text-foreground/90">
+            {message.content}
+          </p>
+        ))}
 
       {message.planMarkdown && (
         <PlanCard
@@ -126,15 +118,15 @@ export function MessageBubble({
       )}
 
       {failed && (
-        <Button
+        <button
+          className="inline-flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground disabled:opacity-60"
           disabled={isWorking}
           onClick={() => actions.onRetry(message)}
-          size="sm"
-          variant="outline"
+          type="button"
         >
-          <RotateCcw className="mr-1 size-3" />
+          <RotateCcw className="size-3" />
           Retry
-        </Button>
+        </button>
       )}
     </div>
   );

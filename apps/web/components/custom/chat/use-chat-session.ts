@@ -217,7 +217,7 @@ export function useChatSession({
       const thinkingMs = Date.now() - startedAt;
       if (step.kind === "question") {
         update(id, {
-          content: "I need a bit more information first:",
+          content: "",
           phase: "NEEDS_CLARIFICATION",
           question: { options: step.options, text: step.text },
           rounds: request.rounds,
@@ -269,10 +269,10 @@ export function useChatSession({
   const answerQuestion = (message: ChatMessage, answer: string) => {
     if (!(message.question && message.request) || isWorking) return;
     const assistantId = newId("a");
+    // The question card shows the answer, so there is no separate bubble for it.
     update(message.id, { answeredValue: answer });
     setMessages((previous) => [
       ...previous,
-      { content: answer, createdAt: Date.now(), id: newId("u"), role: "user" },
       {
         content: "",
         createdAt: Date.now(),
