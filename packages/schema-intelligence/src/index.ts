@@ -42,6 +42,7 @@ export type {
   SchemaModelMessage,
   SchemaModelRequest,
 } from "./model";
+export { chooseSchemaField } from "./schema-review";
 export {
   SCHEMA_SNAPSHOT_VERSION,
   schemaChanges,
