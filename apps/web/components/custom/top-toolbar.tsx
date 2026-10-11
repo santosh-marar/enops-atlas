@@ -1,7 +1,7 @@
 "use client";
 
 import { IconBrandGithub } from "@tabler/icons-react";
-import { GitBranch, Moon, Sun } from "lucide-react";
+import { Crown, GitBranch, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -320,13 +320,19 @@ export function TopToolbar({
             <FormatButton />
 
             <QualityBadge />
-
             <Button
-              onClick={() => setShowHistory(true)}
+              className="text-amber-600 hover:bg-amber-500/10 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-400/10 dark:hover:text-amber-300"
               size="sm"
-              variant="ghost"
+              variant="outline"
             >
-              History
+              <Link
+                className="flex items-center justify-center gap-1"
+                href="https://cloud.enops.dev/pricing"
+                title="Upgrade to Pro"
+              >
+                <Crown className="size-4" />
+                Try Pro
+              </Link>
             </Button>
           </div>
         </div>
@@ -357,7 +363,7 @@ export function TopToolbar({
             variant="ghost"
           >
             <GitBranch />
-            New version
+            Version
           </Button>
           <SaveVersionModal
             isOpen={showSaveVersion}
