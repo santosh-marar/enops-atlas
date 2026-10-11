@@ -7,7 +7,10 @@ mock.module("ai", () => ({
   createGateway: () => (modelId: string) => ({ modelId }),
   generateObject: async (options: Record<string, unknown>) => {
     calls.push(options);
-    if (rejectReasoning && options.providerOptions) {
+    if (
+      rejectReasoning &&
+      JSON.stringify(options.providerOptions ?? {}).includes("reasoningEffort")
+    ) {
       throw new Error("reasoning not supported");
     }
     return { object: { dbml: "Table t { id int [pk] }" } };
@@ -93,9 +96,12 @@ describe("schema model adapter", () => {
       system: "s",
       tier: "capable",
     });
-    expect(calls[0]?.providerOptions).toBeUndefined();
+    // The quick step gets no effort, but still the non-strict OpenAI setting.
+    expect(calls[0]?.providerOptions).toEqual({
+      openai: { strictJsonSchema: false },
+    });
     expect(calls[1]?.providerOptions).toEqual({
-      openai: { reasoningEffort: "high" },
+      openai: { reasoningEffort: "high", strictJsonSchema: false },
     });
   });
 
@@ -108,7 +114,9 @@ describe("schema model adapter", () => {
     rejectReasoning = false;
     expect((object as { dbml: string }).dbml).toContain("Table t");
     expect(calls).toHaveLength(2);
-    expect(calls[1]?.providerOptions).toBeUndefined();
+    expect(calls[1]?.providerOptions).toEqual({
+      openai: { strictJsonSchema: false },
+    });
   });
 
   test("stop is passed to the request, and retries are bounded", async () => {

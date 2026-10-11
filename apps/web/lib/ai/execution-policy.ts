@@ -93,20 +93,35 @@ type ProviderOptions = Record<string, Record<string, unknown>> | undefined;
 const GOOGLE_BUDGET = { high: 24_576, low: 1024, medium: 8192 } as const;
 
 /**
- * Native reasoning settings for the models that accept them. Undefined when
- * nothing should be sent: the model then uses its own default.
+ * Provider settings for one request. OpenAI rejects the pipeline's schemas in
+ * strict mode (they have optional fields), so strict mode is always off there.
+ * Reasoning effort is added where the model accepts it. Undefined when nothing
+ * should be sent: the model then uses its own defaults.
  */
 export function providerOptionsFor(
   modelKey: ModelKey,
   effort: ReasoningEffort
 ): ProviderOptions {
-  if (effort === "automatic") return undefined;
-  if (!MODEL_INFO[modelKey].reasoningEfforts.includes(effort)) return undefined;
   const id = MODELS[modelKey];
-  if (id.startsWith("openai/")) return { openai: { reasoningEffort: effort } };
-  if (id.startsWith("google/")) {
+  const effortOk =
+    effort !== "automatic" &&
+    MODEL_INFO[modelKey].reasoningEfforts.includes(effort);
+
+  if (id.startsWith("openai/")) {
     return {
-      google: { thinkingConfig: { thinkingBudget: GOOGLE_BUDGET[effort] } },
+      openai: {
+        strictJsonSchema: false,
+        ...(effortOk ? { reasoningEffort: effort } : {}),
+      },
+    };
+  }
+  if (id.startsWith("google/") && effortOk) {
+    return {
+      google: {
+        thinkingConfig: {
+          thinkingBudget: GOOGLE_BUDGET[effort as keyof typeof GOOGLE_BUDGET],
+        },
+      },
     };
   }
   return undefined;

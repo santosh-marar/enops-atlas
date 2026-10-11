@@ -79,10 +79,16 @@ describe("choosing models", () => {
   });
 });
 
-describe("reasoning settings", () => {
-  test("OpenAI reasoning models get an effort", () => {
+describe("provider settings", () => {
+  test("OpenAI models always get non-strict schemas, and an effort when asked", () => {
     expect(providerOptionsFor("gpt-5-5", "low")).toEqual({
-      openai: { reasoningEffort: "low" },
+      openai: { reasoningEffort: "low", strictJsonSchema: false },
+    });
+    expect(providerOptionsFor("gpt-5-5", "automatic")).toEqual({
+      openai: { strictJsonSchema: false },
+    });
+    expect(providerOptionsFor("gpt-4-1", "high")).toEqual({
+      openai: { strictJsonSchema: false },
     });
   });
   test("Gemini 2.5 gets a thinking budget", () => {
@@ -91,8 +97,7 @@ describe("reasoning settings", () => {
     });
   });
   test("automatic, and models without the setting, send nothing", () => {
-    expect(providerOptionsFor("gpt-5-5", "automatic")).toBeUndefined();
+    expect(providerOptionsFor("gemini-2-5-pro", "automatic")).toBeUndefined();
     expect(providerOptionsFor("claude-sonnet-5", "high")).toBeUndefined();
-    expect(providerOptionsFor("gpt-4-1", "high")).toBeUndefined();
   });
 });

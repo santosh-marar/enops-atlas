@@ -57,18 +57,19 @@ export const schemaModel = (
           system: request.system,
         });
 
-      // Reasoning settings only apply to the capable steps.
-      const reasoning =
+      // Reasoning effort only applies to the capable steps.
+      const effort =
         tier === "capable"
-          ? providerOptionsFor(key, options.reasoningEffort ?? "automatic")
-          : undefined;
+          ? (options.reasoningEffort ?? "automatic")
+          : "automatic";
+      const withEffort = providerOptionsFor(key, effort);
       try {
-        const { object } = await run(reasoning);
+        const { object } = await run(withEffort);
         return { object: object as T };
       } catch (error) {
         // A model that rejects the reasoning setting still gets answered.
-        if (!reasoning || options.signal?.aborted) throw error;
-        const { object } = await run(undefined);
+        if (effort === "automatic" || options.signal?.aborted) throw error;
+        const { object } = await run(providerOptionsFor(key, "automatic"));
         return { object: object as T };
       }
     },
