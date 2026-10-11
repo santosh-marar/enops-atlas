@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  Send,
-  Settings,
-  Sparkles,
-  Square,
-  Trash2,
-  Wrench,
-  X,
-} from "lucide-react";
+import { ArrowUp, Settings, Square, Trash2, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { mentionSuggestions } from "@/lib/ai/edit-workflow";
 import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
@@ -50,6 +41,8 @@ export function AIChat({
   projectId,
 }: AIChatProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Stays true until the reader scrolls up, so new text doesn't pull them down.
+  const pinnedRef = useRef(true);
   const [input, setInput] = useState("");
   const [pastedBlocks, setPastedBlocks] = useState<PastedBlock[]>([]);
   const [techStack, setTechStack] = useState<TechStackType | null>(null);
@@ -88,7 +81,7 @@ export function AIChat({
   const lastSteps = messages.at(-1)?.steps?.length ?? 0;
   useEffect(() => {
     const element = scrollRef.current;
-    if (element) element.scrollTop = element.scrollHeight;
+    if (element && pinnedRef.current) element.scrollTop = element.scrollHeight;
   }, [messages.length, lastSteps, isWorking]);
 
   const canSend =
@@ -132,83 +125,86 @@ export function AIChat({
   return (
     <div className="flex h-full w-full flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-border border-b bg-card px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-            <Sparkles className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-sm">AI Schema Assistant</h2>
-            <p className="text-muted-foreground text-xs">
-              Production-ready schemas
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
+      <div className="flex h-11 shrink-0 items-center justify-between border-border border-b px-4">
+        <h2 className="font-medium text-sm">AI Assistant</h2>
+        <div className="flex items-center gap-0.5">
           {messages.length > 0 && (
-            <button
-              className="rounded-md p-2 transition-colors hover:bg-destructive/10 hover:text-destructive"
+            <Button
+              aria-label="Clear chat history"
+              className="size-8 hover:text-destructive"
               onClick={handleClear}
+              size="icon"
               title="Clear Chat History"
               type="button"
+              variant="ghost"
             >
-              <Trash2 className="h-4 w-4" />
-            </button>
+              <Trash2 className="size-4" />
+            </Button>
           )}
-          <button
-            className="rounded-md p-2 transition-colors hover:bg-muted"
+          <Button
+            aria-label="AI Settings"
+            className="size-8"
             onClick={onOpenSettings}
+            size="icon"
             title="AI Settings"
             type="button"
+            variant="ghost"
           >
-            <Settings className="h-4 w-4" />
-          </button>
-          <button
+            <Settings className="size-4" />
+          </Button>
+          <Button
             aria-label="Close"
-            className="rounded-md p-2 transition-colors hover:bg-muted"
+            className="size-8"
             onClick={onClose}
+            size="icon"
             type="button"
+            variant="ghost"
           >
-            <X className="h-4 w-4" />
-          </button>
+            <X className="size-4" />
+          </Button>
         </div>
       </div>
 
       {/* Messages */}
       <div
-        className="flex-1 space-y-4 overflow-y-auto px-4 py-6"
+        className="min-h-0 flex-1 overflow-y-auto"
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          pinnedRef.current =
+            element.scrollHeight - element.scrollTop - element.clientHeight <
+            80;
+        }}
         ref={scrollRef}
       >
-        {techStack ? (
-          messages.length === 0 ? (
-            <EmptyState />
+        <div className="flex min-h-full flex-col gap-6 px-5 py-6">
+          {techStack ? (
+            messages.length === 0 ? (
+              <EmptyState onPick={setInput} />
+            ) : (
+              messages.map((message) => (
+                <MessageBubble
+                  currentDbml={dbml}
+                  isWorking={isWorking}
+                  key={message.id}
+                  message={message}
+                  onAnswer={chat.answerQuestion}
+                  onApply={chat.applyProposal}
+                  onApprovePlan={chat.approvePlan}
+                  onDiscard={chat.discardProposal}
+                  onRejectPlan={chat.rejectPlan}
+                  onRestore={chat.restoreCheckpoint}
+                  onRetry={chat.retry}
+                />
+              ))
+            )
           ) : (
-            messages.map((message) => (
-              <MessageBubble
-                currentDbml={dbml}
-                isWorking={isWorking}
-                key={message.id}
-                message={message}
-                onAnswer={chat.answerQuestion}
-                onApply={chat.applyProposal}
-                onApprovePlan={chat.approvePlan}
-                onDiscard={chat.discardProposal}
-                onRejectPlan={chat.rejectPlan}
-                onRestore={chat.restoreCheckpoint}
-                onRetry={chat.retry}
-              />
-            ))
-          )
-        ) : (
-          <NoTechStackState onOpenTechStack={onOpenTechStack} />
-        )}
+            <NoTechStackState onOpenTechStack={onOpenTechStack} />
+          )}
+        </div>
       </div>
 
-      {/* Input */}
-      <form
-        className="border-border border-t bg-background p-3"
-        onSubmit={handleSubmit}
-      >
+      {/* Composer */}
+      <form className="shrink-0 p-3" onSubmit={handleSubmit}>
         {suggestions.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-1">
             {suggestions.map((name) => (
@@ -223,9 +219,9 @@ export function AIChat({
             ))}
           </div>
         )}
-        <div className="rounded-2xl border border-border bg-card shadow-sm transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
+        <div className="rounded-xl border border-border bg-card shadow-sm transition-colors focus-within:border-primary/50">
           {pastedBlocks.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 px-3 pt-3">
+            <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
               {pastedBlocks.map((block) => (
                 <PastedBlockChip
                   key={block.id}
@@ -239,8 +235,9 @@ export function AIChat({
               ))}
             </div>
           )}
-          <Textarea
-            className="max-h-40 min-h-11 resize-none border-0 bg-transparent px-3 pt-3 text-sm shadow-none focus-visible:ring-0"
+          <textarea
+            aria-label="Message the assistant"
+            className="block max-h-60 min-h-[3.25rem] w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-sm leading-relaxed outline-none [field-sizing:content] placeholder:text-muted-foreground disabled:opacity-60"
             disabled={isWorking || !techStack}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
@@ -258,27 +255,28 @@ export function AIChat({
             rows={2}
             value={input}
           />
-          <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
-            <button
-              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          <div className="flex items-center gap-1 px-2 pb-2">
+            <Button
+              aria-label="Update tech stack"
+              className="size-8"
               onClick={onOpenTechStack}
+              size="icon"
               title="Update tech stack"
               type="button"
+              variant="ghost"
             >
-              <Wrench className="h-4 w-4" />
-            </button>
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              <ExecutionControls
-                disabled={isWorking}
-                onChange={chat.setPolicy}
-                value={chat.policy}
-              />
-            </div>
-            <div className="flex shrink-0 items-center gap-1">
+              <Wrench className="size-4" />
+            </Button>
+            <ExecutionControls
+              disabled={isWorking}
+              onChange={chat.setPolicy}
+              value={chat.policy}
+            />
+            <div className="ml-auto">
               {isWorking ? (
                 <Button
                   aria-label="Stop"
-                  className="h-9 w-9 rounded-full"
+                  className="size-8 rounded-full"
                   onClick={() => {
                     chat.stop();
                     toast.info("Stopping...");
@@ -286,20 +284,20 @@ export function AIChat({
                   size="icon"
                   title="Stop"
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                 >
-                  <Square className="h-4 w-4 fill-current" />
+                  <Square className="size-3.5 fill-current" />
                 </Button>
               ) : (
                 <Button
                   aria-label="Send"
-                  className="h-9 w-9 rounded-full"
+                  className="size-8 rounded-full"
                   disabled={!canSend}
                   size="icon"
                   title="Send (Enter). Shift+Enter for a new line"
                   type="submit"
                 >
-                  <Send className="h-4 w-4" />
+                  <ArrowUp className="size-4" />
                 </Button>
               )}
             </div>
@@ -317,24 +315,17 @@ function NoTechStackState({
   onOpenTechStack: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="max-w-md rounded-lg border border-orange-500/50 bg-orange-500/10 p-8">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-500/20">
-          <Wrench className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-        </div>
-        <h3 className="mb-2 font-semibold text-base text-orange-900 dark:text-orange-100">
-          Tech Stack Required
-        </h3>
-        <p className="mb-4 text-orange-800 text-sm dark:text-orange-200">
-          Before using the AI assistant, please configure your project&apos;s
-          tech stack. This ensures the generated schema matches your
-          authentication library, database, and other requirements.
+    <div className="flex h-full flex-col justify-center gap-4 px-1">
+      <div>
+        <h3 className="font-medium text-base">Set your tech stack first</h3>
+        <p className="mt-1 max-w-sm text-muted-foreground text-sm">
+          The assistant writes schemas that match your database, ORM and
+          language, so it needs to know them before it starts.
         </p>
-        <Button
-          className="bg-orange-600 text-white hover:bg-orange-700"
-          onClick={onOpenTechStack}
-        >
-          <Wrench className="mr-2 h-4 w-4" />
+      </div>
+      <div>
+        <Button onClick={onOpenTechStack} size="sm">
+          <Wrench className="mr-2 size-4" />
           Configure Tech Stack
         </Button>
       </div>
