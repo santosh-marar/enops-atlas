@@ -4,6 +4,7 @@ export {
   extractRepositoryDbml,
   type RepositoryDbmlResult,
 } from "./repository-dbml";
+export { extractForgeSchema, type SchemaSourceFile } from "./repository-files";
 export {
   checkRepositorySchemaTarget,
   describeSchemaTargetCheck,

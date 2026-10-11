@@ -36,6 +36,7 @@ for (const [file, source] of sources) {
       relative.startsWith("node-entry") ||
       relative.startsWith("adapters/") ||
       relative.startsWith("repository-dbml") ||
+      relative.startsWith("repository-files") ||
       relative.startsWith("schema-target")
     ) &&
     nodeImport.test(source)
