@@ -159,6 +159,10 @@ export function ExecutionControls({
         <>
           <Select
             disabled={disabled}
+            items={MODEL_KEYS.map((key) => ({
+              label: MODEL_INFO[key].displayName,
+              value: key,
+            }))}
             onValueChange={(next) => {
               if (!next) return;
               const modelKey = next as ModelKey;
