@@ -98,11 +98,53 @@ export function schemaChanges(beforeDbml: string, afterDbml: string) {
   }
   const tableMap = (tables: TableSchema[]) =>
     new Map(tables.map((t) => [t.fullName, t]));
-  compare(
-    "table",
-    tableMap(before.physical.tables),
-    tableMap(after.physical.tables)
-  );
+  const leftTables = tableMap(before.physical.tables);
+  const rightTables = tableMap(after.physical.tables);
+  for (const [name, table] of leftTables) {
+    const next = rightTables.get(name);
+    if (!next) {
+      changes.push({
+        change: "removed",
+        object: `table ${name}`,
+        reviewRequired: true,
+      });
+      continue;
+    }
+    compare(
+      `field ${name}`,
+      new Map(table.columns.map((column) => [column.name, column])),
+      new Map(next.columns.map((column) => [column.name, column]))
+    );
+    const { columns: _before, ...beforeProperties } = table;
+    const { columns: _after, ...afterProperties } = next;
+    if (stableJson(beforeProperties) !== stableJson(afterProperties))
+      changes.push({
+        change: "modified",
+        object: `constraints/metadata ${name}`,
+        reviewRequired: true,
+      });
+    for (const column of next.columns) {
+      if (
+        !(
+          table.columns.some((old) => old.name === column.name) ||
+          column.nullable ||
+          column.default
+        )
+      )
+        changes.push({
+          change: "added",
+          object: `required field ${name}.${column.name} without a default`,
+          reviewRequired: true,
+        });
+    }
+  }
+  for (const name of rightTables.keys())
+    if (!leftTables.has(name))
+      changes.push({
+        change: "added",
+        object: `table ${name}`,
+        reviewRequired: false,
+      });
   compare(
     "enum",
     new Map(before.physical.enums.map((e) => [`${e.schema}.${e.name}`, e])),
@@ -123,4 +165,25 @@ export function schemaChanges(beforeDbml: string, afterDbml: string) {
     changes,
     isEmpty: before.digest === after.digest,
   };
+}
+
+/** Sync compares the full physical schema, not the generator's reduced type set.
+ * PostgreSQL scalar arrays retain their exact native type in that projection.
+ * Keep the generator's errors intact and reject every other unsupported type.
+ */
+export function schemaSynchronizationLosses(
+  snapshot: ReturnType<typeof schemaSnapshot>
+) {
+  return snapshot.losses.filter((loss) => {
+    if (loss.code !== "UNSUPPORTED_TYPE") return true;
+    const column = snapshot.physical.tables
+      .find((table) => table.fullName === loss.table)
+      ?.columns.find((column) => column.name === loss.column);
+    return !(
+      column &&
+      /^(text|uuid|integer|int|int4|int8|bigint|smallint|boolean|bool|json|jsonb|date|timestamp|timestamptz|real|float|numeric|decimal|varchar)(\[\])+$/i.test(
+        column.type
+      )
+    );
+  });
 }

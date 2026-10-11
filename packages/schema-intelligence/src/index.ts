@@ -45,6 +45,7 @@ export {
   SCHEMA_SNAPSHOT_VERSION,
   schemaChanges,
   schemaSnapshot,
+  schemaSynchronizationLosses,
 } from "./schema-snapshot";
 export {
   checkDirectionSanity,
