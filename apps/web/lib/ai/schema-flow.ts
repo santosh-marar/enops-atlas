@@ -1,5 +1,9 @@
 import { checkDiffScope, diffSchemas } from "@enops/atlas-schema";
-import type { TaskPlan } from "@enops/atlas-schema-intelligence";
+import {
+  buildTranscript,
+  type ClarificationRound,
+  type TaskPlan,
+} from "@enops/atlas-schema-intelligence";
 import {
   buildPlan,
   generateDbmlFromPlan,
@@ -29,7 +33,11 @@ type TechStack = Record<string, string | null> | null;
 
 /** Step 1: understand the request and propose which tables are involved. Nothing changes yet. */
 export async function planRequest(input: {
+  /** No more questions: plan with stated assumptions. */
+  forcePlan?: boolean;
   dbml: string;
+  /** Earlier questions and the user's answers, oldest first. */
+  history?: ClarificationRound[];
   message: string;
   model: SchemaModel;
   techStack?: TechStack;
@@ -37,13 +45,14 @@ export async function planRequest(input: {
   const isNewSchema = input.dbml.trim().length === 0;
   const result = await buildPlan({
     entityName: null,
+    forcePlan: input.forcePlan,
     intentType: isNewSchema ? "generate" : "modify",
     isNewEntity: isNewSchema,
     model: input.model,
     originalMessage: input.message,
     retrievedContext: "",
     techStack: input.techStack,
-    transcript: input.message,
+    transcript: buildTranscript(input.message, input.history ?? []),
   });
 
   if (result.status === "needs_clarification") {

@@ -99,6 +99,7 @@ describe("planning an edit", () => {
         entityName: null,
         entityType: null,
         isNewEntity: false,
+        rawEntityMention: "orders",
         status: "not_found",
       },
       // the resolver tries once more with the full schema before giving up
@@ -107,6 +108,7 @@ describe("planning an edit", () => {
         entityName: null,
         entityType: null,
         isNewEntity: false,
+        rawEntityMention: "orders",
         status: "not_found",
       },
     ]);

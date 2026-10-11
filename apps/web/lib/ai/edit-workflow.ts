@@ -54,6 +54,37 @@ export function mentionSuggestions(dbml: string, fragment: string): string[] {
   }
 }
 
+const PRONOUNS = new Set([
+  "it",
+  "this",
+  "that",
+  "them",
+  "these",
+  "those",
+  "here",
+]);
+
+/** True when the user actually named something, rather than saying "it". */
+const isNamed = (mention?: string) =>
+  Boolean(mention && !PRONOUNS.has(mention.trim().toLowerCase()));
+
+/** Most questions asked before the plan goes ahead on stated assumptions. */
+export const MAX_QUESTIONS = 2;
+
+const GO_AHEAD =
+  /\b(just (do|make|build|create|generate)|go ahead|you (decide|choose|pick)|up to you|your (call|choice)|don'?t ask|stop asking|no more questions|make (a |the |me a )?schema|proceed|whatever)\b/i;
+
+/**
+ * True when the assistant should stop asking: it has already asked enough, or
+ * the user said to go ahead. The plan then lists what it assumed.
+ */
+export function shouldStopAsking(history: ClarificationRound[]): boolean {
+  return (
+    history.length >= MAX_QUESTIONS ||
+    history.some((round) => GO_AHEAD.test(round.answer))
+  );
+}
+
 /**
  * Step 1 for a request about an existing schema. Works out what the user means
  * (intent, then which table or column), looks only at the part of the schema
@@ -69,23 +100,49 @@ export async function planEdit(input: {
   onProgress?: (step: string) => void;
   techStack?: Record<string, string | null> | null;
 }): Promise<EditStep> {
+  const history = input.history ?? [];
+  const forcePlan = shouldStopAsking(history);
+  // The request together with every answer so far, so no step starts over.
+  const request = buildTranscript(input.message, history);
+
   // Nothing to edit yet: this is a new schema.
   if (input.dbml.trim().length === 0) {
     input.onProgress?.("Planning the new schema");
-    const step = await planRequest(input);
+    const step = await planRequest({ ...input, forcePlan, history });
     return step.kind === "plan" ? { ...step, retrievedContext: "" } : step;
   }
 
   const schema = toSchemaIR(input.dbml);
   input.onProgress?.("Understanding your request");
-  const { intentType } = await resolveIntent(input.message, input.model);
+  const { intentType } = await resolveIntent(request, input.model);
   input.onProgress?.("Finding the table or column you mean");
-  const entity = await resolveEntity(
-    input.message,
+  const resolved = await resolveEntity(
+    request,
     intentType,
     schema,
     input.model
   );
+  // Once asking has stopped, an unclear table means the whole schema, not
+  // another question.
+  // "add notifications on it" names nothing to look up, so there is nothing to
+  // ask about: a new feature goes in as a plan over the whole schema.
+  const namesNothing =
+    resolved.status === "not_found" &&
+    !isNamed(resolved.rawEntityMention) &&
+    (intentType === "add" ||
+      intentType === "modify" ||
+      intentType === "generate");
+  const entity =
+    (forcePlan &&
+      (resolved.status === "ambiguous" || resolved.status === "not_found")) ||
+    namesNothing
+      ? {
+          ...resolved,
+          entityName: null,
+          isNewEntity: false,
+          status: "not_applicable" as const,
+        }
+      : resolved;
 
   if (entity.status === "ambiguous") {
     return {
@@ -114,13 +171,14 @@ export async function planEdit(input: {
   input.onProgress?.("Writing the plan");
   const result = await buildPlan({
     entityName: entity.entityName,
+    forcePlan,
     intentType,
     isNewEntity: entity.isNewEntity,
     model: input.model,
     originalMessage: input.message,
     retrievedContext: context,
     techStack: input.techStack,
-    transcript: buildTranscript(input.message, input.history ?? []),
+    transcript: request,
   });
 
   if (result.status === "needs_clarification") {
