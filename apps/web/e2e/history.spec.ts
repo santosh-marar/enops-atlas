@@ -39,7 +39,8 @@ test("history keeps one version per real change and shows what changed", async (
 
   const dialog = page.getByRole("dialog");
   const saveVersion = async (description?: string) => {
-    await page.getByRole("button", { name: "New version" }).click();
+    await page.getByRole("button", { exact: true, name: "Action" }).hover();
+    await page.getByRole("menuitem", { name: "New Version" }).click();
     if (description) await dialog.getByRole("textbox").fill(description);
     await dialog.getByRole("button", { name: "Save Version" }).click();
     await expect(dialog).toBeHidden();
@@ -60,7 +61,8 @@ test("history keeps one version per real change and shows what changed", async (
     .poll(async () => (await readStore(page, "versions")).length)
     .toBe(2);
 
-  await page.getByRole("button", { exact: true, name: "History" }).click();
+  await page.getByRole("button", { exact: true, name: "Action" }).hover();
+  await page.getByRole("menuitem", { name: "Version History" }).click();
   await expect(dialog).toContainText("v2");
   await expect(dialog).toContainText("renamed table");
   await expect(dialog).toContainText("v1");

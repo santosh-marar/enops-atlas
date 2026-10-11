@@ -4,6 +4,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -11,15 +12,19 @@ interface ActionMenuProps {
   hasCurrentProject: boolean;
   onBrowse: () => void;
   onDelete: () => void;
+  onHistory: () => void;
   onImportDb?: () => void;
   onNew: () => void;
+  onNewVersion: () => void;
 }
 
 export function ActionMenu({
   onNew,
   onBrowse,
   onDelete,
+  onHistory,
   onImportDb,
+  onNewVersion,
   hasCurrentProject,
 }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
@@ -47,7 +52,7 @@ export function ActionMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="mt-1.5 w-36"
+        className="mt-1.5 w-40"
         onMouseEnter={handleOpen}
         onMouseLeave={handleClose}
       >
@@ -56,6 +61,12 @@ export function ActionMenu({
         <DropdownMenuItem onClick={() => onImportDb?.()}>
           Import DB
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onNewVersion}>New Version</DropdownMenuItem>
+        <DropdownMenuItem disabled={!hasCurrentProject} onClick={onHistory}>
+          Version History
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem disabled={!hasCurrentProject} onClick={onDelete}>
           Delete Project
         </DropdownMenuItem>

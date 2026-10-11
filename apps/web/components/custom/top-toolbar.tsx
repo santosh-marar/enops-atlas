@@ -1,7 +1,7 @@
 "use client";
 
 import { IconBrandGithub } from "@tabler/icons-react";
-import { Crown, GitBranch, Moon, Sun } from "lucide-react";
+import { Crown, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -296,9 +296,11 @@ export function TopToolbar({
               hasCurrentProject={!!currentProject}
               onBrowse={onBrowse}
               onDelete={handleDeleteWithDialog}
+              onHistory={() => setShowHistory(true)}
               // onExport={handleExportImage}
               onImportDb={() => setShowImportDbDialog(true)}
               onNew={handleNewWithConfirmation}
+              onNewVersion={() => setShowSaveVersion(true)}
             />
 
             <Button
@@ -355,15 +357,6 @@ export function TopToolbar({
           </span>
           <Button disabled={isSaving} onClick={handleSaveWithReset} size="sm">
             {isSaving ? <>Saving...</> : <>Save</>}
-          </Button>
-          <Button
-            onClick={() => setShowSaveVersion(true)}
-            size="sm"
-            title="Save this schema as a new version"
-            variant="ghost"
-          >
-            <GitBranch />
-            Version
           </Button>
           <SaveVersionModal
             isOpen={showSaveVersion}
