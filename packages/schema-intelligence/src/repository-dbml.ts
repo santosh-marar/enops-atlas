@@ -2,13 +2,15 @@ import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { importer } from "@dbml/core";
-import { drizzleToDbml } from "./adapters/drizzle";
+import { drizzleToDbml } from "./adapters/drizzle/to-dbml";
 import { normalizeDirectDbml } from "./direct-dbml";
 import { schemaSnapshot } from "./schema-snapshot";
 
 type SqlDialect = "postgres" | "mysql";
 
 export interface RepositoryDbmlResult {
+  /** Drizzle only: property names, export names and runtime hooks that DBML cannot hold. */
+  applicationBehavior?: Record<string, string>;
   dbml: string;
   digest: string;
   format: "dbml" | "prisma" | "drizzle" | SqlDialect;
@@ -98,13 +100,15 @@ export async function extractRepositoryDbml(
     dbml: string,
     format: RepositoryDbmlResult["format"],
     files: { path: string; content: string }[],
-    warnings: string[] = []
+    warnings: string[] = [],
+    applicationBehavior: Record<string, string> = {}
   ) => {
     const normalizedDbml = normalizeDirectDbml(dbml);
     const snapshot = schemaSnapshot(normalizedDbml);
     if (!snapshot.physical.tables.length)
       throw new Error("No tables detected; refusing an empty schema candidate");
     return {
+      applicationBehavior,
       dbml: normalizedDbml,
       digest: snapshot.digest,
       format,
@@ -169,7 +173,13 @@ export async function extractRepositoryDbml(
         "Both DBML and Drizzle found; select the authoritative database root"
       );
     const converted = drizzleToDbml(drizzleFiles);
-    return finish(converted.dbml, "drizzle", drizzleFiles, converted.warnings);
+    return finish(
+      converted.dbml,
+      "drizzle",
+      drizzleFiles,
+      converted.warnings,
+      converted.applicationBehavior
+    );
   }
   if (dbmlPaths.length) {
     const file = await read(dbmlPaths[0]!);

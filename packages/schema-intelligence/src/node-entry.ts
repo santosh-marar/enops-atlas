@@ -1,4 +1,4 @@
-export { drizzleToDbml } from "./adapters/drizzle";
+export { drizzleToDbml } from "./adapters/drizzle/to-dbml";
 export { prismaToDbml } from "./adapters/prisma";
 export {
   extractRepositoryDbml,

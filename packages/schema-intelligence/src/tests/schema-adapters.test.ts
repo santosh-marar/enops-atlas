@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { parseDbml } from "@enops/atlas-schema";
-import { drizzleToDbml } from "../adapters/drizzle";
+import { drizzleToDbml } from "../adapters/drizzle/to-dbml";
 import { prismaToDbml } from "../adapters/prisma";
 import { schemaChanges, schemaSnapshot } from "../schema-snapshot";
 
