@@ -1,14 +1,10 @@
 "use client";
 
-import type {
-  ClarificationRound,
-  TaskPlan,
-} from "@enops/atlas-schema-intelligence";
 import {
-  Loader2,
   Send,
   Settings,
   Sparkles,
+  Square,
   Trash2,
   Wrench,
   X,
@@ -17,37 +13,15 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { mentionSuggestions, planEdit } from "@/lib/ai/edit-workflow";
-import { generateFromPlan, type Proposal } from "@/lib/ai/schema-flow";
-import { schemaModel } from "@/lib/ai/schema-model";
+import { mentionSuggestions } from "@/lib/ai/edit-workflow";
 import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
 import type { TechStackType } from "./ai-tech-stack-dialog";
-import { getAISettings } from "./api-settings-dialog";
-import { SchemaMessages } from "./chat/schema-message";
-
-//  Constants
-const MODEL_KEY = "claude-haiku-4-5" as const;
-
-/** What waits for the user: nothing is written to the editor until they choose. */
-type Pending =
-  | { kind: "plan"; plan: TaskPlan; retrievedContext: string }
-  | { kind: "proposal"; proposal: Proposal };
-
-/** The assistant asked a question; the user's next message is the answer. */
-interface Awaiting {
-  message: string;
-  options?: string[];
-  question: string;
-  rounds: ClarificationRound[];
-}
-
-//  Types
-interface Message {
-  content: string;
-  id: string;
-  role: "user" | "assistant";
-}
+import { EmptyState } from "./chat/empty-state";
+import { ExecutionControls } from "./chat/execution-controls";
+import { MessageBubble } from "./chat/message-bubble";
+import { PastedBlockChip } from "./chat/pasted-block-chip";
+import { useChatSession } from "./chat/use-chat-session";
 
 interface AIChatProps {
   isOpen: boolean;
@@ -58,7 +32,15 @@ interface AIChatProps {
   projectId?: string;
 }
 
-//  Component
+interface PastedBlock {
+  id: string;
+  lineCount: number;
+  text: string;
+}
+
+// Pastes longer than this collapse into a chip instead of filling the textarea.
+const PASTE_LINE_THRESHOLD = 12;
+
 export function AIChat({
   isOpen,
   onClose,
@@ -67,216 +49,75 @@ export function AIChat({
   onOpenTechStack,
   projectId,
 }: AIChatProps) {
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const prevProjectIdRef = useRef<string | undefined>(undefined);
-
-  const [messages, setMessages] = useState<Message[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [pastedBlocks, setPastedBlocks] = useState<PastedBlock[]>([]);
   const [techStack, setTechStack] = useState<TechStackType | null>(null);
-  const [pending, setPending] = useState<Pending | null>(null);
-  const [awaiting, setAwaiting] = useState<Awaiting | null>(null);
   const dbml = useSchemaStore((state) => state.dbml);
 
-  // Load tech stack when panel opens
+  const chat = useChatSession({
+    dbml,
+    isOpen,
+    onNeedSettings: onOpenSettings,
+    onSchemaGenerated,
+    projectId,
+    techStack: techStack ? { ...techStack } : null,
+  });
+  const { isWorking, messages } = chat;
+
+  // Load tech stack when panel opens or the project changes.
   useEffect(() => {
     if (!isOpen) return;
-
-    const loadTechStack = async () => {
+    const load = async () => {
       try {
-        const currentProjectId = localStorage.getItem("current_project_id");
-        if (!currentProjectId) return;
-
-        const project = await db.projects.get(currentProjectId);
+        const id = projectId ?? localStorage.getItem("current_project_id");
+        if (!id) {
+          setTechStack(null);
+          return;
+        }
+        const project = await db.projects.get(id);
         setTechStack(project?.techStack ?? null);
       } catch (error) {
         console.error("Failed to load tech stack:", error);
       }
     };
+    load();
+  }, [isOpen, projectId]);
 
-    loadTechStack();
-  }, [isOpen]);
-
-  // Load chat history when project changes
+  // Keep the newest message, and the step being worked on, in view.
+  const lastSteps = messages.at(-1)?.steps?.length ?? 0;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when the content grows
   useEffect(() => {
-    if (!isOpen) return;
+    const element = scrollRef.current;
+    if (element) element.scrollTop = element.scrollHeight;
+  }, [messages.length, lastSteps, isWorking]);
 
-    const loadChatHistory = async () => {
-      const projectChanged = prevProjectIdRef.current !== projectId;
-      prevProjectIdRef.current = projectId;
+  const canSend =
+    Boolean(techStack) &&
+    !isWorking &&
+    (input.trim().length > 0 || pastedBlocks.length > 0);
 
-      if (!projectId) {
-        setMessages([]);
-        setTechStack(null);
-        return;
-      }
-
-      if (projectChanged) {
-        setMessages([]);
-      }
-
-      try {
-        const project = await db.projects.get(projectId);
-        if (project?.aiChatHistory?.length) {
-          setMessages(project.aiChatHistory);
-        } else if (projectChanged) {
-          setMessages([]);
-        }
-      } catch (error) {
-        console.error("Failed to load chat history:", error);
-      }
-    };
-
-    loadChatHistory();
-  }, [projectId, isOpen]);
-
-  // Persist chat history on message change
-  useEffect(() => {
-    if (!projectId || messages.length === 0) return;
-
-    const saveChatHistory = async () => {
-      try {
-        await db.projects.update(projectId, {
-          aiChatHistory: messages,
-          updatedAt: new Date(),
-        });
-      } catch (error) {
-        console.error("Failed to save chat history:", error);
-      }
-    };
-
-    saveChatHistory();
-  }, [messages, projectId]);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    // Guard: settings
-    const settings = await getAISettings();
-    if (!settings?.vercelAIKey) {
-      toast.error("Please configure your API keys first");
-      onOpenSettings();
-      return;
-    }
-
-    // Guard: tech stack
-    if (!techStack) {
-      toast.error("Please configure your tech stack first");
-      onOpenTechStack();
-      return;
-    }
-
-    const userMessage: Message = {
-      content: input,
-      id: Date.now().toString(),
-      role: "user",
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+  const handleSubmit = (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (!canSend) return;
+    // The model sees the typed text and the pasted blocks; the bubble stays short.
+    const text = [input.trim(), ...pastedBlocks.map((block) => block.text)]
+      .filter(Boolean)
+      .join("\n\n");
     setInput("");
-    setIsLoading(true);
-
-    try {
-      const model = schemaModel(MODEL_KEY, settings.vercelAIKey);
-      // Answering a question continues the same request.
-      const rounds: ClarificationRound[] = awaiting
-        ? [
-            ...awaiting.rounds,
-            { answer: userMessage.content, question: awaiting.question },
-          ]
-        : [];
-      const message = awaiting?.message ?? userMessage.content;
-      const step = await planEdit({
-        dbml,
-        history: rounds,
-        message,
-        model,
-        techStack: { ...techStack },
-      });
-      setAwaiting(
-        step.kind === "question"
-          ? { message, options: step.options, question: step.text, rounds }
-          : null
-      );
-      setPending(
-        step.kind === "plan"
-          ? {
-              kind: "plan",
-              plan: step.plan,
-              retrievedContext: step.retrievedContext,
-            }
-          : null
-      );
-      addAssistantMessage(step.kind === "plan" ? step.markdown : step.text);
-    } catch (error) {
-      console.error("AI request failed:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to get a response"
-      );
-      setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
-    } finally {
-      setIsLoading(false);
-    }
+    setPastedBlocks([]);
+    chat.sendMessage(text);
   };
 
-  const addAssistantMessage = (content: string) =>
-    setMessages((prev) => [
-      ...prev,
-      { content, id: `${Date.now()}-a`, role: "assistant" },
+  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = event.clipboardData.getData("text");
+    const lineCount = text.split("\n").length;
+    if (lineCount <= PASTE_LINE_THRESHOLD) return;
+    event.preventDefault();
+    setPastedBlocks((previous) => [
+      ...previous,
+      { id: `${Date.now()}-${previous.length}`, lineCount, text },
     ]);
-
-  // The user approved the plan: now the schema is written and checked.
-  const handleApprovePlan = async (
-    plan: TaskPlan,
-    retrievedContext: string
-  ) => {
-    const settings = await getAISettings();
-    if (!settings?.vercelAIKey) {
-      onOpenSettings();
-      return;
-    }
-    setPending(null);
-    setIsLoading(true);
-    try {
-      const proposal = await generateFromPlan({
-        dbml,
-        model: schemaModel(MODEL_KEY, settings.vercelAIKey),
-        plan,
-        retrievedContext,
-      });
-      setPending({ kind: "proposal", proposal });
-      addAssistantMessage(
-        proposal.valid
-          ? `Here is the schema. It parses and passes the checks.${
-              proposal.outsidePlan.length > 0
-                ? `\n\n**Careful:** it also changes ${proposal.outsidePlan.join(", ")}, which were not in the plan.`
-                : ""
-            }\n\n\`\`\`dbml\n${proposal.dbml.trim()}\n\`\`\``
-          : `I could not produce a valid schema, so nothing was applied:\n\n${proposal.problems.map((problem) => `- ${problem}`).join("\n")}`
-      );
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to generate the schema"
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleApplyProposal = (proposal: Proposal) => {
-    if (!proposal.valid) return;
-    onSchemaGenerated(proposal.dbml);
-    setPending(null);
-    toast.success("Schema applied");
   };
 
   // "@po" suggests tables and columns that exist.
@@ -285,32 +126,8 @@ export function AIChat({
   const insertMention = (name: string) =>
     setInput((current) => current.replace(/@[\w.]*$/, `${name} `));
 
-  const handleClearChat = async () => {
-    if (!confirm("Clear chat history? This cannot be undone.")) return;
-
-    setMessages([]);
-
-    if (projectId) {
-      try {
-        await db.projects.update(projectId, {
-          aiChatHistory: [],
-          updatedAt: new Date(),
-        });
-        toast.success("Chat history cleared");
-      } catch (error) {
-        console.error("Failed to clear chat history:", error);
-        toast.error("Failed to clear chat history");
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (input.trim() && techStack) {
-        handleSubmit(e as unknown as React.FormEvent);
-      }
-    }
+  const handleClear = () => {
+    if (confirm("Clear chat history? This cannot be undone.")) chat.clear();
   };
 
   return (
@@ -332,164 +149,65 @@ export function AIChat({
           {messages.length > 0 && (
             <button
               className="rounded-md p-2 transition-colors hover:bg-destructive/10 hover:text-destructive"
-              onClick={handleClearChat}
+              onClick={handleClear}
               title="Clear Chat History"
+              type="button"
             >
               <Trash2 className="h-4 w-4" />
             </button>
           )}
           <button
             className="rounded-md p-2 transition-colors hover:bg-muted"
-            onClick={onOpenTechStack}
-            title="Change Tech Stack"
-          >
-            <Wrench className="h-4 w-4" />
-          </button>
-          <button
-            className="rounded-md p-2 transition-colors hover:bg-muted"
             onClick={onOpenSettings}
             title="AI Settings"
+            type="button"
           >
             <Settings className="h-4 w-4" />
           </button>
           <button
+            aria-label="Close"
             className="rounded-md p-2 transition-colors hover:bg-muted"
             onClick={onClose}
+            type="button"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* Tech Stack Banner */}
-      {techStack && (
-        <div className="border-border border-b bg-muted/30 px-4 py-2.5">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-medium text-muted-foreground">
-              Tech Stack:
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                techStack.database,
-                techStack.orm,
-                techStack.language,
-                techStack.backendFramework,
-              ].map((item) => (
-                <span
-                  className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 font-medium"
-                  key={item}
-                >
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Chat Messages */}
+      {/* Messages */}
       <div
         className="flex-1 space-y-4 overflow-y-auto px-4 py-6"
-        ref={chatContainerRef}
+        ref={scrollRef}
       >
         {techStack ? (
           messages.length === 0 ? (
             <EmptyState />
           ) : (
             messages.map((message) => (
-              <div
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              <MessageBubble
+                currentDbml={dbml}
+                isWorking={isWorking}
                 key={message.id}
-              >
-                <div
-                  className={`w-full rounded-lg px-4 py-3 text-sm leading-relaxed ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "border border-border bg-card"
-                  }`}
-                >
-                  {message.role === "user" ? (
-                    <p className="wrap-break-word whitespace-pre-wrap">
-                      {message.content}
-                    </p>
-                  ) : (
-                    <SchemaMessages content={message.content} />
-                  )}
-                </div>
-              </div>
+                message={message}
+                onAnswer={chat.answerQuestion}
+                onApply={chat.applyProposal}
+                onApprovePlan={chat.approvePlan}
+                onDiscard={chat.discardProposal}
+                onRejectPlan={chat.rejectPlan}
+                onRestore={chat.restoreCheckpoint}
+                onRetry={chat.retry}
+              />
             ))
           )
         ) : (
           <NoTechStackState onOpenTechStack={onOpenTechStack} />
         )}
-
-        {awaiting?.options && awaiting.options.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {awaiting.options.map((option) => (
-              <Button
-                key={option}
-                onClick={() => setInput(option)}
-                size="sm"
-                variant="outline"
-              >
-                {option}
-              </Button>
-            ))}
-          </div>
-        )}
-        {pending?.kind === "plan" && (
-          <div className="flex gap-2">
-            <Button
-              onClick={() =>
-                handleApprovePlan(pending.plan, pending.retrievedContext)
-              }
-              size="sm"
-            >
-              Approve plan
-            </Button>
-            <Button
-              onClick={() => setPending(null)}
-              size="sm"
-              variant="outline"
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-        {pending?.kind === "proposal" && (
-          <div className="flex gap-2">
-            <Button
-              disabled={!pending.proposal.valid}
-              onClick={() => handleApplyProposal(pending.proposal)}
-              size="sm"
-            >
-              {pending.proposal.outsidePlan.length > 0
-                ? "Apply anyway"
-                : "Apply to editor"}
-            </Button>
-            <Button
-              onClick={() => setPending(null)}
-              size="sm"
-              variant="outline"
-            >
-              Discard
-            </Button>
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="flex w-full items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-muted-foreground">Working on it...</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Input */}
       <form
-        className="border-border border-t bg-card p-4"
+        className="border-border border-t bg-background p-3"
         onSubmit={handleSubmit}
       >
         {suggestions.length > 0 && (
@@ -506,42 +224,91 @@ export function AIChat({
             ))}
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="rounded-2xl border border-border bg-card shadow-sm transition-all focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/10">
+          {pastedBlocks.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 px-3 pt-3">
+              {pastedBlocks.map((block) => (
+                <PastedBlockChip
+                  key={block.id}
+                  lineCount={block.lineCount}
+                  onRemove={() =>
+                    setPastedBlocks((previous) =>
+                      previous.filter((item) => item.id !== block.id)
+                    )
+                  }
+                />
+              ))}
+            </div>
+          )}
           <Textarea
-            className="resize-none text-sm"
-            disabled={isLoading || !techStack}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+            className="max-h-40 min-h-11 resize-none border-0 bg-transparent px-3 pt-3 text-sm shadow-none focus-visible:ring-0"
+            disabled={isWorking || !techStack}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                handleSubmit();
+              }
+            }}
+            onPaste={handlePaste}
             placeholder={
               techStack
                 ? "Describe what to create or change. Type @ to mention a table or column."
                 : "Please configure your tech stack first..."
             }
-            rows={3}
+            rows={2}
             value={input}
           />
-          <Button
-            className="h-auto shrink-0"
-            disabled={isLoading || !input.trim() || !techStack}
-            size="icon"
-            type="submit"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-        <div className="mt-2 flex items-center justify-between text-muted-foreground text-xs">
-          {techStack ? (
-            <>
-              <p>Press Enter to send, Shift+Enter for new line</p>
-              {messages.length > 0 && <p>{messages.length} messages</p>}
-            </>
-          ) : (
-            <p>Configure tech stack to start using AI assistant</p>
-          )}
+          <div className="flex items-center justify-between gap-2 px-2.5 pb-2.5">
+            <button
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              onClick={onOpenTechStack}
+              title="Update tech stack"
+              type="button"
+            >
+              <Wrench className="h-4 w-4" />
+            </button>
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <ExecutionControls
+                disabled={isWorking}
+                onChange={chat.setPolicy}
+                value={chat.policy}
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <p className="mr-1.5 hidden text-[11px] text-muted-foreground sm:block">
+                {techStack
+                  ? "Enter to send · Shift+Enter for new line"
+                  : "Configure tech stack to start"}
+              </p>
+              {isWorking ? (
+                <Button
+                  aria-label="Stop"
+                  className="h-9 w-9 rounded-full"
+                  onClick={() => {
+                    chat.stop();
+                    toast.info("Stopping...");
+                  }}
+                  size="icon"
+                  title="Stop"
+                  type="button"
+                  variant="outline"
+                >
+                  <Square className="h-4 w-4 fill-current" />
+                </Button>
+              ) : (
+                <Button
+                  aria-label="Send"
+                  className="h-9 w-9 rounded-full"
+                  disabled={!canSend}
+                  size="icon"
+                  type="submit"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </form>
     </div>
@@ -549,36 +316,6 @@ export function AIChat({
 }
 
 //  Sub-components
-function EmptyState() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="rounded-lg border border-border bg-card p-8">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-          <Sparkles className="h-6 w-6 text-primary" />
-        </div>
-        <h3 className="mb-2 font-semibold text-base">AI Schema Assistant</h3>
-        <p className="mb-4 max-w-sm text-muted-foreground text-sm">
-          Describe your application and I will generate a production-ready
-          database schema with proper relationships, indexes, and constraints.
-        </p>
-        <div className="space-y-1.5 text-left text-muted-foreground text-xs">
-          {[
-            "Foreign key relationships",
-            "Optimized indexes",
-            "Data constraints",
-            "Scalability patterns",
-          ].map((feature) => (
-            <p className="flex items-center gap-2" key={feature}>
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              {feature}
-            </p>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function NoTechStackState({
   onOpenTechStack,
 }: {

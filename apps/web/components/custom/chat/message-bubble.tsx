@@ -78,7 +78,7 @@ export function MessageBubble({
               : "border-border bg-card"
           }`}
         >
-          {message.phase === "ANSWERED" ? (
+          {message.phase === "ANSWERED" || !message.phase ? (
             <SchemaMessages content={message.content} />
           ) : (
             <p className="wrap-break-word whitespace-pre-wrap">
