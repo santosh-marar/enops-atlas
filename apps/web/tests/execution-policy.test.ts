@@ -153,3 +153,18 @@ describe("the catalog", () => {
     }
   });
 });
+
+describe("thinking in agent mode", () => {
+  test("the chosen level is passed along, and a model without it ignores it", () => {
+    const chosen = chooseModels(
+      { ...DEFAULT_POLICY, complexity: "deep", reasoningEffort: "none" },
+      { dbml: SMALL, message: "x" }
+    );
+    expect(chosen.reasoningEffort).toBe("none");
+    // Opus has no "none": it is dropped rather than sent.
+    expect(
+      reasoningFor(chosen.capable, chosen.reasoningEffort)
+    ).toBeUndefined();
+    expect(reasoningFor("claude-haiku-5-5", "none")).toBe("none");
+  });
+});

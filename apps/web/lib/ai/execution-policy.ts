@@ -89,7 +89,9 @@ export function chooseModels(
   return {
     capable: complexityModel(complexity),
     fast: fastModel(),
-    reasoningEffort: "automatic",
+    // The chosen level applies to whichever model is picked; one that does
+    // not support it ignores it (see reasoningFor).
+    reasoningEffort: policy.reasoningEffort,
   };
 }
 
