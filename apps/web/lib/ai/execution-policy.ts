@@ -1,7 +1,8 @@
+import { latestClaude } from "./live-models";
 import {
-  MODEL_INFO,
-  MODELS,
+  gatewayId,
   type ModelKey,
+  modelInfo,
   type ReasoningEffort,
 } from "./model-registory";
 
@@ -28,15 +29,19 @@ export const DEFAULT_POLICY: ExecutionPolicy = {
   reasoningEffort: "automatic",
 };
 
-/** Small questions go to the cheap model for every step. */
-const FAST_MODEL: ModelKey = "claude-haiku-5-5";
-const COMPLEXITY_MODEL: Record<
-  Exclude<ExecutionComplexity, "auto">,
-  ModelKey
-> = {
-  balanced: "claude-sonnet-5-5",
-  deep: "claude-opus-5-5",
-  fast: "claude-haiku-5-5",
+/**
+ * Agent mode uses the newest Claude of each size, so it moves to new releases
+ * once the live catalog has loaded. The built-in ones are the fallback.
+ */
+const fastModel = () => latestClaude("haiku", "claude-haiku-5-5");
+const complexityModel = (
+  complexity: Exclude<ExecutionComplexity, "auto">
+): ModelKey => {
+  if (complexity === "deep") return latestClaude("opus", "claude-opus-5-5");
+  if (complexity === "balanced") {
+    return latestClaude("sonnet", "claude-sonnet-5-5");
+  }
+  return fastModel();
 };
 
 const RISKY_WORDS = /\b(rename|remove|drop|delete|migrate|split|merge)\b/i;
@@ -68,7 +73,7 @@ export function chooseModels(
   context: { dbml: string; message: string }
 ): ChosenModels {
   if (policy.control === "manual" && policy.modelKey) {
-    const efforts = MODEL_INFO[policy.modelKey].reasoningEfforts;
+    const efforts = modelInfo(policy.modelKey).reasoningEfforts;
     return {
       capable: policy.modelKey,
       fast: policy.modelKey,
@@ -82,8 +87,8 @@ export function chooseModels(
       ? inferComplexity(context.message, context.dbml)
       : policy.complexity;
   return {
-    capable: COMPLEXITY_MODEL[complexity],
-    fast: FAST_MODEL,
+    capable: complexityModel(complexity),
+    fast: fastModel(),
     reasoningEffort: "automatic",
   };
 }
@@ -97,7 +102,7 @@ type ProviderOptions = Record<string, Record<string, unknown>> | undefined;
  * which the gateway maps for every provider.
  */
 export function providerOptionsFor(modelKey: ModelKey): ProviderOptions {
-  return MODELS[modelKey].startsWith("openai/")
+  return gatewayId(modelKey)?.startsWith("openai/")
     ? { openai: { strictJsonSchema: false } }
     : undefined;
 }
@@ -108,7 +113,7 @@ export function reasoningFor(
   effort: ReasoningEffort
 ): Exclude<ReasoningEffort, "automatic"> | undefined {
   if (effort === "automatic") return undefined;
-  return MODEL_INFO[modelKey].reasoningEfforts.includes(effort)
+  return modelInfo(modelKey).reasoningEfforts.includes(effort)
     ? effort
     : undefined;
 }
@@ -127,7 +132,7 @@ export function loadPolicy(): ExecutionPolicy {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
     if (!saved || typeof saved !== "object") return DEFAULT_POLICY;
     const modelKey =
-      typeof saved.modelKey === "string" && saved.modelKey in MODELS
+      typeof saved.modelKey === "string" && gatewayId(saved.modelKey)
         ? (saved.modelKey as ModelKey)
         : undefined;
     return {

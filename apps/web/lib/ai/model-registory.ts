@@ -25,7 +25,7 @@ export const REASONING_LABEL: Record<ReasoningEffort, string> = {
   xhigh: "Extra high thinking",
 };
 
-interface ModelDefinition {
+export interface ModelDefinition {
   displayName: string;
   /** The gateway's id. */
   id: string;
@@ -179,13 +179,68 @@ const DEFINITIONS = {
     provider: "Alibaba (Qwen)",
     reasoningEfforts: ["automatic", "low", "medium", "xhigh"],
   },
-} as const satisfies Record<string, ModelDefinition>;
+} satisfies Record<string, ModelDefinition>;
 
-export type ModelKey = keyof typeof DEFINITIONS;
+/**
+ * A model's key. The built-in ones have short keys like "claude-sonnet-5-5";
+ * models found live from the gateway use the gateway's own id.
+ */
+export type ModelKey = string;
 
 /** Model key to the gateway's id. */
-export const MODELS = Object.fromEntries(
+export const MODELS: Record<ModelKey, string> = Object.fromEntries(
   Object.entries(DEFINITIONS).map(([key, model]) => [key, model.id])
-) as Record<ModelKey, string>;
+);
 
-export const MODEL_INFO = DEFINITIONS as Record<ModelKey, ModelDefinition>;
+export const MODEL_INFO: Record<ModelKey, ModelDefinition> = {
+  ...DEFINITIONS,
+};
+
+/** Keys the picker should not offer (retired or no longer recent). */
+const hidden = new Set<ModelKey>();
+const listeners = new Set<() => void>();
+let version = 0;
+
+/** What the picker shows, for a model it may not know (for example a saved choice that has since been retired). */
+export function modelInfo(key: ModelKey): ModelDefinition {
+  return (
+    MODEL_INFO[key] ?? {
+      displayName: key.split("/").pop() ?? key,
+      id: key,
+      provider: "Anthropic",
+      reasoningEfforts: AUTO,
+    }
+  );
+}
+
+/** The gateway id for a key. Gateway ids ("provider/name") pass through. */
+export function gatewayId(key: ModelKey): string | undefined {
+  return MODELS[key] ?? (key.includes("/") ? key : undefined);
+}
+
+/** Replaces the live part of the catalog and tells the picker. */
+export function setLiveCatalog(
+  models: Record<ModelKey, ModelDefinition>,
+  hide: Iterable<ModelKey>
+): void {
+  for (const [key, model] of Object.entries(models)) {
+    MODELS[key] = model.id;
+    MODEL_INFO[key] = model;
+  }
+  hidden.clear();
+  for (const key of hide) hidden.add(key);
+  version += 1;
+  for (const listener of listeners) listener();
+}
+
+/** Keys to offer, in registry order. */
+export function visibleModelKeys(): ModelKey[] {
+  return Object.keys(MODELS).filter((key) => !hidden.has(key));
+}
+
+export function subscribeCatalog(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export const catalogVersion = () => version;

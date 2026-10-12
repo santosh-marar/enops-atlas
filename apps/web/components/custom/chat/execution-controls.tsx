@@ -7,6 +7,7 @@ import {
   Route,
   SlidersHorizontal,
 } from "lucide-react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,13 +30,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ExecutionPolicy } from "@/lib/ai/execution-policy";
+import { refreshModelCatalog } from "@/lib/ai/live-models";
 import {
-  MODEL_INFO,
-  MODELS,
+  catalogVersion,
   type ModelKey,
+  modelInfo,
   PROVIDERS,
   REASONING_LABEL,
   type ReasoningEffort,
+  subscribeCatalog,
+  visibleModelKeys,
 } from "@/lib/ai/model-registory";
 
 const MODES = [
@@ -76,12 +80,19 @@ const COMPLEXITY_NAME: Record<ExecutionPolicy["complexity"], string> = {
 
 const effortLabel = (effort: ReasoningEffort) => REASONING_LABEL[effort];
 
-const MODEL_KEYS = Object.keys(MODELS) as ModelKey[];
+/** The models on offer. It updates itself once the live list arrives. */
+function useModelKeys(): ModelKey[] {
+  useSyncExternalStore(subscribeCatalog, catalogVersion, catalogVersion);
+  useEffect(() => {
+    refreshModelCatalog();
+  }, []);
+  return visibleModelKeys();
+}
 
 /** What the model chip says: who chooses, or which model and how hard it thinks. */
 function modelSummary(value: ExecutionPolicy) {
   if (value.control === "manual" && value.modelKey) {
-    const name = MODEL_INFO[value.modelKey].displayName;
+    const name = modelInfo(value.modelKey).displayName;
     return value.reasoningEffort === "automatic"
       ? name
       : `${name} · ${value.reasoningEffort}`;
@@ -159,10 +170,16 @@ function ModelSettings({
   onChange: (value: ExecutionPolicy) => void;
   value: ExecutionPolicy;
 }) {
+  const liveKeys = useModelKeys();
+  // A saved choice that has since dropped out of the list stays selectable.
+  const modelKeys =
+    value.modelKey && !liveKeys.includes(value.modelKey)
+      ? [...liveKeys, value.modelKey]
+      : liveKeys;
   const patch = (next: Partial<ExecutionPolicy>) =>
     onChange({ ...value, ...next });
   const efforts = value.modelKey
-    ? MODEL_INFO[value.modelKey].reasoningEfforts
+    ? modelInfo(value.modelKey).reasoningEfforts
     : (["automatic"] as ReasoningEffort[]);
   const manual = value.control === "manual";
 
@@ -220,8 +237,8 @@ function ModelSettings({
           {manual ? (
             <div className="space-y-2">
               <Select
-                items={MODEL_KEYS.map((key) => ({
-                  label: MODEL_INFO[key].displayName,
+                items={modelKeys.map((key) => ({
+                  label: modelInfo(key).displayName,
                   value: key,
                 }))}
                 onValueChange={(next) => {
@@ -229,9 +246,9 @@ function ModelSettings({
                   const modelKey = next as ModelKey;
                   patch({
                     modelKey,
-                    reasoningEffort: MODEL_INFO[
+                    reasoningEffort: modelInfo(
                       modelKey
-                    ].reasoningEfforts.includes(value.reasoningEffort)
+                    ).reasoningEfforts.includes(value.reasoningEffort)
                       ? value.reasoningEffort
                       : "automatic",
                   });
@@ -248,13 +265,13 @@ function ModelSettings({
                   {PROVIDERS.map((provider) => (
                     <SelectGroup key={provider}>
                       <SelectLabel>{provider}</SelectLabel>
-                      {MODEL_KEYS.filter(
-                        (key) => MODEL_INFO[key].provider === provider
-                      ).map((key) => (
-                        <SelectItem key={key} value={key}>
-                          {MODEL_INFO[key].displayName}
-                        </SelectItem>
-                      ))}
+                      {modelKeys
+                        .filter((key) => modelInfo(key).provider === provider)
+                        .map((key) => (
+                          <SelectItem key={key} value={key}>
+                            {modelInfo(key).displayName}
+                          </SelectItem>
+                        ))}
                     </SelectGroup>
                   ))}
                 </SelectContent>
