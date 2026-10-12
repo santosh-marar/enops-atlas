@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Settings, Square, Trash2, Wrench, X } from "lucide-react";
+import { Columns3, Settings, Table2, Trash2, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,10 @@ import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
 import type { TechStackType } from "./ai-tech-stack-dialog";
 import { EmptyState } from "./chat/empty-state";
-import { ExecutionControls } from "./chat/execution-controls";
+import { ModelPicker, ModePicker, nextMode } from "./chat/execution-controls";
 import { MessageBubble } from "./chat/message-bubble";
 import { PastedBlockChip } from "./chat/pasted-block-chip";
+import { PromptComposer } from "./chat/prompt-composer";
 import { useChatSession } from "./chat/use-chat-session";
 
 interface AIChatProps {
@@ -27,6 +28,25 @@ interface PastedBlock {
   id: string;
   lineCount: number;
   text: string;
+}
+
+const DATABASE_LABELS: Record<string, string> = {
+  mongodb: "MongoDB",
+  mysql: "MySQL",
+  postgresql: "PostgreSQL",
+  sqlite: "SQLite",
+};
+
+function stackLabel(stack: TechStackType) {
+  const orm =
+    stack.orm && !["unknown", "none"].includes(stack.orm)
+      ? `${stack.orm[0]?.toUpperCase()}${stack.orm.slice(1)}`
+      : null;
+  return (
+    [DATABASE_LABELS[stack.database] ?? stack.database, orm]
+      .filter(Boolean)
+      .join(" · ") || "Tech stack"
+  );
 }
 
 // Pastes longer than this collapse into a chip instead of filling the textarea.
@@ -204,106 +224,117 @@ export function AIChat({
       </div>
 
       {/* Composer */}
-      <form className="shrink-0 p-3" onSubmit={handleSubmit}>
-        {suggestions.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1">
-            {suggestions.map((name) => (
-              <button
-                className="rounded border px-2 py-0.5 text-xs hover:bg-muted"
-                key={name}
-                onClick={() => insertMention(name)}
-                type="button"
+      <div className="shrink-0 p-3">
+        <PromptComposer
+          above={
+            suggestions.length > 0 ? (
+              <div
+                aria-label="Mention a table or column"
+                className="absolute right-0 bottom-full left-0 z-20 mb-2 max-h-56 overflow-y-auto rounded-lg border bg-popover p-1 shadow-md"
+                role="listbox"
               >
-                {name}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="rounded-xl border border-border bg-card shadow-sm transition-colors focus-within:border-primary/50">
-          {pastedBlocks.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
-              {pastedBlocks.map((block) => (
-                <PastedBlockChip
-                  key={block.id}
-                  lineCount={block.lineCount}
-                  onRemove={() =>
-                    setPastedBlocks((previous) =>
-                      previous.filter((item) => item.id !== block.id)
-                    )
-                  }
-                />
-              ))}
-            </div>
-          )}
-          <textarea
-            aria-label="Message the assistant"
-            className="block max-h-60 min-h-[3.25rem] w-full resize-none bg-transparent px-3.5 pt-3 pb-1 text-sm leading-relaxed outline-none [field-sizing:content] placeholder:text-muted-foreground disabled:opacity-60"
-            disabled={isWorking || !techStack}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                handleSubmit();
-              }
-            }}
-            onPaste={handlePaste}
-            placeholder={
-              techStack
-                ? "Describe what to create or change. Type @ to mention a table or column."
-                : "Please configure your tech stack first..."
-            }
-            rows={2}
-            value={input}
-          />
-          <div className="flex items-center gap-1 px-2 pb-2">
-            <Button
-              aria-label="Update tech stack"
-              className="size-8"
-              onClick={onOpenTechStack}
-              size="icon"
-              title="Update tech stack"
-              type="button"
-              variant="ghost"
-            >
-              <Wrench className="size-4" />
-            </Button>
-            <ExecutionControls
+                {suggestions.map((name) => {
+                  const [table, column] = name.split(".");
+                  const Icon = column ? Columns3 : Table2;
+                  return (
+                    <button
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted"
+                      key={name}
+                      onClick={() => insertMention(name)}
+                      onMouseDown={(event) => event.preventDefault()}
+                      role="option"
+                      type="button"
+                    >
+                      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                      <span className="truncate font-medium">
+                        {column ?? table}
+                      </span>
+                      {column && (
+                        <span className="ml-auto truncate text-muted-foreground">
+                          {table}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : undefined
+          }
+          actions={
+            <ModelPicker
               disabled={isWorking}
               onChange={chat.setPolicy}
               value={chat.policy}
             />
-            <div className="ml-auto">
-              {isWorking ? (
-                <Button
-                  aria-label="Stop"
-                  className="size-8 rounded-full"
-                  onClick={() => {
-                    chat.stop();
-                    toast.info("Stopping...");
-                  }}
-                  size="icon"
-                  title="Stop"
-                  type="button"
-                  variant="secondary"
-                >
-                  <Square className="size-3.5 fill-current" />
-                </Button>
-              ) : (
-                <Button
-                  aria-label="Send"
-                  className="size-8 rounded-full"
-                  disabled={!canSend}
-                  size="icon"
-                  title="Send (Enter). Shift+Enter for a new line"
-                  type="submit"
-                >
-                  <ArrowUp className="size-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </form>
+          }
+          attachments={
+            pastedBlocks.length > 0
+              ? pastedBlocks.map((block) => (
+                  <PastedBlockChip
+                    key={block.id}
+                    lineCount={block.lineCount}
+                    onRemove={() =>
+                      setPastedBlocks((previous) =>
+                        previous.filter((item) => item.id !== block.id)
+                      )
+                    }
+                  />
+                ))
+              : undefined
+          }
+          busy={isWorking}
+          canSubmit={canSend}
+          disabled={!techStack}
+          footer={
+            <>
+              <span className="flex min-w-0 items-center gap-1.5 px-2 text-muted-foreground text-xs">
+                <span
+                  className={`size-1.5 shrink-0 rounded-full ${
+                    isWorking
+                      ? "animate-pulse bg-primary"
+                      : "bg-muted-foreground/50"
+                  }`}
+                />
+                {isWorking ? "Working" : "Ready"}
+              </span>
+              <Button
+                className="h-7 gap-1.5 px-2 font-normal text-muted-foreground text-xs hover:text-foreground"
+                onClick={onOpenTechStack}
+                title="Update tech stack"
+                type="button"
+                variant="ghost"
+              >
+                <Wrench className="size-3.5" />
+                {techStack ? stackLabel(techStack) : "Set tech stack"}
+              </Button>
+            </>
+          }
+          label="Message the assistant"
+          onCycleMode={() =>
+            chat.setPolicy({ ...chat.policy, mode: nextMode(chat.policy.mode) })
+          }
+          onPaste={handlePaste}
+          onStop={() => {
+            chat.stop();
+            toast.info("Stopping...");
+          }}
+          onSubmit={() => handleSubmit()}
+          onValueChange={(value) => setInput(value)}
+          placeholder={
+            techStack
+              ? "Describe what to create or change. Type @ to mention a table or column."
+              : "Please configure your tech stack first..."
+          }
+          tools={
+            <ModePicker
+              disabled={isWorking}
+              onChange={chat.setPolicy}
+              value={chat.policy}
+            />
+          }
+          value={input}
+        />
+      </div>
     </div>
   );
 }

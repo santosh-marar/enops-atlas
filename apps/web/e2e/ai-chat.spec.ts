@@ -190,33 +190,33 @@ test("a proposal is refused once the schema has changed", async ({ page }) => {
   ).toBeDisabled();
 });
 
-test("the mode and model can be chosen, and the choice is remembered", async ({
+test("the mode, model and thinking can be chosen, and the choice is remembered", async ({
   page,
 }) => {
   await seed(page, []);
-  await expect(page.getByRole("button", { name: "Mode: Auto" })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Model settings" })
-  ).toContainText("Agent");
+  const mode = page.getByTitle("Mode (Alt+M to switch)");
+  const model = page.getByTitle("Model and thinking");
+  await expect(mode).toContainText("Auto");
+  await expect(model).toContainText("Auto");
 
-  await page.getByRole("button", { name: "Model settings" }).click();
-  await page.getByRole("button", { name: "Manual" }).click();
-  await expect(page.getByRole("combobox", { name: "Model" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Model" })).toContainText(
-    "Claude Sonnet 5.5"
-  );
+  await mode.click();
+  await page.getByRole("menuitemradio", { name: /^Plan/ }).click();
+  await expect(mode).toContainText("Plan");
+
+  await model.click();
+  // Thinking can be set while the app still picks the model.
+  await page.getByRole("button", { exact: true, name: "High" }).click();
+  await page.getByRole("menuitemradio", { name: "Claude Sonnet 5.5" }).click();
   await page.keyboard.press("Escape");
-
-  await page.getByRole("button", { name: "Mode: Auto" }).click();
-  await page.getByRole("menuitem", { name: /^Plan/ }).click();
-  await expect(page.getByRole("button", { name: "Mode: Plan" })).toBeVisible();
+  await expect(model).toContainText("Claude Sonnet 5.5");
+  await expect(model).toContainText("High thinking");
 
   await page.reload();
   await page.getByTitle("AI Schema Assistant").click();
-  await expect(page.getByRole("button", { name: "Mode: Plan" })).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Model settings" })
-  ).toContainText("Claude Sonnet 5.5");
+  await expect(page.getByTitle("Mode (Alt+M to switch)")).toContainText("Plan");
+  await expect(page.getByTitle("Model and thinking")).toContainText(
+    "Claude Sonnet 5.5"
+  );
 });
 
 test("a running request shows its steps and can be stopped, then retried", async ({
