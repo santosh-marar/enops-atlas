@@ -87,13 +87,13 @@ const DEFINITIONS = {
     displayName: "Claude Opus 5.5",
     id: "anthropic/claude-opus-5.5",
     provider: "Anthropic",
-    reasoningEfforts: LOW_TO_XHIGH,
+    reasoningEfforts: WITH_OFF,
   },
   "claude-sonnet-5-5": {
     displayName: "Claude Sonnet 5.5",
     id: "anthropic/claude-sonnet-5.5",
     provider: "Anthropic",
-    reasoningEfforts: LOW_TO_XHIGH,
+    reasoningEfforts: WITH_OFF,
   },
   "deepseek-v4-1-flash": {
     displayName: "DeepSeek V4.1 Flash",

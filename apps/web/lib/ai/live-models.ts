@@ -53,12 +53,16 @@ function effortsOf(model: GatewayModel): ReasoningEffort[] {
   const options = model.reasoning_options ?? [];
   const effort = options.find((option) => option.type === "effort");
   if (effort?.values) {
-    return [
-      "automatic",
-      ...(effort.values.filter((value) =>
-        EFFORTS.has(value)
-      ) as ReasoningEffort[]),
-    ];
+    const levels = effort.values.filter((value) =>
+      EFFORTS.has(value)
+    ) as ReasoningEffort[];
+    // The gateway lists Claude's effort levels only, but thinking can always
+    // be switched off on Claude (checked against the live API).
+    const off =
+      model.id.startsWith("anthropic/") && !levels.includes("none")
+        ? (["none"] as ReasoningEffort[])
+        : [];
+    return ["automatic", ...off, ...levels];
   }
   if (options.some((option) => option.type === "toggle")) {
     return ["automatic", "none"];

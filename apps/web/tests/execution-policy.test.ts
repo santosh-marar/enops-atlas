@@ -116,8 +116,8 @@ describe("reasoning", () => {
     expect(reasoningFor("gemini-3-8-flash", "medium")).toBeUndefined();
     // MiniMax has no effort option at all
     expect(reasoningFor("minimax-m3", "high")).toBeUndefined();
-    // Opus cannot turn thinking off
-    expect(reasoningFor("claude-opus-5-5", "none")).toBeUndefined();
+    // Gemini cannot turn thinking off
+    expect(reasoningFor("gemini-3-1-pro", "none")).toBeUndefined();
   });
 });
 
@@ -161,10 +161,10 @@ describe("thinking in agent mode", () => {
       { dbml: SMALL, message: "x" }
     );
     expect(chosen.reasoningEffort).toBe("none");
-    // Opus has no "none": it is dropped rather than sent.
-    expect(
-      reasoningFor(chosen.capable, chosen.reasoningEffort)
-    ).toBeUndefined();
+    // Claude can always switch thinking off.
+    expect(reasoningFor(chosen.capable, chosen.reasoningEffort)).toBe("none");
     expect(reasoningFor("claude-haiku-5-5", "none")).toBe("none");
+    // Gemini has no "none": it is dropped rather than sent.
+    expect(reasoningFor("gemini-3-1-pro", "none")).toBeUndefined();
   });
 });

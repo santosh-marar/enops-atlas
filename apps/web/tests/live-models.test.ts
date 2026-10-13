@@ -52,8 +52,24 @@ describe("live catalog", () => {
       displayName: "Claude Sonnet 6",
       id: "anthropic/claude-sonnet-6",
       provider: "Anthropic",
-      reasoningEfforts: ["automatic", "low", "high"],
+      reasoningEfforts: ["automatic", "none", "low", "high"],
     });
+  });
+
+  test("only Claude gains an off switch the gateway does not list", () => {
+    const { models } = buildCatalog(
+      [
+        model("openai/gpt-9", 1, {
+          reasoning_options: [{ type: "effort", values: ["low", "high"] }],
+        }),
+      ],
+      {}
+    );
+    expect(models["openai/gpt-9"]?.reasoningEfforts).toEqual([
+      "automatic",
+      "low",
+      "high",
+    ]);
   });
 
   test("image, fast and dated variants and models without structured output are left out", () => {
