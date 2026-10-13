@@ -91,6 +91,7 @@
     "buildPlan",
     "generateDbmlFromPlan",
     "generateDbmlPipeline",
+    "isQualityRequest",
     "resolveEntity",
     "resolveIntent"
   ],
