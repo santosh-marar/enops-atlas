@@ -5,9 +5,11 @@ import type { AIBaseOptions } from "../types";
 //  Resuable ai function
 export function streamAI(opts: AIBaseOptions & { apiKey: string }) {
   return streamText({
+    abortSignal: opts.abortSignal,
     maxOutputTokens: opts.maxOutputTokens || 4096,
     messages: opts.messages,
     model: resolveModel(opts.modelKey, opts.apiKey),
+    reasoning: opts.reasoning,
     system: opts.system,
     temperature: opts.temperature || 0.1,
     toolChoice: opts.toolChoice,

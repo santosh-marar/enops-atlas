@@ -6,6 +6,7 @@ import {
   Download,
   Settings as SettingsIcon,
   Sparkles,
+  Square,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -28,7 +29,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type ModelKey, streamAI } from "@/lib/ai";
+import { streamAI } from "@/lib/ai";
+import {
+  chooseModels,
+  loadPolicy,
+  reasoningFor,
+} from "@/lib/ai/execution-policy";
+import { modelInfo } from "@/lib/ai/model-registory";
 import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
 import { APISettingsDialog } from "../../api-settings-dialog";
@@ -94,6 +101,8 @@ export function AIDialog({ open, onOpenChange }: AIDialogProps) {
   const [selectedDatabase, setSelectedDatabase] = useState<Database | "">("");
   const [generatedCode, setGeneratedCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [usedModel, setUsedModel] = useState<string | null>(null);
+  const controllerRef = useRef<AbortController | null>(null);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("configure");
   const textareaRef = useRef<HTMLPreElement>(null);
@@ -115,6 +124,8 @@ Please provide complete, production-ready code with:
   const handleGenerate = async () => {
     if (!(selectedORM && selectedDatabase)) return;
 
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setIsGenerating(true);
     setGeneratedCode("");
     setActiveTab("preview");
@@ -137,35 +148,59 @@ Please provide complete, production-ready code with:
         return;
       }
 
-      const modelKey: ModelKey = "claude-sonnet-5-5";
       const prompt = generatePrompt();
+      // Same model and thinking as the chat: the choice in its composer.
+      const chosen = chooseModels(loadPolicy(), { dbml, message: prompt });
+      const modelKey = chosen.capable;
+      setUsedModel(modelInfo(modelKey).displayName);
       let streamedCode = "";
 
       const result = streamAI({
+        abortSignal: controller.signal,
         apiKey: vercelAIKey,
         maxOutputTokens: 8192,
         messages: [{ content: prompt, role: "user" }],
         modelKey,
+        reasoning: reasoningFor(modelKey, chosen.reasoningEffort),
         system: `You are an expert ${selectedORM} developer generating production-ready schema for ${selectedDatabase}. Give user no explanations, just the schema or nothing else.`,
         temperature: 0.1,
       });
 
+      // Nothing reads these after Stop; keep their abort from going unhandled.
+      for (const pending of [result.text, result.response, result.usage]) {
+        Promise.resolve(pending).catch(() => undefined);
+      }
       for await (const part of result.fullStream) {
+        if (controller.signal.aborted) break;
         if (part.type === "text-delta") {
           streamedCode += part.text;
           setGeneratedCode(streamedCode);
         }
       }
 
-      toast.success("Code generated successfully");
+      if (!controller.signal.aborted) {
+        toast.success("Code generated successfully");
+      }
     } catch (error: any) {
+      // Stop already reported it; a late abort error is expected.
+      if (controller.signal.aborted) return;
       toast.error(error.message || "Failed to generate code");
       setGeneratedCode(
         `Error: ${error.message || "Failed to generate code. Please try again."}`
       );
     } finally {
-      setIsGenerating(false);
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+        setIsGenerating(false);
+      }
     }
+  };
+
+  const handleStop = () => {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setIsGenerating(false);
+    toast.info("Stopped");
   };
 
   const handleCopy = async () => {
@@ -334,11 +369,17 @@ Please provide complete, production-ready code with:
                   {isGenerating && (
                     <div className="flex items-center gap-1 text-muted-foreground text-xs">
                       <Sparkles className="h-3 w-3 animate-pulse" />
-                      <span>Generating...</span>
+                      <span>Generating with {usedModel}...</span>
                     </div>
                   )}
                 </div>
                 <div className="flex gap-2 pb-2">
+                  {isGenerating && (
+                    <Button onClick={handleStop} size="sm" variant="outline">
+                      <Square className="h-3 w-3 fill-current" />
+                      Stop
+                    </Button>
+                  )}
                   <Button
                     disabled={!generatedCode || isGenerating}
                     onClick={handleCopy}
