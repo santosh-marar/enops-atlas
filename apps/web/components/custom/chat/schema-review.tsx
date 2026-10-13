@@ -6,8 +6,79 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import type { ChatMessage } from "@/lib/ai/chat-types";
+import { type ProposalChange, proposalChanges } from "@/lib/proposal-changes";
+import { cn } from "@/lib/utils";
+
+const KIND_LABEL: Record<ProposalChange["kind"], string> = {
+  added: "New",
+  changed: "Changed",
+  removed: "Removed",
+};
+
+function DbmlBlock({ code, label }: { code?: string; label: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="mb-1 text-[11px] text-muted-foreground">{label}</p>
+      <pre className="max-h-64 overflow-auto border-border border-l-2 pl-3 font-mono text-[11px] leading-relaxed">
+        {code?.trim() || "No schema yet"}
+      </pre>
+    </div>
+  );
+}
+
+/** Only the tables and enums the proposal touches, each before and after. */
+function ChangedBlocks({ changes }: { changes: ProposalChange[] }) {
+  if (changes.length === 0) {
+    return (
+      <p className="mt-2 text-muted-foreground text-xs">
+        No tables or enums change.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-2 space-y-3">
+      {changes.map((change) => (
+        <div key={`${change.type}:${change.name}`}>
+          <p className="mb-1 flex items-center gap-1.5 text-xs">
+            <span
+              className={cn(
+                "px-1 font-medium text-[10px] uppercase",
+                change.kind === "added" &&
+                  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+                change.kind === "changed" &&
+                  "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                change.kind === "removed" &&
+                  "bg-destructive/15 text-destructive"
+              )}
+            >
+              {KIND_LABEL[change.kind]}
+            </span>
+            <span className="font-mono">{change.name}</span>
+            {change.type === "enum" && (
+              <span className="text-muted-foreground">enum</span>
+            )}
+          </p>
+          <div
+            className={cn(
+              "grid gap-3",
+              change.kind === "changed" && "lg:grid-cols-2"
+            )}
+          >
+            {change.kind !== "added" && (
+              <DbmlBlock code={change.before} label="Current" />
+            )}
+            {change.kind !== "removed" && (
+              <DbmlBlock code={change.after} label="Proposed" />
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /** The written schema, waiting for the user to apply or discard it. */
 export function SchemaReview({
@@ -27,6 +98,15 @@ export function SchemaReview({
   onRetry: () => void;
 }) {
   const { proposal } = message;
+  // Null when either side cannot be read; the full schemas are shown then.
+  const changes = useMemo(() => {
+    if (!proposal) return null;
+    try {
+      return proposalChanges(message.previousDbml ?? "", proposal.dbml);
+    } catch {
+      return null;
+    }
+  }, [message.previousDbml, proposal]);
   if (!proposal) return null;
 
   return (
@@ -63,21 +143,18 @@ export function SchemaReview({
       <details className="group">
         <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-muted-foreground text-xs hover:text-foreground">
           <ChevronRight className="size-3 transition-transform group-open:rotate-90" />
-          Compare current and proposed DBML
+          {changes
+            ? `Compare changes (${changes.length} ${changes.length === 1 ? "item" : "items"})`
+            : "Compare current and proposed DBML"}
         </summary>
-        <div className="mt-2 grid gap-3 lg:grid-cols-2">
-          {[
-            { code: message.previousDbml, label: "Current schema" },
-            { code: proposal.dbml, label: "Proposed schema" },
-          ].map(({ code, label }) => (
-            <div className="min-w-0" key={label}>
-              <p className="mb-1 text-[11px] text-muted-foreground">{label}</p>
-              <pre className="max-h-64 overflow-auto border-border border-l-2 pl-3 font-mono text-[11px] leading-relaxed">
-                {code?.trim() || "No schema yet"}
-              </pre>
-            </div>
-          ))}
-        </div>
+        {changes ? (
+          <ChangedBlocks changes={changes} />
+        ) : (
+          <div className="mt-2 grid gap-3 lg:grid-cols-2">
+            <DbmlBlock code={message.previousDbml} label="Current schema" />
+            <DbmlBlock code={proposal.dbml} label="Proposed schema" />
+          </div>
+        )}
       </details>
 
       {proposal.attempts > 1 && (

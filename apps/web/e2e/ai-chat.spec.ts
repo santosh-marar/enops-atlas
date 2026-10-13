@@ -173,6 +173,16 @@ test("applying a proposal saves a checkpoint, and it can be restored", async ({
   ).toBeVisible();
 });
 
+test("comparing a proposal shows only what it changes", async ({ page }) => {
+  await seed(page, [user, proposalMessage]);
+  await page.getByText("Compare changes (1 item)").click();
+  const proposed = page.locator("pre", { hasText: "Table posts" });
+  await expect(proposed).toBeVisible();
+  await expect(page.getByText("New", { exact: true })).toBeVisible();
+  // The unchanged users table is not repeated.
+  await expect(page.locator("pre", { hasText: "Table users" })).toHaveCount(0);
+});
+
 test("a proposal is refused once the schema has changed", async ({ page }) => {
   await seed(page, [user, proposalMessage]);
   // Edit the schema in the editor, then come back to the chat.
