@@ -15,7 +15,7 @@ import {
 } from "../validator/direction-sanity";
 import { type ValidationIssue, validate } from "../validator/validator";
 
-const DbmlOutputSchema = z.object({
+export const DbmlOutputSchema = z.object({
   dbml: z
     .string()
     .describe(
@@ -65,6 +65,64 @@ export interface GenerateSchemaDbmlResult {
 }
 
 /**
+ * Checks one DBML text: parse, validate, normalize, sanity-check, score.
+ * `result` is what to return if no retry is left; `feedback` is set when the
+ * text is worth another try (it did not parse, or it has validation errors)
+ * and holds the message that tells the model only what is broken.
+ */
+export function evaluateDbml(
+  dbml: string,
+  attempts: number
+): { feedback?: string; result: GenerateSchemaDbmlResult } {
+  const { schema: normalized, parseErrors } = parseDbmlSafely(dbml);
+
+  if (!normalized) {
+    return {
+      feedback: `That DBML failed to parse. Fix ONLY the syntax errors, keep everything else the same:\n${parseErrors.join("\n")}`,
+      result: {
+        attempts,
+        canonical: null,
+        confidence: null,
+        dbml,
+        directionSanity: null,
+        issues: [],
+        normalized: null,
+        normalizeErrors: [],
+        parseErrors,
+        parseFailed: true,
+        valid: false,
+      },
+    };
+  }
+
+  const graph = new SchemaGraph(normalized);
+  const validation = validate(normalized, graph);
+  const { schema: canonical, errors: normalizeErrors } = normalize(normalized);
+  const rendered = renderDbml(canonical);
+
+  return {
+    feedback: validation.valid
+      ? undefined
+      : `That schema has validation errors. Fix ONLY what is broken, keep everything else the same:\n${validation.errors
+          .map((e) => `- [${e.code}] ${e.message}`)
+          .join("\n")}`,
+    result: {
+      attempts,
+      canonical,
+      confidence: scoreSchema(canonical),
+      dbml: rendered,
+      directionSanity: checkDirectionSanity(normalized),
+      issues: validation.issues,
+      normalized,
+      normalizeErrors,
+      parseErrors: [],
+      parseFailed: false,
+      valid: validation.valid && normalizeErrors.length === 0,
+    },
+  };
+}
+
+/**
  * The ONE generation engine: LLM → parse → validate → retry → normalize →
  * sanity-check → confidence-score. The plan builder and the executor each
  * assemble their own prompts; the generate/validate/sanity discipline lives
@@ -102,71 +160,15 @@ export async function generateDbmlPipeline(params: {
       tier: "capable",
     });
 
-    const { schema: normalized, parseErrors } = parseDbmlSafely(object.dbml);
-
-    if (!normalized) {
-      if (attempts <= maxRetries) {
-        messages = [
-          ...messages,
-          { content: object.dbml, role: "assistant" as const },
-          {
-            content: `That DBML failed to parse. Fix ONLY the syntax errors, keep everything else the same:\n${parseErrors.join("\n")}`,
-            role: "user" as const,
-          },
-        ];
-        continue;
-      }
-      return {
-        attempts,
-        canonical: null,
-        confidence: null,
-        dbml: object.dbml,
-        directionSanity: null,
-        issues: [],
-        normalized: null,
-        normalizeErrors: [],
-        parseErrors,
-        parseFailed: true,
-        valid: false,
-      };
-    }
-
-    const graph = new SchemaGraph(normalized);
-    const result = validate(normalized, graph);
-
-    if (!result.valid && attempts <= maxRetries) {
-      const errorSummary = result.errors
-        .map((e) => `- [${e.code}] ${e.message}`)
-        .join("\n");
+    const { feedback, result } = evaluateDbml(object.dbml, attempts);
+    if (feedback && attempts <= maxRetries) {
       messages = [
         ...messages,
         { content: object.dbml, role: "assistant" as const },
-        {
-          content: `That schema has validation errors. Fix ONLY what is broken, keep everything else the same:\n${errorSummary}`,
-          role: "user" as const,
-        },
+        { content: feedback, role: "user" as const },
       ];
       continue;
     }
-
-    const { schema: canonical, errors: normalizeErrors } =
-      normalize(normalized);
-    const dbml = renderDbml(canonical);
-    const directionSanity = checkDirectionSanity(normalized);
-    const confidence = scoreSchema(canonical);
-
-    return {
-      attempts,
-      canonical,
-      confidence,
-      dbml,
-      directionSanity,
-      issues: result.issues,
-      normalized,
-      normalizeErrors,
-      parseErrors: [],
-      parseFailed: false,
-      valid: result.valid && normalizeErrors.length === 0,
-    };
+    return result;
   }
 }
