@@ -161,8 +161,11 @@ describe("thinking in agent mode", () => {
       { dbml: SMALL, message: "x" }
     );
     expect(chosen.reasoningEffort).toBe("none");
-    // Claude can always switch thinking off.
-    expect(reasoningFor(chosen.capable, chosen.reasoningEffort)).toBe("none");
+    // Opus 5.5 always thinks, so off is dropped rather than sent.
+    expect(chosen.capable).toBe("claude-opus-5-5");
+    expect(
+      reasoningFor(chosen.capable, chosen.reasoningEffort)
+    ).toBeUndefined();
     expect(reasoningFor("claude-haiku-5-5", "none")).toBe("none");
     // Gemini has no "none": it is dropped rather than sent.
     expect(reasoningFor("gemini-3-1-pro", "none")).toBeUndefined();

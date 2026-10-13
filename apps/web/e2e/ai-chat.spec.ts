@@ -257,6 +257,20 @@ test("thinking can be switched off", async ({ page }) => {
   ).toHaveCount(0);
 });
 
+test("a model that always thinks offers no off switch", async ({ page }) => {
+  await seed(page, []);
+  const model = page.getByTitle("Model and thinking");
+  await model.click();
+  await page
+    .getByRole("menuitemradio", { exact: true, name: "Manual" })
+    .click();
+  await page.getByRole("menuitemradio", { name: "Claude Opus 5.5" }).click();
+  await expect(
+    page.getByRole("menuitemcheckbox", { name: /Extended thinking/ })
+  ).toBeDisabled();
+  await expect(page.getByText("This model can't switch it off")).toBeVisible();
+});
+
 test("AI export uses the model chosen in the chat, and can be stopped", async ({
   page,
 }) => {

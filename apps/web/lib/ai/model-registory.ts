@@ -64,6 +64,8 @@ const LOW_TO_XHIGH: ReasoningEffort[] = [
   "high",
   "xhigh",
 ];
+// Fable and Opus 5.5 always think, whatever the off setting says (checked
+// against the live API), so they take LOW_TO_XHIGH instead.
 const WITH_OFF: ReasoningEffort[] = [
   "automatic",
   "none",
@@ -75,7 +77,7 @@ const DEFINITIONS = {
     displayName: "Claude Fable 5.1",
     id: "anthropic/claude-fable-5.1",
     provider: "Anthropic",
-    reasoningEfforts: WITH_OFF,
+    reasoningEfforts: LOW_TO_XHIGH,
   },
   "claude-haiku-5-5": {
     displayName: "Claude Haiku 5.5",
@@ -87,7 +89,7 @@ const DEFINITIONS = {
     displayName: "Claude Opus 5.5",
     id: "anthropic/claude-opus-5.5",
     provider: "Anthropic",
-    reasoningEfforts: WITH_OFF,
+    reasoningEfforts: LOW_TO_XHIGH,
   },
   "claude-sonnet-5-5": {
     displayName: "Claude Sonnet 5.5",

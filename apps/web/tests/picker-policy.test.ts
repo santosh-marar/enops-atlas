@@ -66,6 +66,17 @@ describe("picker policy", () => {
       canSwitchOff: true,
       levels: ["automatic", "low", "high"],
     });
+    // These always think, so off is not offered.
+    for (const key of ["claude-fable-5-1", "claude-opus-5-5"]) {
+      expect(thinkingOptions(pinModel(DEFAULT_POLICY, key)).canSwitchOff).toBe(
+        false
+      );
+    }
+  });
+
+  test("off falls back to the default on a model that always thinks", () => {
+    const off = setThinking(DEFAULT_POLICY, false);
+    expect(pinModel(off, "claude-opus-5-5").reasoningEffort).toBe("automatic");
   });
 
   test("switching off sends none; on hands it back to the default", () => {

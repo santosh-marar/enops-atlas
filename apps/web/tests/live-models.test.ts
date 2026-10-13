@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildCatalog,
+  claudeCanStopThinking,
   type GatewayModel,
   latestClaude,
 } from "../lib/ai/live-models";
@@ -72,12 +73,51 @@ describe("live catalog", () => {
     ]);
   });
 
-  test("image, fast and dated variants and models without structured output are left out", () => {
+  test("Fable and Opus 5.5 or later get no off switch, even when the gateway lists one", () => {
+    const options = {
+      reasoning_options: [{ type: "effort", values: ["none", "low", "high"] }],
+    };
+    const { models } = buildCatalog(
+      [
+        model("anthropic/claude-fable-6", 1, options),
+        model("anthropic/claude-opus-6", 1, options),
+        model("anthropic/claude-sonnet-6", 1, options),
+      ],
+      {}
+    );
+    expect(models["anthropic/claude-fable-6"]?.reasoningEfforts).toEqual([
+      "automatic",
+      "low",
+      "high",
+    ]);
+    expect(models["anthropic/claude-opus-6"]?.reasoningEfforts).toEqual([
+      "automatic",
+      "low",
+      "high",
+    ]);
+    expect(models["anthropic/claude-sonnet-6"]?.reasoningEfforts).toEqual([
+      "automatic",
+      "none",
+      "low",
+      "high",
+    ]);
+  });
+
+  test("only older Opus and non-Fable Claude can stop thinking", () => {
+    expect(claudeCanStopThinking("anthropic/claude-opus-5")).toBe(true);
+    expect(claudeCanStopThinking("anthropic/claude-opus-4.8")).toBe(true);
+    expect(claudeCanStopThinking("anthropic/claude-opus-5.5")).toBe(false);
+    expect(claudeCanStopThinking("anthropic/claude-fable-5.1")).toBe(false);
+    expect(claudeCanStopThinking("anthropic/claude-haiku-5.5")).toBe(true);
+  });
+
+  test("image, fast, batch and dated variants and models without structured output are left out", () => {
     const { models } = buildCatalog(
       [
         model("google/gemini-9-flash", 1),
         model("google/gemini-9-flash-image", 1),
         model("google/gemini-9-flash-fast", 1),
+        model("google/gemini-9-flash-batch", 1),
         model("google/gemini-9-flash-0801", 1),
         model("google/gemini-9-pro", 1, { tags: [] }),
         model("unknown-lab/thing", 1),

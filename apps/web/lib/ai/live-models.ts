@@ -34,9 +34,9 @@ const LABS: Record<string, ModelDefinition["provider"]> = {
   zai: "Zhipu (GLM)",
 };
 
-/** Image, audio, code-only, speed variants and dated snapshots are not for schema work. */
+/** Image, audio, code-only, speed and batch variants and dated snapshots are not for schema work. */
 const NOT_FOR_SCHEMAS =
-  /(image|omni|vision|banana|embed|tts|audio|speech|realtime|search|computer|transcribe|-code|code-|-exp$|-fast$|highspeed|lightning|flashx|-\d{4}$|-\d{8}$|-latest$|-preview-)/;
+  /(image|omni|vision|banana|embed|tts|audio|speech|realtime|search|computer|transcribe|-code|code-|-exp$|-fast$|-batch$|highspeed|lightning|flashx|-\d{4}$|-\d{8}$|-latest$|-preview-)/;
 
 export interface GatewayModel {
   id: string;
@@ -49,20 +49,34 @@ export interface GatewayModel {
 
 const EFFORTS = new Set(["none", "minimal", "low", "medium", "high", "xhigh"]);
 
+/**
+ * Whether thinking really switches off on a Claude model. The gateway's list
+ * is no guide here: it offers off for Fable, which ignores it, and leaves it
+ * out for Sonnet 5.5, which takes it. Fable and Opus 5.5 or later always
+ * think (checked against the live API).
+ */
+export function claudeCanStopThinking(id: string): boolean {
+  if (/^anthropic\/claude-fable-/.test(id)) return false;
+  const opus = /^anthropic\/claude-opus-(\d+)(?:\.(\d+))?/.exec(id);
+  if (!opus) return true;
+  return Number(opus[1]) + Number(opus[2] ?? 0) / 10 < 5.5;
+}
+
 function effortsOf(model: GatewayModel): ReasoningEffort[] {
   const options = model.reasoning_options ?? [];
   const effort = options.find((option) => option.type === "effort");
   if (effort?.values) {
-    const levels = effort.values.filter((value) =>
-      EFFORTS.has(value)
+    const levels = effort.values.filter(
+      (value) => EFFORTS.has(value) && value !== "none"
     ) as ReasoningEffort[];
-    // The gateway lists Claude's effort levels only, but thinking can always
-    // be switched off on Claude (checked against the live API).
-    const off =
-      model.id.startsWith("anthropic/") && !levels.includes("none")
-        ? (["none"] as ReasoningEffort[])
-        : [];
-    return ["automatic", ...off, ...levels];
+    const off = model.id.startsWith("anthropic/")
+      ? claudeCanStopThinking(model.id)
+      : effort.values.includes("none");
+    return [
+      "automatic",
+      ...(off ? (["none"] as ReasoningEffort[]) : []),
+      ...levels,
+    ];
   }
   if (options.some((option) => option.type === "toggle")) {
     return ["automatic", "none"];
