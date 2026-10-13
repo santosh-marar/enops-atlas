@@ -7,7 +7,7 @@ import { schemaChanges, schemaSnapshot } from "../schema-snapshot";
 const datasource =
   'datasource db {\n provider = "postgresql"\n url = env("NEVER_READ_THIS_URL")\n}\n';
 describe("schema adapter contracts", () => {
-  test("Prisma BigInt defaults remain numeric and floating defaults fail closed", () => {
+  test("Prisma BigInt and decimal defaults keep their exact digits", () => {
     const result = prismaToDbml([
       [
         "schema.prisma",
@@ -18,15 +18,20 @@ describe("schema adapter contracts", () => {
     expect(
       parseDbml(result.dbml).tables.get("public.A")!.columns[1]!.default
     ).toMatchObject({ literal: "9007199254740993", type: "number" });
-    expect(() =>
-      prismaToDbml([
-        [
-          "schema.prisma",
-          datasource +
-            "model A {\n id Int @id\n n Decimal @default(0.1000000000000000001)\n}",
-        ],
-      ])
-    ).toThrow("exact source-literal");
+    // A decimal default keeps every digit written in the schema, not the double DMMF holds.
+    const decimal = prismaToDbml([
+      [
+        "schema.prisma",
+        datasource +
+          "model A {\n id Int @id\n n Decimal @default(0.1000000000000000001)\n f Float @default(1.5)\n z Decimal @default(0)\n}",
+      ],
+    ]);
+    const columns = parseDbml(decimal.dbml).tables.get("public.A")!.columns;
+    expect(columns[1]!.default).toMatchObject({
+      literal: "0.1000000000000000001",
+    });
+    expect(columns[2]!.default).toMatchObject({ literal: "1.5" });
+    expect(columns[3]!.default).toMatchObject({ literal: "0" });
   });
   test("Prisma parser preserves mapped names, native types, indexes and foreign keys", () => {
     const result = prismaToDbml([
@@ -78,12 +83,10 @@ model Pair {
     expect(
       parseDbml(result.dbml).tables.get("public.Pair")?.indexes[0]?.columns
     ).toEqual(["a", "b"]);
-    expect(() =>
-      prismaToDbml([
-        [
-          "schema.prisma",
-          datasource +
-            `
+    const implicit = prismaToDbml([
+      [
+        "schema.prisma",
+        `${datasource}
 model A {
  id Int @id
  bs B[]
@@ -93,9 +96,9 @@ model B {
  as A[]
 }
 `,
-        ],
-      ])
-    ).toThrow("Implicit many-to-many");
+      ],
+    ]);
+    expect(parseDbml(implicit.dbml).tables.has("public._AToB")).toBe(true);
   });
   test("Drizzle parses declarations without executing top-level code", () => {
     const result = drizzleToDbml([

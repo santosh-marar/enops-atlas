@@ -31,25 +31,68 @@ model User {
     expect(parseDbml(result.dbml).relationships).toHaveLength(2);
   });
 
-  test("a real implicit many-to-many still asks for a join model", () => {
-    expect(() =>
-      prismaToDbml([
-        [
-          "schema.prisma",
-          `${datasource}
+  test("an implicit many-to-many becomes the join table Prisma creates for it", () => {
+    const result = prismaToDbml([
+      [
+        "schema.prisma",
+        `${datasource}
 model Post {
   id   Int   @id
   tags Tag[]
 }
 
 model Tag {
-  id    Int    @id
+  id    String @id
   posts Post[]
 }
 `,
-        ],
-      ])
-    ).toThrow("Implicit many-to-many");
+      ],
+    ]);
+    const parsed = parseDbml(result.dbml);
+    const join = parsed.tables.get("public._PostToTag");
+    expect(join?.columns.map((column) => column.name)).toEqual(["A", "B"]);
+    // A points at the model that sorts first, B at the other, typed like their ids.
+    expect(join?.columns.map((column) => column.type)).toEqual([
+      "integer",
+      "text",
+    ]);
+    expect(join?.indexes.map((index) => index.columns)).toEqual([
+      ["A", "B"],
+      ["B"],
+    ]);
+    expect(parsed.relationships).toHaveLength(2);
+    expect(result.warnings.join(" ")).toContain("_PostToTag");
+    // Each side is listed on both models but the table is written once.
+    expect(
+      [...parsed.tables.keys()].filter((k) => k.includes("_PostToTag"))
+    ).toHaveLength(1);
+  });
+
+  test("a named implicit many-to-many uses the relation's name, and a self-relation gets one table", () => {
+    const result = prismaToDbml([
+      [
+        "schema.prisma",
+        `${datasource}
+model User {
+  id         Int    @id
+  followers  User[] @relation("follows")
+  following  User[] @relation("follows")
+  groups     Group[] @relation("membership")
+}
+
+model Group {
+  id      Int    @id
+  members User[] @relation("membership")
+}
+`,
+      ],
+    ]);
+    const tables = [...parseDbml(result.dbml).tables.keys()];
+    expect(tables).toContain("public._follows");
+    expect(tables).toContain("public._membership");
+    expect(tables.filter((name) => name.startsWith("public._"))).toHaveLength(
+      2
+    );
   });
 });
 

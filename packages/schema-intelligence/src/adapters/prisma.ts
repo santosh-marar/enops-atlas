@@ -62,11 +62,13 @@ export function prismaToDbml(sources: [string, string][]): {
 } {
   // DMMF omits ignored models/fields and get_config omits relationMode. Reject
   // these explicitly; a successful DMMF response is not a fidelity guarantee.
+  const cleanSources: string[] = [];
   for (const [, source] of sources) {
     const syntax = source.replace(
       /"(?:\\.|[^"\\])*"|\/\/[^\n]*|\/\*[\s\S]*?\*\//g,
       (token) => (token.startsWith('"') ? token : " ")
     );
+    cleanSources.push(syntax);
     if (/@{1,2}ignore\b/.test(syntax))
       throw new Error(
         "Ignored Prisma models/fields require database introspection; DMMF omits them."
@@ -163,6 +165,49 @@ export function prismaToDbml(sources: [string, string][]): {
     VarChar: "varchar",
     Xml: "xml",
   };
+  const typeOf = (field: Field) => {
+    const en = enumByName.get(field.type);
+    const native = field.nativeType;
+    let type = en
+      ? qualified(en)
+      : native
+        ? nativeMap[native[0]]
+        : typeMap[field.type];
+    if (!type)
+      throw new Error(
+        `Unsupported Prisma type: ${field.type}/${native?.[0] ?? "default"}`
+      );
+    if (native?.[1].length) type += `(${native[1].join(",")})`;
+    if (field.isList) type += "[]";
+    return type;
+  };
+  /** The column an implicit many-to-many join table points at: the single @id, or a lone @unique. */
+  const keyOf = (model: Model) => {
+    const key =
+      model.fields.find((f) => f.isId) ??
+      model.fields.find((f) => f.isUnique && f.kind !== "object");
+    if (!key)
+      throw new Error(
+        `Implicit many-to-many on ${model.name} needs a single @id or @unique field.`
+      );
+    return key;
+  };
+  /** The exact number written in @default(...) for a field, read from the schema text. */
+  const numericDefaultLiteral = (modelName: string, fieldName: string) => {
+    for (const text of cleanSources) {
+      const body = new RegExp(
+        `\\bmodel\\s+${modelName}\\s*\\{([\\s\\S]*?)\\n\\s*\\}`
+      ).exec(text)?.[1];
+      const literal = body
+        ? new RegExp(
+            `^\\s*${fieldName}\\s+[^\\n]*?@default\\(\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\)`,
+            "m"
+          ).exec(body)?.[1]
+        : undefined;
+      if (literal) return literal;
+    }
+  };
+  const implicitJoins = new Set<string>();
   const blocks = datamodel.enums.map(
     (e) =>
       `Enum ${qualified(e)} {\n${e.values.map((v) => `  ${quote(v.dbName ?? v.name)}`).join("\n")}\n}`
@@ -179,19 +224,59 @@ export function prismaToDbml(sources: [string, string][]): {
           // Implicit many-to-many = a list on both sides of the *same* relation.
           // Two models that reference each other through different relations
           // are ordinary one-to-many pairs.
-          if (
-            field.isList &&
-            target.fields.some(
-              (f) =>
-                f.type === model.name &&
-                f.isList &&
-                f.relationName === field.relationName &&
-                !f.relationFromFields?.length
-            )
-          )
-            throw new Error(
-              "Implicit many-to-many join tables require explicit Prisma join models before conversion."
-            );
+          const other = field.isList
+            ? target.fields.find(
+                (f) =>
+                  f.type === model.name &&
+                  f !== field &&
+                  f.isList &&
+                  f.relationName === field.relationName &&
+                  !f.relationFromFields?.length
+              )
+            : undefined;
+          if (other) {
+            const relation =
+              field.relationName ?? `${model.name}To${target.name}`;
+            if (!implicitJoins.has(relation)) {
+              implicitJoins.add(relation);
+              // Prisma names the join table _<relation>; column A belongs to the
+              // model that sorts first by name, B to the other. A self-relation
+              // sorts by field name.
+              const sides = [
+                { field, model },
+                { field: other ?? field, model: target },
+              ].sort((x, y) =>
+                x.model === y.model
+                  ? x.field.name.localeCompare(y.field.name)
+                  : x.model.name.localeCompare(y.model.name)
+              );
+              const [first, second] = sides as [
+                { field: Field; model: Model },
+                { field: Field; model: Model },
+              ];
+              const table = `_${relation}`;
+              const joinName = qualified({
+                name: table,
+                schema: first.model.schema,
+              });
+              const typeA = typeOf({ ...keyOf(first.model), isList: false });
+              const typeB = typeOf({ ...keyOf(second.model), isList: false });
+              blocks.push(
+                `Table ${joinName} {\n  "A" ${typeA} [not null]\n  "B" ${typeB} [not null]\n  indexes {\n    ("A", "B") [unique, name: ${quote(`${table}_AB_unique`)}]\n    "B" [name: ${quote(`${table}_B_index`)}]\n  }\n}`
+              );
+              for (const [name, side] of [
+                ["A", first],
+                ["B", second],
+              ] as const) {
+                refs.push(
+                  `Ref: ${joinName}.${quote(name)} > ${qualified(side.model)}.${quote(keyOf(side.model).dbName ?? keyOf(side.model).name)} [delete: cascade, update: cascade]`
+                );
+              }
+              warnings.push(
+                `${first.model.name}<->${second.model.name}: Prisma's implicit many-to-many is represented by its join table ${table} (columns A and B).`
+              );
+            }
+          }
           continue;
         }
         const from = field.relationFromFields.map((name) =>
@@ -217,18 +302,7 @@ export function prismaToDbml(sources: [string, string][]): {
         continue;
       }
       const en = enumByName.get(field.type);
-      const native = field.nativeType;
-      let type = en
-        ? qualified(en)
-        : native
-          ? nativeMap[native[0]]
-          : typeMap[field.type];
-      if (!type)
-        throw new Error(
-          `Unsupported Prisma type: ${field.type}/${native?.[0] ?? "default"}`
-        );
-      if (native?.[1].length) type += `(${native[1].join(",")})`;
-      if (field.isList) type += "[]";
+      const type = typeOf(field);
       const settings = [field.isRequired ? "not null" : "null"];
       if (field.isId) settings.push("pk");
       if (field.isUnique) settings.push("unique");
@@ -255,11 +329,21 @@ export function prismaToDbml(sources: [string, string][]): {
         if (
           ["Decimal", "Float"].includes(field.type) &&
           typeof def === "number"
-        )
-          throw new Error(
-            "Prisma numeric defaults need exact source-literal extraction; DMMF floating-point defaults cannot prove fidelity"
-          );
-        if (field.type === "BigInt" && typeof def === "string") {
+        ) {
+          // DMMF holds a double, which can round the literal. The schema text
+          // is exact, so the default is read from it and must agree.
+          const literal = numericDefaultLiteral(model.name, field.name);
+          // DMMF's double can be off in the last digits; it only has to agree
+          // closely enough to show the text is this field's default.
+          if (
+            literal === undefined ||
+            Math.abs(Number(literal) - def) > Math.abs(def) * 1e-9 + 1e-12
+          )
+            throw new Error(
+              "Prisma numeric defaults need exact source-literal extraction; DMMF floating-point defaults cannot prove fidelity"
+            );
+          settings.push(`default: ${literal}`);
+        } else if (field.type === "BigInt" && typeof def === "string") {
           if (!/^-?\d+$/.test(def))
             throw new Error("Invalid Prisma bigint default");
           settings.push(`default: ${def}`);

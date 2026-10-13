@@ -72,7 +72,7 @@ test("a quality request needs no model to classify, find the table or plan", asy
   if (planned.status !== "ready") return;
   expect(planned.plan.goal).toBe("quality");
   expect(planned.plan.tables.map((table) => table.name)).toContain("users");
-  expect(planned.plan.decisions.length).toBe(brief?.issues.length);
+  expect(planned.plan.decisions.length).toBe(brief?.issues.length ?? 0);
 });
 
 test("a schema with no hints says so instead of planning", async () => {
