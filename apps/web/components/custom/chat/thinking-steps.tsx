@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ThinkingStep } from "@/lib/ai/chat-types";
 import { cn } from "@/lib/utils";
@@ -59,22 +59,45 @@ export function ThinkingSteps({
         )}
       </button>
       {expanded && steps.length > 0 && (
-        <ol className="mt-1">
+        <ol className="mt-1.5 ml-0.5">
           {steps.map((step, index) => {
-            const live = isWorking && index === steps.length - 1;
+            const last = index === steps.length - 1;
+            const live = isWorking && last;
+            const next = steps[index + 1];
+            const duration = next
+              ? next.at - step.at
+              : live
+                ? now - step.at
+                : Math.max(
+                    0,
+                    (thinkingMs ?? 0) - (step.at - (steps[0]?.at ?? step.at))
+                  );
             return (
               <li
-                className="flex items-start gap-2.5 py-1 text-muted-foreground text-xs"
+                className="relative flex items-start gap-3 pb-2.5 text-muted-foreground text-xs last:pb-0"
                 key={`${step.at}-${step.label}`}
               >
-                {live ? (
-                  <Loader2 className="mt-0.5 size-3.5 shrink-0 animate-spin text-primary" />
-                ) : (
-                  <Check className="mt-0.5 size-3.5 shrink-0" />
+                {!last && (
+                  <span
+                    aria-hidden
+                    className="absolute top-3.5 bottom-0 left-[5px] w-px bg-border"
+                  />
                 )}
-                <span className={cn(live && "animate-pulse")}>
+                <span className="relative mt-0.5 grid size-[11px] shrink-0 place-items-center">
+                  {live ? (
+                    <Loader2 className="size-3.5 animate-spin text-primary" />
+                  ) : (
+                    <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+                  )}
+                </span>
+                <span className={cn("min-w-0 flex-1", live && "animate-pulse")}>
                   {step.label}
                 </span>
+                {(live || duration >= 1000) && (
+                  <span className="shrink-0 text-muted-foreground/70 tabular-nums">
+                    {seconds(duration)}
+                  </span>
+                )}
               </li>
             );
           })}
