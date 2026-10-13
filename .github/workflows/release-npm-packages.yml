@@ -1,48 +1,54 @@
 name: Release npm packages
 
+# Runs after CI passes on main, so the checks are not run twice. When no
+# package has a version that npm lacks, it ends after one quick check.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-npm-packages
   cancel-in-progress: false
 
 permissions:
   contents: write
   id-token: write
-  pull-requests: write
 
 jobs:
-  verify:
-    permissions:
-      contents: read
-    uses: ./.github/workflows/ci.yml
-
   release:
-    needs: verify
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.13
-      - run: npm --version && npm install -g npm@^11.5.1
-      - run: pnpm install --frozen-lockfile
-      # Versions are bumped locally (`pnpm version-packages`) and committed, so a
-      # push to main only has to publish what npm does not have yet. Publishing
-      # is authorised by npm trusted publishing: each package trusts this
-      # repository and this workflow file, and `id-token: write` above lets npm
-      # exchange the run's identity for a short-lived credential (npm 11.5.1+).
-      - run: pnpm release
+      - id: pending
+        run: node scripts/unpublished-packages.mjs
+      # Everything below runs only when a version bump is waiting to go out.
+      - if: steps.pending.outputs.any == 'true'
+        uses: pnpm/action-setup@v4
+      - if: steps.pending.outputs.any == 'true'
+        run: npm install -g npm@^11.5.1 && npm --version
+      - if: steps.pending.outputs.any == 'true'
+        run: pnpm install --frozen-lockfile
+      # CI has already linted, tested, audited and smoke-tested this commit.
+      # These two confirm the versions are applied and build what is published.
+      - if: steps.pending.outputs.any == 'true'
+        run: pnpm release:check && pnpm build:packages
+      # Publishing is authorised by npm trusted publishing: each package trusts
+      # this repository and this workflow file, and `id-token: write` above lets
+      # npm exchange the run's identity for a short-lived credential.
+      - if: steps.pending.outputs.any == 'true'
+        run: pnpm changeset publish
         env:
           NPM_CONFIG_PROVENANCE: "true"
       # `changeset publish` tags each release locally; share the tags.
-      - run: git push origin --tags
+      - if: steps.pending.outputs.any == 'true'
+        run: git push origin --tags
