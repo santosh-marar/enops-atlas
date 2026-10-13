@@ -1,13 +1,24 @@
 "use client";
 
-import { Columns3, Settings, Table2, Trash2, Wrench, X } from "lucide-react";
+import {
+  AtSign,
+  Columns3,
+  Paperclip,
+  Settings,
+  Table2,
+  Trash2,
+  Wrench,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { mentionSuggestions } from "@/lib/ai/edit-workflow";
+import { ATTACHMENT_ACCEPT, readAttachments } from "@/lib/chat-attachments";
 import { db } from "@/lib/db";
 import { useSchemaStore } from "@/store/use-schema-store";
 import type { TechStackType } from "./ai-tech-stack-dialog";
+import { AddMenu } from "./chat/add-menu";
 import { EmptyState } from "./chat/empty-state";
 import { ModelPicker, ModePicker, nextMode } from "./chat/execution-controls";
 import { MessageBubble } from "./chat/message-bubble";
@@ -27,6 +38,8 @@ interface AIChatProps {
 interface PastedBlock {
   id: string;
   lineCount: number;
+  /** Set for attached files; pasted text has none. */
+  name?: string;
   text: string;
 }
 
@@ -65,6 +78,8 @@ export function AIChat({
   const pinnedRef = useRef(true);
   const [input, setInput] = useState("");
   const [pastedBlocks, setPastedBlocks] = useState<PastedBlock[]>([]);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [techStack, setTechStack] = useState<TechStackType | null>(null);
   const dbml = useSchemaStore((state) => state.dbml);
 
@@ -130,6 +145,37 @@ export function AIChat({
       ...previous,
       { id: `${Date.now()}-${previous.length}`, lineCount, text },
     ]);
+  };
+
+  const attachFiles = async (files: File[]) => {
+    const { attachments, problems } = await readAttachments(
+      files,
+      pastedBlocks.length
+    );
+    for (const problem of problems) toast.error(problem);
+    if (attachments.length === 0) return;
+    setPastedBlocks((previous) => [
+      ...previous,
+      ...attachments.map((attachment, index) => ({
+        ...attachment,
+        id: `${Date.now()}-${previous.length + index}`,
+      })),
+    ]);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "u") {
+      event.preventDefault();
+      fileInputRef.current?.click();
+    }
+  };
+
+  const startMention = () => {
+    setInput((current) =>
+      current && !/\s$/.test(current) ? `${current} @` : `${current}@`
+    );
+    // The menu hands focus back to its trigger as it closes.
+    setTimeout(() => inputRef.current?.focus());
   };
 
   // "@po" suggests tables and columns that exist.
@@ -273,6 +319,7 @@ export function AIChat({
                   <PastedBlockChip
                     key={block.id}
                     lineCount={block.lineCount}
+                    name={block.name}
                     onRemove={() =>
                       setPastedBlocks((previous) =>
                         previous.filter((item) => item.id !== block.id)
@@ -309,10 +356,12 @@ export function AIChat({
               </Button>
             </>
           }
+          inputRef={inputRef}
           label="Message the assistant"
           onCycleMode={() =>
             chat.setPolicy({ ...chat.policy, mode: nextMode(chat.policy.mode) })
           }
+          onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onStop={() => {
             chat.stop();
@@ -326,11 +375,43 @@ export function AIChat({
               : "Please configure your tech stack first..."
           }
           tools={
-            <ModePicker
-              disabled={isWorking}
-              onChange={chat.setPolicy}
-              value={chat.policy}
-            />
+            <>
+              <AddMenu
+                disabled={!techStack}
+                items={[
+                  {
+                    icon: Paperclip,
+                    label: "Add files",
+                    onSelect: () => fileInputRef.current?.click(),
+                    shortcut: "Ctrl U",
+                  },
+                  {
+                    icon: AtSign,
+                    label: "Mention a table or column",
+                    onSelect: startMention,
+                    shortcut: "@",
+                  },
+                ]}
+              />
+              <input
+                accept={ATTACHMENT_ACCEPT}
+                aria-label="Attach schema or text files"
+                className="hidden"
+                multiple
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  event.target.value = "";
+                  if (files.length > 0) attachFiles(files);
+                }}
+                ref={fileInputRef}
+                type="file"
+              />
+              <ModePicker
+                disabled={isWorking}
+                onChange={chat.setPolicy}
+                value={chat.policy}
+              />
+            </>
           }
           value={input}
         />
