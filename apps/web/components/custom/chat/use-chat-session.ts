@@ -107,13 +107,31 @@ export function useChatSession({
     );
   }, []);
 
-  const addStep = useCallback((id: string, label: string) => {
+  /** A new step, or (with an empty label) what the latest step found. */
+  const addStep = useCallback((id: string, label: string, detail?: string) => {
     setMessages((previous) =>
       previous.map((message) => {
         if (message.id !== id) return message;
         const steps = message.steps ?? [];
+        if (label === "") {
+          const last = steps.at(-1);
+          if (!(last && detail)) return message;
+          return {
+            ...message,
+            steps: [
+              ...steps.slice(0, -1),
+              {
+                ...last,
+                detail: last.detail ? `${last.detail}\n${detail}` : detail,
+              },
+            ],
+          };
+        }
         if (steps.at(-1)?.label === label) return message;
-        return { ...message, steps: [...steps, { at: Date.now(), label }] };
+        return {
+          ...message,
+          steps: [...steps, { at: Date.now(), detail, label }],
+        };
       })
     );
   }, []);
@@ -173,7 +191,7 @@ export function useChatSession({
       const proposal = await runGenerate({
         dbml: before,
         model,
-        onProgress: (label) => addStep(id, label),
+        onProgress: (label, detail) => addStep(id, label, detail),
         plan: message.plan,
         retrievedContext: message.retrievedContext ?? "",
         signal: controller.signal,
@@ -209,7 +227,7 @@ export function useChatSession({
         dbml: dbmlRef.current,
         message: request.message,
         model,
-        onProgress: (label) => addStep(id, label),
+        onProgress: (label, detail) => addStep(id, label, detail),
         rounds: request.rounds,
         signal: controller.signal,
         techStack,

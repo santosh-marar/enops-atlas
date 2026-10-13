@@ -48,7 +48,9 @@ describe("planning", () => {
           tables: [{ isNew: false, name: "users" }],
         },
       ]),
-      onProgress: (step) => steps.push(step),
+      onProgress: (step) => {
+        if (step) steps.push(step);
+      },
       rounds: [],
       signal: new AbortController().signal,
       techStack: null,
@@ -107,7 +109,9 @@ describe("generating", () => {
     const proposal = await runGenerate({
       dbml: DBML,
       model: fakeModel([{ dbml: "Table users {" }, { dbml: GOOD }]),
-      onProgress: (step) => steps.push(step),
+      onProgress: (step) => {
+        if (step) steps.push(step);
+      },
       plan: PLAN,
       retrievedContext: "",
       signal: new AbortController().signal,

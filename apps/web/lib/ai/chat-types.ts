@@ -21,6 +21,8 @@ export type MessagePhase =
 export interface ThinkingStep {
   /** Epoch ms when the step started. */
   at: number;
+  /** What it found or decided in this step, in a line or two. */
+  detail?: string;
   label: string;
 }
 

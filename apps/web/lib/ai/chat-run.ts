@@ -6,6 +6,7 @@ import type {
   SchemaModel,
   SchemaModelRequest,
 } from "@enops/atlas-schema-intelligence/ai";
+import { scoreDbml } from "../quality";
 import { type EditStep, planEdit } from "./edit-workflow";
 import { generateFromPlan, type Proposal } from "./schema-flow";
 
@@ -54,7 +55,7 @@ export function stoppable(
 interface RunInput {
   dbml: string;
   model: SchemaModel;
-  onProgress: (step: string) => void;
+  onProgress: (step: string, detail?: string) => void;
   signal: AbortSignal;
 }
 
@@ -80,23 +81,42 @@ export function runPlan(
  * Step 2: write the schema from the approved plan. The package checks it and
  * retries when it is invalid; each retry is reported as a step.
  */
-export function runGenerate(
+export async function runGenerate(
   input: RunInput & { plan: TaskPlan; retrievedContext: string }
 ): Promise<Proposal> {
   const names = input.plan.tables.map((table) => table.name);
+  const quality = input.plan.goal === "quality";
+  const before = quality ? scoreDbml(input.dbml) : null;
   input.onProgress(
-    names.length === 0
-      ? "Writing the schema"
-      : `Writing ${names.length} table${names.length === 1 ? "" : "s"}: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}`
+    quality
+      ? `Fixing ${input.plan.decisions.length} quality hints`
+      : names.length === 0
+        ? "Writing the schema"
+        : `Writing ${names.length} table${names.length === 1 ? "" : "s"}: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}`
   );
-  return generateFromPlan({
+  if (before) {
+    input.onProgress("", `Quality is ${before.percent}% now. Aiming for 100%.`);
+  }
+  const proposal = await generateFromPlan({
     dbml: input.dbml,
     model: stoppable(input.model, input.signal, ({ attempt }) => {
       if (attempt > 1) {
-        input.onProgress(`Checking and fixing the schema (try ${attempt})`);
+        input.onProgress(
+          quality
+            ? `Another pass on the hints that are left (pass ${attempt})`
+            : `Checking and fixing the schema (try ${attempt})`
+        );
       }
     }),
     plan: input.plan,
     retrievedContext: input.retrievedContext,
   });
+  const after = before ? scoreDbml(proposal.dbml) : null;
+  if (before && after) {
+    input.onProgress(
+      "",
+      `Quality went from ${before.percent}% to ${after.percent}%${after.issues.length > 0 ? `, ${after.issues.length} hint${after.issues.length === 1 ? "" : "s"} left` : ""}.`
+    );
+  }
+  return proposal;
 }

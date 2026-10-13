@@ -97,7 +97,7 @@ export async function planEdit(input: {
   message: string;
   model: SchemaModel;
   /** Called as each step starts, so the chat can show what is happening. */
-  onProgress?: (step: string) => void;
+  onProgress?: (step: string, detail?: string) => void;
   techStack?: Record<string, string | null> | null;
 }): Promise<EditStep> {
   const history = input.history ?? [];
@@ -161,6 +161,12 @@ export async function planEdit(input: {
     };
   }
 
+  input.onProgress?.(
+    "",
+    entity.entityName
+      ? `Found ${entity.entityName}.`
+      : "No single table: treating it as the whole schema."
+  );
   const { entityId } = resolveContext(entity.entityName, schema);
   input.onProgress?.(
     entity.entityName
@@ -181,6 +187,7 @@ export async function planEdit(input: {
   );
   const result = await buildPlan({
     entityName: entity.entityName,
+    existingDbml: input.dbml,
     forcePlan,
     intentType,
     isNewEntity: entity.isNewEntity,
@@ -191,6 +198,9 @@ export async function planEdit(input: {
     transcript: request,
   });
 
+  if (result.status === "ready") {
+    input.onProgress?.("", describePlan(result.plan));
+  }
   if (result.status === "needs_clarification") {
     return {
       kind: "question",
@@ -207,4 +217,16 @@ export async function planEdit(input: {
     plan: result.plan,
     retrievedContext: context,
   };
+}
+
+/** The thinking behind a plan, as it would be said aloud. */
+function describePlan(plan: TaskPlan): string {
+  const names = plan.tables.map((table) => table.name);
+  const lines = [
+    plan.goal === "quality"
+      ? `Going through the quality hints: ${plan.decisions.length} to fix across ${names.length} table${names.length === 1 ? "" : "s"}.`
+      : `${names.length} table${names.length === 1 ? "" : "s"} involved: ${names.slice(0, 6).join(", ")}${names.length > 6 ? ` and ${names.length - 6} more` : ""}.`,
+    ...(plan.goal === "quality" ? [] : plan.decisions.slice(0, 3)),
+  ];
+  return lines.join("\n");
 }

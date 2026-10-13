@@ -90,8 +90,15 @@ export function ThinkingSteps({
                     <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-background" />
                   )}
                 </span>
-                <span className={cn("min-w-0 flex-1", live && "animate-pulse")}>
-                  {step.label}
+                <span className="min-w-0 flex-1">
+                  <span className={cn(live && "animate-pulse")}>
+                    {step.label}
+                  </span>
+                  {step.detail && (
+                    <span className="mt-0.5 block whitespace-pre-line text-muted-foreground/70">
+                      {step.detail}
+                    </span>
+                  )}
                 </span>
                 {(live || duration >= 1000) && (
                   <span className="shrink-0 text-muted-foreground/70 tabular-nums">
