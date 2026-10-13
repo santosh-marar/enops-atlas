@@ -1,8 +1,21 @@
-import { ChevronDown, Cpu, Hammer, ListChecks, Route } from "lucide-react";
-import { useEffect, useSyncExternalStore } from "react";
+import {
+  ChevronDown,
+  Hammer,
+  ListChecks,
+  Route,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useSyncExternalStore,
+} from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuLabel,
@@ -18,29 +31,42 @@ import {
   type ModelKey,
   modelInfo,
   PROVIDERS,
-  REASONING_LABEL,
   type ReasoningEffort,
   subscribeCatalog,
   visibleModelKeys,
 } from "@/lib/ai/model-registory";
+import {
+  pickerLabel,
+  pinModel,
+  setThinking,
+  shortEffort,
+  switchControl,
+  thinkingOn,
+  thinkingOptions,
+} from "@/lib/ai/picker-policy";
+import { cn } from "@/lib/utils";
+import { type EffortOption, EffortTrack } from "./effort-track";
 
-/** Thinking levels offered while the app picks the model; a model that lacks one ignores it. */
-const AGENT_THINKING: ReasoningEffort[] = [
-  "automatic",
-  "none",
-  "low",
-  "medium",
-  "high",
+const COMPLEXITY: EffortOption<ExecutionPolicy["complexity"]>[] = [
+  {
+    hint: "Recommended. Small changes stay quick, big ones get a stronger model.",
+    label: "Auto",
+    value: "auto",
+  },
+  { hint: "Quickest model at every step.", label: "Fast", value: "fast" },
+  {
+    hint: "Strong model at moderate cost.",
+    label: "Balanced",
+    value: "balanced",
+  },
+  { hint: "Most capable model. Costs the most.", label: "Deep", value: "deep" },
 ];
-const REASONING_SHORT: Record<ReasoningEffort, string> = {
-  automatic: "Auto",
-  high: "High",
-  low: "Low",
-  medium: "Medium",
-  minimal: "Min",
-  none: "Off",
-  xhigh: "Max",
-};
+
+const HIDE_INDICATOR =
+  "[&_[data-slot=dropdown-menu-checkbox-item-indicator]]:hidden [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden";
+
+const NUMBER =
+  "-mr-6 ml-auto grid h-4 min-w-4 place-items-center border px-0.5 font-mono text-[10px] text-muted-foreground";
 
 const MODES = [
   {
@@ -64,13 +90,6 @@ const MODES = [
   },
 ] as const;
 
-const COMPLEXITY = [
-  { label: "Auto", value: "auto" },
-  { label: "Fast", value: "fast" },
-  { label: "Balanced", value: "balanced" },
-  { label: "Deep", value: "deep" },
-] as const;
-
 /** The next mode, for cycling with Alt+M. */
 export function nextMode(mode: ExecutionPolicy["mode"]) {
   const index = MODES.findIndex((option) => option.value === mode);
@@ -91,7 +110,7 @@ function Trigger({
   disabled,
   title,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   disabled?: boolean;
   title: string;
 }) {
@@ -124,13 +143,26 @@ export function ModePicker({
 }) {
   const current = MODES.find((mode) => mode.value === value.mode) ?? MODES[0];
   const Icon = current.icon;
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const target = MODES[Number(event.key) - 1];
+    if (!target) return;
+    event.preventDefault();
+    onChange({ ...value, mode: target.value });
+  }
+
   return (
     <DropdownMenu>
       <Trigger disabled={disabled} title="Mode (Alt+M to switch)">
-        <Icon className="size-3.5" />
-        <span className="text-foreground">{current.label}</span>
+        <Icon className="size-3.5 text-foreground" />
+        <span className="font-medium text-foreground">{current.label}</span>
       </Trigger>
-      <DropdownMenuContent align="start" className="w-72" side="top">
+      <DropdownMenuContent
+        align="start"
+        className="w-80"
+        onKeyDown={handleKeyDown}
+        side="top"
+      >
         <DropdownMenuGroup>
           <DropdownMenuLabel>Mode</DropdownMenuLabel>
           <DropdownMenuRadioGroup
@@ -139,31 +171,45 @@ export function ModePicker({
             }
             value={value.mode}
           >
-            {MODES.map((mode) => (
+            {MODES.map((mode, index) => (
               <DropdownMenuRadioItem
-                className="items-start py-1.5"
+                className="group/mode items-start py-1.5"
                 key={mode.value}
                 value={mode.value}
               >
-                <mode.icon className="mt-0.5" />
+                <mode.icon className="mt-0.5 text-muted-foreground" />
                 <span className="flex flex-col">
                   <span>{mode.label}</span>
                   <span className="text-muted-foreground text-xs">
                     {mode.description}
                   </span>
                 </span>
+                <span
+                  className={cn(
+                    NUMBER,
+                    "mt-0.5 group-data-checked/mode:invisible"
+                  )}
+                >
+                  {index + 1}
+                </span>
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <div className="flex justify-between px-1.5 py-1 text-muted-foreground text-xs">
+          <span>Switch mode</span>
+          <kbd className="font-mono">Alt M</kbd>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
 /**
- * One control for who picks the model and how hard it thinks: "Auto" lets
- * the app choose per request; a named model is used for every step.
+ * Who picks the model and how hard it works. Agent lets the app pick a model
+ * per request by effort; Manual pins one. Extended thinking applies to both,
+ * where the model supports it.
  */
 export function ModelPicker({
   disabled,
@@ -181,164 +227,192 @@ export function ModelPicker({
       ? [...liveKeys, value.modelKey]
       : liveKeys;
   const manual = value.control === "manual" && Boolean(value.modelKey);
-  const efforts: ReasoningEffort[] =
-    manual && value.modelKey
-      ? modelInfo(value.modelKey).reasoningEfforts
-      : ["automatic"];
+  const groups = PROVIDERS.map((provider) => ({
+    keys: modelKeys.filter((key) => modelInfo(key).provider === provider),
+    provider,
+  })).filter((group) => group.keys.length > 0);
+  const ordered = groups.flatMap((group) => group.keys);
+  const thinking = thinkingOptions(value);
+  const on = thinkingOn(value);
+  const { level, model } = pickerLabel(value);
 
-  const level = manual
-    ? value.reasoningEffort === "automatic"
-      ? null
-      : REASONING_LABEL[value.reasoningEffort]
-    : value.complexity === "auto"
-      ? null
-      : COMPLEXITY.find((option) => option.value === value.complexity)?.label;
+  function pick(modelKey: ModelKey) {
+    onChange(pinModel(value, modelKey));
+  }
 
-  const options: { label: string; value: string }[] = manual
-    ? efforts.map((effort) => ({
-        label: effort === "automatic" ? "Auto" : REASONING_LABEL[effort],
-        value: effort,
-      }))
-    : [...COMPLEXITY];
-  const selected = manual ? value.reasoningEffort : value.complexity;
+  function setControl(next: string) {
+    const policy = switchControl(
+      value,
+      ordered,
+      next as ExecutionPolicy["control"]
+    );
+    if (policy) onChange(policy);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!(manual && /^[1-9]$/.test(event.key))) return;
+    const target = ordered[Number(event.key) - 1];
+    if (!target) return;
+    event.preventDefault();
+    pick(target);
+  }
 
   return (
     <DropdownMenu>
       <Trigger disabled={disabled} title="Model and thinking">
-        <Cpu className="size-3.5" />
-        <span className="max-w-36 truncate text-foreground">
-          {manual && value.modelKey
-            ? modelInfo(value.modelKey).displayName
-            : "Auto"}
+        <span className="max-w-36 truncate font-medium text-foreground">
+          {model}
         </span>
         {level && <span>{level}</span>}
       </Trigger>
-      <DropdownMenuContent align="end" className="w-72" side="top">
+      <DropdownMenuContent
+        align="end"
+        className="w-72"
+        onKeyDown={handleKeyDown}
+        side="top"
+      >
         <DropdownMenuRadioGroup
-          onValueChange={(next) => {
-            if (next === "auto") {
-              onChange({ ...value, control: "agent" });
-              return;
-            }
-            const modelKey = next as ModelKey;
-            onChange({
-              ...value,
-              control: "manual",
-              modelKey,
-              reasoningEffort: modelInfo(modelKey).reasoningEfforts.includes(
-                value.reasoningEffort
-              )
-                ? value.reasoningEffort
-                : "automatic",
-            });
-          }}
-          value={manual ? (value.modelKey ?? "") : "auto"}
+          aria-label="Who picks the model"
+          className="grid grid-cols-2 gap-0.5 bg-muted p-0.5"
+          onValueChange={(next) => setControl(String(next))}
+          value={manual ? "manual" : "agent"}
         >
-          <DropdownMenuRadioItem className="items-start py-1.5" value="auto">
-            <span className="flex flex-col">
-              <span>Auto</span>
-              <span className="text-muted-foreground text-xs">
-                The app picks the model for each request
-              </span>
-            </span>
-          </DropdownMenuRadioItem>
-          <div className="max-h-72 overflow-y-auto">
-            {PROVIDERS.map((provider) => {
-              const keys = modelKeys.filter(
-                (key) => modelInfo(key).provider === provider
-              );
-              if (keys.length === 0) return null;
-              return (
-                <DropdownMenuGroup key={provider}>
-                  <DropdownMenuLabel>{provider}</DropdownMenuLabel>
-                  {keys.map((key) => (
+          {(
+            [
+              { icon: Sparkles, label: "Agent", value: "agent" },
+              { icon: SlidersHorizontal, label: "Manual", value: "manual" },
+            ] as const
+          ).map((option) => (
+            <DropdownMenuRadioItem
+              className={cn(
+                "justify-center rounded-none px-2 py-1 text-muted-foreground data-checked:bg-popover data-checked:font-medium data-checked:text-foreground",
+                HIDE_INDICATOR
+              )}
+              closeOnClick={false}
+              key={option.value}
+              value={option.value}
+            >
+              <option.icon />
+              {option.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+
+        {manual ? (
+          <DropdownMenuRadioGroup
+            aria-label="Model"
+            className="mt-1 max-h-64 overflow-y-auto"
+            onValueChange={(next) => pick(next as ModelKey)}
+            value={value.modelKey ?? ""}
+          >
+            {groups.map((group) => (
+              <DropdownMenuGroup key={group.provider}>
+                <DropdownMenuLabel>{group.provider}</DropdownMenuLabel>
+                {group.keys.map((key) => {
+                  const index = ordered.indexOf(key);
+                  return (
                     <DropdownMenuRadioItem
+                      className="group/model"
                       closeOnClick={false}
                       key={key}
                       value={key}
                     >
-                      {modelInfo(key).displayName}
+                      <span className="truncate">
+                        {modelInfo(key).displayName}
+                      </span>
+                      {index < 9 && (
+                        <span
+                          className={cn(
+                            NUMBER,
+                            "group-data-checked/model:invisible"
+                          )}
+                        >
+                          {index + 1}
+                        </span>
+                      )}
                     </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuGroup>
-              );
-            })}
-          </div>
-        </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator />
-        <div className="space-y-1.5 px-1.5 py-1.5">
-          <div className="flex items-baseline justify-between text-muted-foreground text-xs">
-            <span>{manual ? "Thinking" : "Effort"}</span>
-            <span>{manual ? "Faster ↔ deeper" : "Faster ↔ smarter"}</span>
-          </div>
-          <div className="flex w-full border">
-            {options.map((option) => (
-              <button
-                aria-pressed={selected === option.value}
-                className={`h-7 flex-1 text-xs transition-colors disabled:opacity-50 ${
-                  selected === option.value
-                    ? "bg-muted font-medium text-foreground"
-                    : "text-muted-foreground hover:bg-muted/60"
-                }`}
-                disabled={manual && efforts.length === 1}
-                key={option.value}
-                onClick={() =>
-                  onChange(
-                    manual
-                      ? {
-                          ...value,
-                          reasoningEffort: option.value as ReasoningEffort,
-                        }
-                      : {
-                          ...value,
-                          complexity:
-                            option.value as ExecutionPolicy["complexity"],
-                        }
-                  )
-                }
-                type="button"
-              >
-                {option.label}
-              </button>
+                  );
+                })}
+              </DropdownMenuGroup>
             ))}
-          </div>
-          <p className="text-muted-foreground text-xs">
-            {manual
-              ? efforts.length === 1
-                ? "This model decides how much to think on its own."
-                : "Used for the plan and the schema."
-              : "Quick steps always use a fast model."}
+          </DropdownMenuRadioGroup>
+        ) : (
+          <>
+            <div className="flex items-start gap-2 px-1.5 pt-2 pb-1.5">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span className="flex flex-col text-sm">
+                <span>The app picks the model</span>
+                <span className="text-muted-foreground text-xs">
+                  Switch to Manual to choose one
+                </span>
+              </span>
+            </div>
+            <DropdownMenuSeparator />
+            <EffortTrack
+              label="Effort"
+              low="Cheaper"
+              onChange={(complexity) => onChange({ ...value, complexity })}
+              options={COMPLEXITY}
+              value={value.complexity}
+            />
+          </>
+        )}
+
+        <DropdownMenuSeparator />
+        {thinking.levels.length > 0 ? (
+          <>
+            <DropdownMenuCheckboxItem
+              checked={on}
+              className={cn("group/think py-1.5 pr-1.5", HIDE_INDICATOR)}
+              closeOnClick={false}
+              disabled={!thinking.canSwitchOff}
+              onCheckedChange={(on) => onChange(setThinking(value, on))}
+            >
+              <span className="flex flex-col">
+                <span>Extended thinking</span>
+                <span className="text-muted-foreground text-xs">
+                  {thinking.canSwitchOff
+                    ? manual
+                      ? "Thinks before it answers"
+                      : "Off where the chosen model allows it"
+                    : "This model can't switch it off"}
+                </span>
+              </span>
+              <span
+                aria-hidden
+                className="relative ml-auto h-4 w-7 shrink-0 bg-muted ring-1 ring-input after:absolute after:top-0.5 after:left-0.5 after:size-3 after:bg-muted-foreground after:transition-[left] group-data-checked/think:bg-primary group-data-checked/think:ring-primary group-data-checked/think:after:left-3.5 group-data-checked/think:after:bg-primary-foreground motion-reduce:after:transition-none"
+              />
+            </DropdownMenuCheckboxItem>
+            {on && (
+              <EffortTrack
+                label="Thinking"
+                onChange={(reasoningEffort) =>
+                  onChange({ ...value, reasoningEffort })
+                }
+                options={thinking.levels.map(
+                  (effort): EffortOption<ReasoningEffort> =>
+                    effort === "automatic"
+                      ? manual
+                        ? {
+                            hint: "The model's own default.",
+                            label: "Default",
+                            value: effort,
+                          }
+                        : {
+                            hint: "Recommended. The model decides how much to think.",
+                            label: "Auto",
+                            value: effort,
+                          }
+                      : { label: shortEffort(effort), value: effort }
+                )}
+                value={value.reasoningEffort}
+              />
+            )}
+          </>
+        ) : (
+          <p className="px-1.5 py-1.5 text-muted-foreground text-xs">
+            This model decides how much to think on its own.
           </p>
-        </div>
-        {!manual && (
-          <div className="space-y-1.5 px-1.5 pb-1.5">
-            <div className="flex items-baseline justify-between text-muted-foreground text-xs">
-              <span>Thinking</span>
-              <span>Faster ↔ deeper</span>
-            </div>
-            <div className="flex w-full border">
-              {AGENT_THINKING.map((effort) => (
-                <button
-                  aria-pressed={value.reasoningEffort === effort}
-                  className={`h-7 flex-1 text-xs transition-colors ${
-                    value.reasoningEffort === effort
-                      ? "bg-muted font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-muted/60"
-                  }`}
-                  key={effort}
-                  onClick={() =>
-                    onChange({ ...value, reasoningEffort: effort })
-                  }
-                  type="button"
-                >
-                  {effort === "automatic" ? "Auto" : REASONING_SHORT[effort]}
-                </button>
-              ))}
-            </div>
-            <p className="text-muted-foreground text-xs">
-              Used when the chosen model supports it.
-            </p>
-          </div>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
