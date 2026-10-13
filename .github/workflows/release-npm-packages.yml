@@ -36,16 +36,13 @@ jobs:
           bun-version: 1.3.13
       - run: npm --version && npm install -g npm@^11.5.1
       - run: pnpm install --frozen-lockfile
-      - uses: changesets/action@v1
-        with:
-          commit: "chore: release"
-          publish: pnpm release
-          title: "chore: release"
-          version: pnpm version-packages
+      # Versions are bumped locally (`pnpm version-packages`) and committed, so a
+      # push to main only has to publish what npm does not have yet. Publishing
+      # is authorised by npm trusted publishing: each package trusts this
+      # repository and this workflow file, and `id-token: write` above lets npm
+      # exchange the run's identity for a short-lived credential (npm 11.5.1+).
+      - run: pnpm release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No npm token. Publishing is authorised by npm trusted publishing:
-          # each package trusts this repository and this workflow file, and
-          # `id-token: write` above lets npm exchange the run's identity for a
-          # short-lived publish credential. Needs npm 11.5.1 or newer.
           NPM_CONFIG_PROVENANCE: "true"
+      # `changeset publish` tags each release locally; share the tags.
+      - run: git push origin --tags

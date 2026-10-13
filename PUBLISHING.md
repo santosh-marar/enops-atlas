@@ -44,7 +44,7 @@ The other packages stay untouched. If a changed package is a dependency of anoth
 one and the new version falls outside its range, changesets bumps the dependent
 too (because of `updateInternalDependencies: "patch"`).
 
-Merge to `main`. The Release workflow opens/updates a **chore: release** PR running `pnpm version-packages`. Merging that PR runs `pnpm release`. The Release workflow first waits for the complete reusable CI workflow (Node 22/24, browser tests, and live database tests). The release command checks that pending changesets have been applied, runs package validation and the production audit, and then publishes.
+Run `pnpm version-packages` locally, commit the version bump, and push to `main`. The "Release npm packages" workflow first waits for the complete reusable CI workflow (Node 22/24, browser tests, and live database tests). It then runs `pnpm release`, which checks that no changesets are still pending, runs package validation and the production audit, and publishes every package whose version npm does not have yet. Nothing is published when no version changed.
 
 ## Manual release (first release or hotfix)
 
