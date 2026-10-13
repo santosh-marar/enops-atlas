@@ -2,7 +2,10 @@ import { z } from "zod";
 import type { SchemaModel } from "../model";
 import { schemaEvidence } from "./context";
 import {
+  allTablesOf,
+  isPerformanceRequest,
   isQualityRequest,
+  isUnreadableReply,
   qualityBriefOf,
   renderQualityBrief,
 } from "./quality-goal";
@@ -275,7 +278,7 @@ export async function buildPlan(params: {
     });
   }
 
-  const { object: raw } = await model.generateObject({
+  const asked = {
     maxOutputTokens: 2000,
     prompt: `${transcript}\n\n${schemaEvidence("planning facts", {
       entityName,
@@ -294,8 +297,27 @@ export async function buildPlan(params: {
     })}`,
     schema: PlanSchema,
     system: buildPlanningPrompt(intentType, forcePlan),
-    tier: "capable",
-  });
+    tier: "capable" as const,
+  };
+  let raw: z.infer<typeof PlanSchema>;
+  try {
+    raw = (await model.generateObject(asked)).object;
+  } catch (error) {
+    // The model's reply was not readable even after asking again. With the
+    // schema in hand the request still goes ahead: the whole schema is the
+    // subject and the request itself is the instruction for the writer, so
+    // the user is not shown a parsing error.
+    const tables = params.existingDbml
+      ? allTablesOf(params.existingDbml).slice(0, 60)
+      : [];
+    if (!(isUnreadableReply(error) && tables.length > 0)) throw error;
+    raw = {
+      confidence: 0.5,
+      decisions: [`Do what was asked: ${originalMessage}`],
+      needsClarification: false,
+      tables,
+    };
+  }
 
   const hasTables = Boolean(raw.tables && raw.tables.length > 0);
 
@@ -350,6 +372,9 @@ export async function buildPlan(params: {
     tables,
     techStack,
     ...(technologyContext ? { technologyContext } : {}),
+    ...(isPerformanceRequest(originalMessage)
+      ? { goal: "performance" as const }
+      : {}),
   };
 
   return {

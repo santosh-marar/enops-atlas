@@ -92,7 +92,7 @@ export interface TaskPlan {
    * Set when the request is about the whole schema's quality ("make it
    * production ready"): the schema is written to clear the quality hints.
    */
-  goal?: "quality";
+  goal?: "quality" | "performance";
   id: string;
   operationType: IntentType; // intentType already IS the operation category now
   originalPrompt: string;

@@ -13,6 +13,8 @@ import { schemaEvidence } from "./context";
 import { countTables, mergeDbml } from "./merge-dbml";
 import {
   hasImproved,
+  isPerformanceRequest,
+  PERFORMANCE_CHECKLIST,
   PRODUCTION_CHECKLIST,
   qualityBriefOf,
   renderQualityBrief,
@@ -187,10 +189,14 @@ async function generateOnce(params: {
   const qualityEvidence = quality
     ? schemaEvidence("quality report", renderQualityBrief(quality))
     : "";
+  const checklists = [
+    plan.goal === "quality" ? PRODUCTION_CHECKLIST : "",
+    plan.goal === "performance" || isPerformanceRequest(plan.originalPrompt)
+      ? PERFORMANCE_CHECKLIST
+      : "",
+  ].filter(Boolean);
   const system = (patch: boolean) =>
-    plan.goal === "quality"
-      ? `${buildSystem(patch)}\n\n${PRODUCTION_CHECKLIST}`
-      : buildSystem(patch);
+    [buildSystem(patch), ...checklists].join("\n\n");
 
   const prompt = [
     assembleGenerationPrompt({

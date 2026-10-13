@@ -153,3 +153,71 @@ Table posts {
   expect(calls).toBe(2);
   expect(qualityBriefOf(result.dbml)?.issues).toHaveLength(0);
 });
+
+test("a performance request is a change to the whole schema, and its plan carries the goal", async () => {
+  const text = "optimize performance";
+  expect((await resolveIntent(text, neverCalled)).intentType).toBe("modify");
+  const model: SchemaModel = {
+    generateObject: async <T>() => ({
+      object: {
+        confidence: 0.9,
+        decisions: ["Index the foreign keys"],
+        needsClarification: false,
+        tables: [{ isNew: false, name: "posts" }],
+      } as T,
+    }),
+  };
+  const planned = await buildPlan({
+    entityName: null,
+    existingDbml: BAD,
+    intentType: "modify",
+    isNewEntity: false,
+    model,
+    originalMessage: text,
+    retrievedContext: "",
+    transcript: text,
+  });
+  if (planned.status !== "ready") throw new Error("expected a plan");
+  expect(planned.plan.goal).toBe("performance");
+});
+
+test("when the model's plan cannot be read, the request goes ahead over the whole schema instead of failing", async () => {
+  const unreadable = new Error(
+    "No object generated: could not parse the response."
+  );
+  unreadable.name = "AI_NoObjectGeneratedError";
+  const model: SchemaModel = {
+    generateObject: async () => {
+      throw unreadable;
+    },
+  };
+  const planned = await buildPlan({
+    entityName: null,
+    existingDbml: BAD,
+    intentType: "modify",
+    isNewEntity: false,
+    model,
+    originalMessage: "add soft delete everywhere",
+    retrievedContext: "",
+    transcript: "add soft delete everywhere",
+  });
+  if (planned.status !== "ready") throw new Error("expected a plan");
+  expect(planned.plan.tables.map((table) => table.name)).toEqual([
+    "users",
+    "posts",
+  ]);
+  expect(planned.plan.decisions[0]).toContain("add soft delete everywhere");
+
+  // Without the schema there is nothing to fall back on, so the error is real.
+  await expect(
+    buildPlan({
+      entityName: null,
+      intentType: "modify",
+      isNewEntity: false,
+      model,
+      originalMessage: "x",
+      retrievedContext: "",
+      transcript: "x",
+    })
+  ).rejects.toThrow("could not parse");
+});

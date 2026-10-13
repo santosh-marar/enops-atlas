@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { SchemaModel } from "../model";
-import { isQualityRequest } from "./quality-goal";
+import { isImprovementRequest } from "./quality-goal";
 import type { IntentResolverOutput } from "./types";
 
 const IntentSchema = z.object({
@@ -41,7 +41,7 @@ export async function resolveIntent(
   model: SchemaModel
 ): Promise<IntentResolverOutput> {
   // "Make it production ready" is a change to the whole schema; no model needed.
-  if (isQualityRequest(query)) {
+  if (isImprovementRequest(query)) {
     return { intentConfidence: 1, intentType: "modify" };
   }
   const { object } = await model.generateObject({
