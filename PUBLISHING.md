@@ -20,9 +20,9 @@ The libraries depend on each other through `workspace:^`. pnpm rewrites that to 
 1. **npm account with 2FA enabled.**
 2. **Own the `@enops` scope.** Scoped packages can only be published by the scope owner. Create a free org named `enops` at <https://www.npmjs.com/org/create> and add yourself as owner. If you do not want the org, rename every package (and every `workspace:^` dependency) to a scope you already own.
 3. **Log in locally:** `npm login`
-4. **CI auth** — `.github/workflows/release.yml` publishes through changesets. Pick one:
-   - **Trusted publishing (recommended):** on npmjs.com, for each of the four packages → Settings → Trusted Publisher → GitHub Actions, repository `santosh-marar/enops-atlas`, workflow `release.yml`. No npm secret is needed; provenance is enabled (`id-token: write` is set). Configure permission for direct `npm publish`, which is the operation used by the release command. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for the required setup.
-   - **Token:** when token publishing is allowed by the package policy, store an appropriately scoped granular npm token as the `NPM_TOKEN` repository secret. The workflow passes it as `NODE_AUTH_TOKEN`.
+4. **CI auth** — `.github/workflows/release-npm-packages.yml` publishes through changesets. Pick one:
+   - **Trusted publishing (recommended):** on npmjs.com, for each of the four packages → Settings → Trusted Publisher → GitHub Actions, repository `santosh-marar/enops-atlas`, workflow `release-npm-packages.yml`. No npm secret is needed; provenance is enabled (`id-token: write` is set). Configure permission for direct `npm publish`, which is the operation used by the release command. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for the required setup.
+   - **Token (not used now):** the workflow no longer passes an npm token. If trusted publishing is ever not possible, add `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` back to the release step and store a granular token as the `NPM_TOKEN` repository secret.
    - For packages not yet created on npm, complete an authenticated first publish before configuring per-package trusted publishing. This machine must be logged in and authorized to publish under `@enops` for a local release.
 5. **Bun 1.3.13** is required for tests, including local releases. CI installs it explicitly.
 
