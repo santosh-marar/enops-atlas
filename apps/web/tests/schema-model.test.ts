@@ -3,10 +3,14 @@ import { describe, expect, mock, test } from "bun:test";
 const calls: Record<string, unknown>[] = [];
 /** Set to make the next request fail once when it carries reasoning settings. */
 let rejectReasoning = false;
+/** Returns an error to throw for this request, or null to answer. */
+let failNext: () => Error | null = () => null;
 mock.module("ai", () => ({
   createGateway: () => (modelId: string) => ({ modelId }),
   generateObject: async (options: Record<string, unknown>) => {
     calls.push(options);
+    const failure = failNext();
+    if (failure) throw failure;
     if (rejectReasoning && options.reasoning) {
       throw new Error("reasoning not supported");
     }
@@ -161,5 +165,66 @@ describe("schema model adapter", () => {
     await model.generateObject({ maxOutputTokens: 10, schema, system: "s" });
     await model.generateObject({ maxOutputTokens: 10, schema, system: "s" });
     expect(seen).toEqual([1, 2]);
+  });
+});
+
+describe("answers that are not valid JSON", () => {
+  const schema = { parse: (value: unknown) => value } as never;
+  const unparseable = () => {
+    const error = new Error(
+      "No object generated: could not parse the response."
+    );
+    error.name = "AI_NoObjectGeneratedError";
+    return error;
+  };
+
+  test("are asked for again instead of failing the run", async () => {
+    calls.length = 0;
+    let failures = 2;
+    failNext = () => (failures-- > 0 ? unparseable() : null);
+    const { object } = await schemaModel(
+      "claude-haiku-5-5",
+      "k"
+    ).generateObject({
+      maxOutputTokens: 100,
+      schema,
+      system: "s",
+    });
+    failNext = () => null;
+    expect((object as { dbml: string }).dbml).toContain("Table t");
+    expect(calls).toHaveLength(3);
+  });
+
+  test("give up after a few tries and say why", async () => {
+    calls.length = 0;
+    failNext = unparseable;
+    await expect(
+      schemaModel("claude-haiku-5-5", "k").generateObject({
+        maxOutputTokens: 100,
+        schema,
+        system: "s",
+      })
+    ).rejects.toThrow("could not parse");
+    failNext = () => null;
+    expect(calls).toHaveLength(3);
+  });
+
+  test("a reply cut off for length is retried with more room", async () => {
+    calls.length = 0;
+    let first = true;
+    failNext = () => {
+      if (!first) return null;
+      first = false;
+      const error = unparseable() as Error & { finishReason?: string };
+      error.finishReason = "length";
+      return error;
+    };
+    await schemaModel("claude-haiku-5-5", "k").generateObject({
+      maxOutputTokens: 1000,
+      schema,
+      system: "s",
+    });
+    failNext = () => null;
+    expect(calls[1]?.maxOutputTokens).toBe(1500);
   });
 });
