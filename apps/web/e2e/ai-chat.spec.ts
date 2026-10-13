@@ -205,11 +205,15 @@ test("the mode, model and thinking can be chosen, and the choice is remembered",
 
   await model.click();
   // Thinking can be set while the app still picks the model.
-  await page.getByRole("button", { exact: true, name: "High" }).click();
+  await page.getByRole("menuitemradio", { exact: true, name: "High" }).click();
+  await expect(model).toContainText("High");
+  await page
+    .getByRole("menuitemradio", { exact: true, name: "Manual" })
+    .click();
   await page.getByRole("menuitemradio", { name: "Claude Sonnet 5.5" }).click();
   await page.keyboard.press("Escape");
   await expect(model).toContainText("Claude Sonnet 5.5");
-  await expect(model).toContainText("High thinking");
+  await expect(model).toContainText("High");
 
   await page.reload();
   await page.getByTitle("AI Schema Assistant").click();
@@ -217,6 +221,73 @@ test("the mode, model and thinking can be chosen, and the choice is remembered",
   await expect(page.getByTitle("Model and thinking")).toContainText(
     "Claude Sonnet 5.5"
   );
+});
+
+test("schema files can be attached, and images are refused", async ({
+  page,
+}) => {
+  await seed(page, []);
+  const files = page.getByLabel("Attach schema or text files");
+  await files.setInputFiles({
+    buffer: Buffer.from("CREATE TABLE posts (id int);\n"),
+    mimeType: "application/sql",
+    name: "posts.sql",
+  });
+  await expect(page.getByText("posts.sql")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send" })).toBeEnabled();
+
+  await files.setInputFiles({
+    buffer: Buffer.from("png"),
+    mimeType: "image/png",
+    name: "erd.png",
+  });
+  await expect(page.getByText(/images aren't supported/)).toBeVisible();
+});
+
+test("thinking can be switched off", async ({ page }) => {
+  await seed(page, []);
+  const model = page.getByTitle("Model and thinking");
+  await model.click();
+  await page
+    .getByRole("menuitemcheckbox", { name: /Extended thinking/ })
+    .click();
+  await expect(model).toContainText("No thinking");
+  await expect(
+    page.getByRole("menuitemradio", { exact: true, name: "High" })
+  ).toHaveCount(0);
+});
+
+test("AI export uses the model chosen in the chat, and can be stopped", async ({
+  page,
+}) => {
+  await page.route("**/ai-gateway.vercel.sh/**", () => new Promise(() => {}));
+  await seed(page, []);
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "atlas-ai-policy",
+      JSON.stringify({
+        complexity: "auto",
+        control: "manual",
+        mode: "auto",
+        modelKey: "claude-opus-5-5",
+        reasoningEffort: "high",
+      })
+    )
+  );
+  await page.getByRole("button", { exact: true, name: "Export" }).hover();
+  await page.getByRole("menuitem", { name: "Export as ORM" }).hover();
+  await page.getByRole("menuitem", { name: "Other ORMs (AI)" }).click();
+  await page.getByRole("combobox").first().click();
+  await page.getByRole("option", { name: /Mongoose/ }).click();
+  await page.getByRole("combobox").nth(1).click();
+  await page.getByRole("option", { name: /MongoDB/ }).click();
+  await page.getByRole("button", { exact: true, name: "Generate" }).click();
+
+  await expect(
+    page.getByText("Generating with Claude Opus 5.5...")
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Stop" }).click();
+  await expect(page.getByText("Stopped", { exact: true })).toBeVisible();
 });
 
 test("a running request shows its steps and can be stopped, then retried", async ({
@@ -251,4 +322,49 @@ test("a failed request shows the error and a retry", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible({
     timeout: 15_000,
   });
+});
+
+const question = {
+  content: "",
+  id: "q1",
+  phase: "NEEDS_CLARIFICATION",
+  question: {
+    options: ["users.id", "todos.id"],
+    text: 'Which one do you mean by "id"?',
+  },
+  request: { message: "add an index on id", rounds: [] },
+  role: "assistant",
+  rounds: [],
+};
+
+test("a question shows its choices and a box for your own answer", async ({
+  page,
+}) => {
+  await page.route("**/ai-gateway.vercel.sh/**", (route) =>
+    route.fulfill({
+      body: JSON.stringify({ error: { message: "Invalid API key" } }),
+      contentType: "application/json",
+      status: 401,
+    })
+  );
+  await seed(page, [
+    { content: "add an index on id", id: "u0", role: "user" },
+    question,
+  ]);
+  await expect(page.getByText('Which one do you mean by "id"?')).toBeVisible();
+  await expect(page.getByRole("button", { name: "users.id" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "todos.id" })).toBeVisible();
+  const own = page.getByPlaceholder("Type your answer");
+  await expect(own).toBeVisible();
+
+  // Typing an answer works the same as picking a choice: it starts the request,
+  // and a failure reads as plain words, never as a parsing error.
+  await own.fill("the id on projects");
+  await page.getByRole("button", { name: "Answer" }).click();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText(/object generated|could not parse/i)).toHaveCount(
+    0
+  );
 });
