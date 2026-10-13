@@ -64,11 +64,16 @@ test("new, save, open, autosave and reload preserve independent projects", async
   await expect(page.locator(".cm-content")).toContainText("first_table");
   await page.clock.install();
   await editSchema(page, "first_updated");
-  await page.clock.fastForward(31_000);
+  // The autosave timer is set after the edit renders, which on a slow machine
+  // can be after a single fast-forward. Advancing the clock on every poll
+  // makes the wait independent of that.
   await expect
     .poll(
-      async () =>
-        (await readProjects(page)).find((p) => p.id === first.id)?.dbml
+      async () => {
+        await page.clock.fastForward(31_000);
+        return (await readProjects(page)).find((p) => p.id === first.id)?.dbml;
+      },
+      { timeout: 15_000 }
     )
     .toContain("first_updated");
   expect(
