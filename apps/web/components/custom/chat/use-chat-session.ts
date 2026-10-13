@@ -8,6 +8,7 @@ import {
   loadPolicy,
   savePolicy,
 } from "@/lib/ai/execution-policy";
+import { friendlyError } from "@/lib/ai/friendly-error";
 import { schemaModel } from "@/lib/ai/schema-model";
 import { db } from "@/lib/db";
 import { createCheckpoint } from "@/lib/versions";
@@ -163,8 +164,7 @@ export function useChatSession({
       });
       return;
     }
-    const text =
-      error instanceof Error ? error.message : "Something went wrong.";
+    const text = friendlyError(error);
     toast.error(text);
     update(id, { content: text, failedStage: stage, phase: "ERROR" });
   };
