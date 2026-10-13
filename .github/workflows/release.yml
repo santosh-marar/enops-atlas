@@ -34,6 +34,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.13
+      - run: npm --version && npm install -g npm@^11.5.1
       - run: pnpm install --frozen-lockfile
       - uses: changesets/action@v1
         with:
@@ -43,5 +44,8 @@ jobs:
           version: pnpm version-packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # No npm token. Publishing is authorised by npm trusted publishing:
+          # each package trusts this repository and this workflow file, and
+          # `id-token: write` above lets npm exchange the run's identity for a
+          # short-lived publish credential. Needs npm 11.5.1 or newer.
           NPM_CONFIG_PROVENANCE: "true"
