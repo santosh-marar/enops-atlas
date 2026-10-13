@@ -106,6 +106,24 @@ describe("introspection IR", () => {
     expect(mapNativeType("geometry")).toEqual({ type: "unsupported" });
   });
 
+  test("maps arrays as their element type, keeping the dimensions", () => {
+    expect(mapNativeType("text[]")).toEqual({
+      arrayDimensions: 1,
+      type: "text",
+    });
+    expect(mapNativeType("character varying(40)[]")).toEqual({
+      arrayDimensions: 1,
+      length: 40,
+      type: "string",
+    });
+    expect(mapNativeType("integer[][]")).toEqual({
+      arrayDimensions: 2,
+      type: "int",
+    });
+    // An enum array is not guessed.
+    expect(mapNativeType("mood[]")).toEqual({ type: "unsupported" });
+  });
+
   test("builds a canonical schema with keys and foreign keys", () => {
     const canonical = introspectedToCanonical(database);
     expect(canonical.dialect).toBe("postgres");

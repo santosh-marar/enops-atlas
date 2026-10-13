@@ -14,7 +14,8 @@ test("Drizzle text arrays retain their physical type and pass exact target verif
     [{ content: source, path: "schema.ts" }],
     []
   );
-  expect(candidate?.snapshot?.losses[0]?.code).toBe("UNSUPPORTED_TYPE");
+  // Arrays are a supported type now, so nothing is reported at all.
+  expect(candidate?.snapshot?.losses).toEqual([]);
   expect(schemaSynchronizationLosses(candidate!.snapshot!)).toEqual([]);
   const column = candidate!.snapshot!.physical.tables[0]!.columns.find(
     (column) => column.name === "tags"

@@ -151,4 +151,25 @@ describe("normalize — real DBML fixture, real @dbml/core parse (no mocks)", ()
     expect(weight.type).toBe("decimal");
     expect(weight.precision).toEqual([10, 2]);
   });
+
+  it("resolves arrays as their element type and keeps the dimensions", () => {
+    const { errors, schema } = normalize(
+      parseDbml(
+        'Table posts {\n  id int [pk]\n  tags "text[]"\n  grid "int[][]"\n  labels "varchar(40)[]"\n  shapes "geometry[]"\n}'
+      )
+    );
+    const column = (name: string) =>
+      schema.tables[0]!.columns.find((c) => c.name === name)!;
+    expect(column("tags")).toMatchObject({ arrayDimensions: 1, type: "text" });
+    expect(column("grid")).toMatchObject({ arrayDimensions: 2, type: "int" });
+    expect(column("labels")).toMatchObject({
+      arrayDimensions: 1,
+      length: 40,
+      type: "string",
+    });
+    expect(column("tags").nativeType?.name).toBe("text[]");
+    // An array of an unknown type stays unsupported.
+    expect(column("shapes").type).toBe("unsupported");
+    expect(errors.map((e) => e.column)).toEqual(["shapes"]);
+  });
 });

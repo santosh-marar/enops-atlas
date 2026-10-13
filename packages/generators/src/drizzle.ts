@@ -115,6 +115,7 @@ export function generateDrizzleSchema(schema: CanonicalSchema): string {
       default:
         throw new Error(`Unsupported Drizzle type ${c.type}`);
     }
+    base += ".array()".repeat(c.arrayDimensions ?? 0);
     if (c.autoIncrement) base += ".generatedByDefaultAsIdentity()";
     if (!c.nullable) base += ".notNull()";
     if (singlePk) base += ".primaryKey()";
@@ -125,6 +126,9 @@ export function generateDrizzleSchema(schema: CanonicalSchema): string {
       else if (d.type === "null") base += `.default(${raw("NULL")})`;
       else if (d.type === "number")
         base += `.default(${raw(d.literal ?? String(d.value))})`;
+      // An array literal such as '{}' is SQL text, not a JS value.
+      else if (c.arrayDimensions && d.type === "string")
+        base += `.default(${raw(`'${String(d.value).replaceAll("'", "''")}'`)})`;
       else base += `.default(${q(d.value)})`;
     }
     return `${camel(c.name)}: ${base}`;

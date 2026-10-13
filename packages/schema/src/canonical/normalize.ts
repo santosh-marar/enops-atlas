@@ -50,7 +50,17 @@ const TYPE_MAP: Record<string, CanonicalType> = {
 function resolveType(
   rawType: string,
   rawTypeArgs: string | null
-): Pick<CanonicalColumn, "type" | "length" | "precision"> | null {
+): Pick<
+  CanonicalColumn,
+  "type" | "length" | "precision" | "arrayDimensions"
+> | null {
+  // An array resolves as its element type, with the dimensions kept.
+  const array = rawType.trim().match(/^(.*?)((?:\[\d*\])+)$/);
+  if (array?.[1] && array[2]) {
+    const element = resolveType(array[1].trim(), rawTypeArgs);
+    if (!element || element.arrayDimensions) return null;
+    return { ...element, arrayDimensions: array[2].split("[").length - 1 };
+  }
   let typeName = rawType;
   let typeArgs = rawTypeArgs;
   const embedded = rawType.match(/^([a-zA-Z_ ]+)\(([^)]+)\)(.*)$/);

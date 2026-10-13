@@ -22,7 +22,12 @@ export function nativeParts(column: CanonicalColumn): {
   name: string;
   args: string | null;
 } {
-  const raw = column.nativeType?.name.trim().toLowerCase();
+  // Array columns are checked and written as their element type.
+  const raw = column.nativeType?.name
+    .trim()
+    .toLowerCase()
+    .replace(/(?:\[\d*\])+$/, "")
+    .trim();
   const match = raw?.match(/^([a-z ]+)\(([^)]+)\)(.*)$/);
   const name = (match ? `${match[1]}${match[3]}` : (raw ?? column.type)).trim();
   return {
@@ -148,6 +153,15 @@ export function assertSupported(
           `Native type ${name} has no lossless ${format} mapping`,
           "UNSUPPORTED_TYPE"
         );
+      if (format === "prisma" && column.arrayDimensions) {
+        if (column.arrayDimensions > 1)
+          reject(at, "Prisma lists have only one dimension");
+        // Prisma always creates list columns as nullable.
+        if (!column.nullable)
+          reject(at, "Prisma cannot keep NOT NULL on a list column");
+      }
+      if (column.arrayDimensions && column.autoIncrement)
+        reject(at, "Array columns cannot be identity columns");
       if (args && !/^\d+(?:\s*,\s*\d+)?$/.test(args))
         reject(at, "Unverified native type parameters");
       if (args && /^\d+(?:\s*,\s*\d+)?$/.test(args)) {

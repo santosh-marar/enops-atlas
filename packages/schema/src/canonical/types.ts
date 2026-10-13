@@ -62,6 +62,11 @@ export interface ColumnDefault {
 
 export interface CanonicalColumn {
   /**
+   * Set for array columns: 1 for text[], 2 for int[][]. `type` is then the
+   * element type, and nativeType keeps the spelling as written.
+   */
+  arrayDimensions?: number;
+  /**
    * Auto-increment / SERIAL / IDENTITY. Renamed from ParsedSchema's
    * "increment" for clarity at this layer — same underlying fact.
    */

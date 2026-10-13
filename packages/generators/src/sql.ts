@@ -14,6 +14,9 @@ function qualify(schema: string, name: string): string {
   return `${quote(schema)}.${quote(name)}`;
 }
 function sqlType(column: CanonicalColumn): string {
+  return `${elementType(column)}${"[]".repeat(column.arrayDimensions ?? 0)}`;
+}
+function elementType(column: CanonicalColumn): string {
   if (column.type === "enum")
     return qualify(column.enumSchema ?? "public", column.enumName!);
   if (column.nativeType) {

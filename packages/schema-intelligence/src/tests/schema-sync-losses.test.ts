@@ -10,7 +10,7 @@ describe("schema synchronization losses", () => {
     const snapshot = schemaSnapshot(
       'Table event {\n id integer [pk]\n tags "text[]" [not null]\n}'
     );
-    expect(snapshot.losses[0]?.code).toBe("UNSUPPORTED_TYPE");
+    expect(snapshot.losses).toEqual([]);
     expect(schemaSynchronizationLosses(snapshot)).toEqual([]);
   });
 

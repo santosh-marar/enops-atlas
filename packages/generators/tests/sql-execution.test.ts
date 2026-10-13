@@ -60,4 +60,27 @@ describe.skipIf(!url)("generated PostgreSQL artifacts", () => {
       await sql.end({ timeout: 5 });
     }
   });
+  test("executes array columns and their defaults", async () => {
+    const space = `atlas_arrays_${Math.random().toString(36).slice(2, 10)}`;
+    const sql = postgres(url!, { max: 1 });
+    try {
+      const { schema } = normalize(
+        parseDbml(
+          `Table ${space}.posts {\n id int [pk, increment]\n tags "text[]" [not null, default: '{}']\n grid "int[][]"\n}`
+        )
+      );
+      await sql.unsafe(generatePostgresSql(schema));
+      const rows = await sql.unsafe(
+        `insert into "${space}".posts(grid) values ('{{1,2},{3,4}}') returning tags, grid`
+      );
+      expect(rows[0]!.tags).toEqual([]);
+      expect(rows[0]!.grid).toEqual([
+        [1, 2],
+        [3, 4],
+      ]);
+    } finally {
+      await sql.unsafe(`drop schema if exists "${space}" cascade`);
+      await sql.end({ timeout: 5 });
+    }
+  });
 });

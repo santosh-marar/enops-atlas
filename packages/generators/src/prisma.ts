@@ -87,6 +87,14 @@ function defaultAttribute(c: CanonicalColumn): string | null {
   if (c.autoIncrement) return "@default(autoincrement())";
   const d = c.default;
   if (!d || d.type === "null") return null;
+  if (c.arrayDimensions) {
+    if (d.type === "string" && d.value === "{}") return "@default([])";
+    const value =
+      d.type === "string"
+        ? `'${String(d.value).replaceAll("'", "''")}'`
+        : String(d.value);
+    return `@default(dbgenerated(${JSON.stringify(value)}))`;
+  }
   if (d.type === "expression")
     return /^now\(\)$/i.test(String(d.value)) && c.type === "timestamp"
       ? "@default(now())"
@@ -214,7 +222,13 @@ export function generatePrismaSchema(schema: CanonicalSchema): string {
       if (type.native) modifiers.push(type.native);
       if (fieldName(c.name) !== c.name)
         modifiers.push(`@map(${JSON.stringify(c.name)})`);
-      return `  ${fieldName(c.name)} ${type.type}${c.nullable && !pk?.includes(c.name) ? "?" : ""}${modifiers.length ? ` ${modifiers.join(" ")}` : ""}`;
+      // A list is never optional in Prisma; its column is nullable anyway.
+      const suffix = c.arrayDimensions
+        ? "[]"
+        : c.nullable && !pk?.includes(c.name)
+          ? "?"
+          : "";
+      return `  ${fieldName(c.name)} ${type.type}${suffix}${modifiers.length ? ` ${modifiers.join(" ")}` : ""}`;
     });
     lines.push(...(extraFields.get(table) ?? []));
     if (table.primaryKey && table.primaryKey.columns.length > 1)

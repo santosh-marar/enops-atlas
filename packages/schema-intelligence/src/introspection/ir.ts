@@ -67,6 +67,7 @@ export interface IntrospectedDatabase {
 }
 
 export interface TypeMapping {
+  arrayDimensions?: number;
   length?: number;
   precision?: [number, number];
   type: CanonicalType;
@@ -74,6 +75,14 @@ export interface TypeMapping {
 
 /** Maps a native database type onto the canonical type system. */
 export function mapNativeType(raw: string): TypeMapping {
+  // An array maps as its element type, with the dimensions kept.
+  const array = raw.trim().match(/^(.*?)((?:\[\d*\])+)$/);
+  if (array?.[1] && array[2]) {
+    const element = mapNativeType(array[1]);
+    return element.type === "unsupported" || element.type === "enum"
+      ? { type: "unsupported" }
+      : { ...element, arrayDimensions: array[2].split("[").length - 1 };
+  }
   const type = raw.trim().toLowerCase();
   const lengthMatch = type.match(/\((\d+)\)/);
   const precisionMatch = type.match(/\((\d+)\s*,\s*(\d+)\)/);
@@ -167,6 +176,9 @@ function toCanonicalColumn(
       ? "enum"
       : `${table.name}_${column.name}_enum`);
   return {
+    ...(mapping.arrayDimensions
+      ? { arrayDimensions: mapping.arrayDimensions }
+      : {}),
     autoIncrement: column.autoIncrement,
     default:
       column.defaultValue ??
