@@ -1,6 +1,11 @@
 import { z } from "zod";
 import type { SchemaModel } from "../model";
 import { schemaEvidence } from "./context";
+import {
+  isQualityRequest,
+  qualityBriefOf,
+  renderQualityBrief,
+} from "./quality-goal";
 import type {
   BuildPlanResult,
   IntentType,
@@ -192,6 +197,12 @@ export async function buildPlan(params: {
    * answered enough, or asked to go ahead.
    */
   forcePlan?: boolean;
+  /**
+   * The current schema. With it, a request about the whole schema's quality
+   * ("make it production ready") is planned straight from the schema's quality
+   * hints, with no model call.
+   */
+  existingDbml?: string;
 }): Promise<BuildPlanResult> {
   const {
     forcePlan,
@@ -208,6 +219,50 @@ export async function buildPlan(params: {
     technologyContext,
     model,
   } = params;
+
+  const quality =
+    params.existingDbml &&
+    !READ_ONLY_INTENTS.includes(intentType) &&
+    isQualityRequest(originalMessage)
+      ? qualityBriefOf(params.existingDbml)
+      : null;
+  if (quality) {
+    if (quality.issues.length === 0) {
+      return {
+        content: `The schema already scores ${quality.percent}% and has no quality hints, so there is nothing to fix. If you want something specific improved, say what.`,
+        status: "answered",
+      };
+    }
+    const MAX_HINTS = 20;
+    const decisions = quality.issues
+      .slice(0, MAX_HINTS)
+      .map((issue) => issue.suggestion);
+    const tables = quality.tables;
+    const plan: TaskPlan = {
+      decisions,
+      entityName: null,
+      generationPrompt: assembleGenerationPrompt({
+        decisions,
+        retrievedContext: renderQualityBrief(quality),
+        tables,
+        technologyContext,
+        techStack,
+        transcript,
+      }),
+      goal: "quality",
+      id: globalThis.crypto.randomUUID(),
+      operationType: "modify",
+      originalPrompt: originalMessage,
+      tables,
+      techStack,
+      ...(technologyContext ? { technologyContext } : {}),
+    };
+    return {
+      plan,
+      planMarkdown: `Quality is ${quality.percent}% with ${quality.issues.length} hint${quality.issues.length === 1 ? "" : "s"}. This changes ${tables.length} table${tables.length === 1 ? "" : "s"} to clear them and make the schema production ready.\n\n${decisions.map((decision) => `- ${decision}`).join("\n")}`,
+      status: "ready",
+    };
+  }
 
   if (READ_ONLY_INTENTS.includes(intentType)) {
     return buildAnswer({

@@ -88,6 +88,11 @@ export interface TaskPlan {
   entityName: string | null;
   /** Frozen assembled prompt — Executor regenerates from final plan fields. */
   generationPrompt: string;
+  /**
+   * Set when the request is about the whole schema's quality ("make it
+   * production ready"): the schema is written to clear the quality hints.
+   */
+  goal?: "quality";
   id: string;
   operationType: IntentType; // intentType already IS the operation category now
   originalPrompt: string;

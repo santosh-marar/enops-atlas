@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { SchemaModel } from "../model";
 import { schemaEvidence } from "./context";
 import { getEntityNameIndex } from "./entity-name-index";
+import { isQualityRequest } from "./quality-goal";
 import type { EntityResolverOutput, IntentType, SchemaIR } from "./types";
 
 const FALLBACK_CONFIDENCE_THRESHOLD = 0.6;
@@ -58,6 +59,17 @@ export async function resolveEntity(
   schema: SchemaIR,
   model: SchemaModel
 ): Promise<EntityResolverOutput> {
+  // A quality request is about the whole schema: there is no table to find.
+  if (isQualityRequest(query) && intentType !== "remove") {
+    return {
+      entityConfidence: 0,
+      entityName: null,
+      entityType: null,
+      isNewEntity: false,
+      resolvedVia: "primary",
+      status: "not_applicable",
+    };
+  }
   const entityNames = getEntityNameIndex(schema);
 
   const { object: primary } = await model.generateObject({

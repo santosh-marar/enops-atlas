@@ -11,6 +11,12 @@ import type { SchemaModel } from "../model";
 import { assembleGenerationPrompt } from "./build-plan";
 import { schemaEvidence } from "./context";
 import { countTables, mergeDbml } from "./merge-dbml";
+import {
+  hasImproved,
+  PRODUCTION_CHECKLIST,
+  qualityBriefOf,
+  renderQualityBrief,
+} from "./quality-goal";
 import type { TaskPlan } from "./types";
 
 /**
@@ -150,7 +156,7 @@ Output ONLY valid DBML — no markdown fences, no commentary, no explanation.`;
  * (generateDbmlPipeline): generate → parse → validate → retry →
  * normalize → direction-sanity → confidence-score.
  */
-export async function generateDbmlFromPlan(params: {
+async function generateOnce(params: {
   model: SchemaModel;
   plan: TaskPlan;
   existingDbml?: string;
@@ -174,6 +180,18 @@ export async function generateDbmlFromPlan(params: {
     projectConstraints,
   } = params;
 
+  const quality =
+    plan.goal === "quality" && existingDbml
+      ? qualityBriefOf(existingDbml)
+      : null;
+  const qualityEvidence = quality
+    ? schemaEvidence("quality report", renderQualityBrief(quality))
+    : "";
+  const system = (patch: boolean) =>
+    plan.goal === "quality"
+      ? `${buildSystem(patch)}\n\n${PRODUCTION_CHECKLIST}`
+      : buildSystem(patch);
+
   const prompt = [
     assembleGenerationPrompt({
       decisions: plan.decisions,
@@ -185,6 +203,7 @@ export async function generateDbmlFromPlan(params: {
     }),
     schemaEvidence("complete current DBML", existingDbml ?? ""),
     buildGraphContextSuffix(plan, existingDbml),
+    qualityEvidence,
     buildExtrasSuffix({
       codeUsage,
       conversationSummary,
@@ -200,13 +219,14 @@ export async function generateDbmlFromPlan(params: {
       existingDbml: existingDbml ?? "",
       model: params.model,
       prompt,
+      system: system(true),
     });
     if (patched.result) return patched.result;
     // The changed tables could not be merged cleanly: write the whole schema.
     const full = await generateDbmlPipeline({
       model: params.model,
       prompt,
-      system: buildSystem(false),
+      system: system(false),
     });
     return { ...full, attempts: full.attempts + patched.attempts };
   }
@@ -214,7 +234,7 @@ export async function generateDbmlFromPlan(params: {
   return generateDbmlPipeline({
     model: params.model,
     prompt,
-    system: buildSystem(false),
+    system: system(false),
   });
 }
 
@@ -241,6 +261,7 @@ async function patchPipeline(params: {
   existingDbml: string;
   model: SchemaModel;
   prompt: string;
+  system: string;
 }): Promise<{ attempts: number; result: GenerateSchemaDbmlResult | null }> {
   let messages: { content: string; role: "user" | "assistant" }[] = [
     { content: params.prompt, role: "user" },
@@ -255,7 +276,7 @@ async function patchPipeline(params: {
       maxOutputTokens: 8000,
       messages,
       schema: DbmlOutputSchema,
-      system: buildSystem(true),
+      system: params.system,
       tier: "capable",
     });
 
@@ -277,4 +298,45 @@ async function patchPipeline(params: {
     ];
   }
   return { attempts, result: null };
+}
+
+/** After the first write, how many more passes may clear the hints that are left. */
+const QUALITY_PASSES = 2;
+const MAX_HINTS = 20;
+
+/**
+ * Writes the schema from an approved plan. A plan with the "quality" goal is
+ * written to clear the schema's quality hints: the result is scored again, and
+ * while hints are left and each pass still helps, another pass clears them.
+ */
+export async function generateDbmlFromPlan(
+  params: Parameters<typeof generateOnce>[0]
+): Promise<GenerateSchemaDbmlResult> {
+  const first = await generateOnce(params);
+  if (params.plan.goal !== "quality" || !first.valid) return first;
+
+  let best = first;
+  let attempts = first.attempts;
+  for (let pass = 1; pass <= QUALITY_PASSES; pass += 1) {
+    const before = qualityBriefOf(best.dbml);
+    if (!before || before.issues.length === 0) break;
+    // Sequential by design: each pass starts from the last one's schema.
+    // biome-ignore lint/performance/noAwaitInLoops: deliberate improvement loop
+    const next = await generateOnce({
+      ...params,
+      existingDbml: best.dbml,
+      plan: {
+        ...params.plan,
+        decisions: before.issues
+          .slice(0, MAX_HINTS)
+          .map((issue) => issue.suggestion),
+        tables: before.tables,
+      },
+    });
+    attempts += next.attempts;
+    const after = next.valid ? qualityBriefOf(next.dbml) : null;
+    if (!(after && hasImproved(before, after))) break;
+    best = next;
+  }
+  return { ...best, attempts };
 }
