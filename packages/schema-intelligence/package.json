@@ -1,6 +1,6 @@
 {
   "name": "@enops/atlas-schema-intelligence",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Browser-safe schema intelligence for Enops Atlas \u2014 repository adapters, validation, confidence scoring, retrieval, AI workflow and live database introspection.",
   "keywords": [
     "enops",

@@ -1,6 +1,6 @@
 {
   "name": "@enops/atlas-generators",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "description": "Deterministic code generators for Enops Atlas \u2014 SQL DDL, Prisma, Drizzle, seed SQL and migration analysis.",
   "keywords": [
     "enops",
