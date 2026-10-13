@@ -115,7 +115,9 @@ export async function planEdit(input: {
   const schema = toSchemaIR(input.dbml);
   input.onProgress?.("Understanding your request");
   const { intentType } = await resolveIntent(request, input.model);
-  input.onProgress?.("Finding the table or column you mean");
+  input.onProgress?.(
+    `It reads as a "${intentType}" request: finding what it touches`
+  );
   const resolved = await resolveEntity(
     request,
     intentType,
@@ -160,7 +162,11 @@ export async function planEdit(input: {
   }
 
   const { entityId } = resolveContext(entity.entityName, schema);
-  input.onProgress?.("Reading the tables around it");
+  input.onProgress?.(
+    entity.entityName
+      ? `Reading ${entity.entityName} and the tables around it`
+      : "Reading the whole schema"
+  );
   const retrieval = planRetrieval({
     entityId,
     intentType,
@@ -168,7 +174,11 @@ export async function planEdit(input: {
   });
   const { context } = await retrieveGraph(retrieval, entityId, schema);
 
-  input.onProgress?.("Writing the plan");
+  input.onProgress?.(
+    entity.entityName
+      ? `Planning the change to ${entity.entityName}`
+      : "Planning the change"
+  );
   const result = await buildPlan({
     entityName: entity.entityName,
     forcePlan,

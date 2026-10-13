@@ -83,12 +83,17 @@ export function runPlan(
 export function runGenerate(
   input: RunInput & { plan: TaskPlan; retrievedContext: string }
 ): Promise<Proposal> {
-  input.onProgress("Writing the schema");
+  const names = input.plan.tables.map((table) => table.name);
+  input.onProgress(
+    names.length === 0
+      ? "Writing the schema"
+      : `Writing ${names.length} table${names.length === 1 ? "" : "s"}: ${names.slice(0, 3).join(", ")}${names.length > 3 ? ` and ${names.length - 3} more` : ""}`
+  );
   return generateFromPlan({
     dbml: input.dbml,
     model: stoppable(input.model, input.signal, ({ attempt }) => {
       if (attempt > 1) {
-        input.onProgress(`Fixing problems it found (attempt ${attempt})`);
+        input.onProgress(`Checking and fixing the schema (try ${attempt})`);
       }
     }),
     plan: input.plan,

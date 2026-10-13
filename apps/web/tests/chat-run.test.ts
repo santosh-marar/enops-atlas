@@ -55,9 +55,9 @@ describe("planning", () => {
     });
     expect(steps).toEqual([
       "Understanding your request",
-      "Finding the table or column you mean",
-      "Reading the tables around it",
-      "Writing the plan",
+      'It reads as a "add" request: finding what it touches',
+      "Reading users and the tables around it",
+      "Planning the change to users",
     ]);
   });
 
@@ -115,8 +115,8 @@ describe("generating", () => {
     expect(proposal.valid).toBe(true);
     expect(proposal.attempts).toBe(2);
     expect(steps).toEqual([
-      "Writing the schema",
-      "Fixing problems it found (attempt 2)",
+      "Writing 1 table: users",
+      "Checking and fixing the schema (try 2)",
     ]);
   });
 
