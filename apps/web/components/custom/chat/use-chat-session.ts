@@ -203,7 +203,8 @@ export function useChatSession({
         phase: "DONE",
         previousDbml: before,
         proposal,
-        thinkingMs: Date.now() - startedAt,
+        // The plan's time plus this step, so it is the whole response.
+        thinkingMs: (message.thinkingMs ?? 0) + (Date.now() - startedAt),
       });
     } catch (error) {
       fail(id, error, "generate");

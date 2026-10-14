@@ -57,7 +57,7 @@ describe("planning", () => {
     });
     expect(steps).toEqual([
       "Understanding your request",
-      'It reads as a "add" request: finding what it touches',
+      "Finding the part of the schema it touches",
       "Reading users and the tables around it",
       "Planning the change to users",
     ]);

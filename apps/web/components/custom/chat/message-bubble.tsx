@@ -32,6 +32,13 @@ const timeLabel = (createdAt?: number) =>
       })
     : null;
 
+/** "6s", "1m 7s". */
+export const formatDuration = (ms: number) => {
+  const total = Math.max(1, Math.round(ms / 1000));
+  const minutes = Math.floor(total / 60);
+  return minutes > 0 ? `${minutes}m ${total % 60}s` : `${total}s`;
+};
+
 export function MessageBubble({
   currentDbml,
   isWorking,
@@ -115,6 +122,12 @@ export function MessageBubble({
       )}
       {message.discarded && (
         <p className="text-muted-foreground text-xs">Proposal discarded.</p>
+      )}
+
+      {!busy && message.thinkingMs !== undefined && (
+        <p className="text-[11px] text-muted-foreground">
+          Responded in {formatDuration(message.thinkingMs)}
+        </p>
       )}
 
       {failed && (

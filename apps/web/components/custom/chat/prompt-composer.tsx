@@ -97,9 +97,7 @@ export function PromptComposer({
   }
 
   return (
-    <div
-      className={cn("shrink-0 rounded-xl border bg-muted/40 p-1", className)}
-    >
+    <div className={cn("shrink-0", className)}>
       <div className="relative rounded-lg border border-border bg-card shadow-sm transition-colors focus-within:border-primary/50">
         {above}
         {attachments && (
@@ -167,7 +165,7 @@ export function PromptComposer({
         </div>
       </div>
       {footer && (
-        <div className="flex min-h-7 items-center justify-between gap-2 pt-1">
+        <div className="flex min-h-7 items-center justify-between gap-2 pt-1.5">
           {footer}
         </div>
       )}

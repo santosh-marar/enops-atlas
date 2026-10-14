@@ -115,9 +115,8 @@ export async function planEdit(input: {
   const schema = toSchemaIR(input.dbml);
   input.onProgress?.("Understanding your request");
   const { intentType } = await resolveIntent(request, input.model);
-  input.onProgress?.(
-    `It reads as a "${intentType}" request: finding what it touches`
-  );
+  input.onProgress?.("", describeIntent(intentType));
+  input.onProgress?.("Finding the part of the schema it touches");
   const resolved = await resolveEntity(
     request,
     intentType,
@@ -161,11 +160,14 @@ export async function planEdit(input: {
     };
   }
 
+  const tableCount = getEntityNameIndex(schema).filter(
+    (name) => !name.includes(".")
+  ).length;
   input.onProgress?.(
     "",
     entity.entityName
-      ? `Found ${entity.entityName}.`
-      : "No single table: treating it as the whole schema."
+      ? `This is about ${entity.entityName}${entity.isNewEntity ? ", which does not exist yet" : ""}.`
+      : `It does not name one table, so it applies across all ${tableCount} tables.`
   );
   const { entityId } = resolveContext(entity.entityName, schema);
   input.onProgress?.(
@@ -217,6 +219,20 @@ export async function planEdit(input: {
     plan: result.plan,
     retrievedContext: context,
   };
+}
+
+/** What the request was taken to mean, in the words the user would use. */
+function describeIntent(intentType: string): string {
+  const meaning: Record<string, string> = {
+    add: "You want something added to the schema.",
+    generate: "You want a new schema written.",
+    inspect: "You want the schema explained or looked over.",
+    modify: "You want the existing schema changed.",
+    remove: "You want something removed from the schema.",
+    rename: "You want something renamed.",
+    validate: "You want the schema checked for problems.",
+  };
+  return meaning[intentType] ?? "It is not clear yet what you want changed.";
 }
 
 /** The thinking behind a plan, as it would be said aloud. */
