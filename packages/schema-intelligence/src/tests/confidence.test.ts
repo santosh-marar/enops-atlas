@@ -216,6 +216,36 @@ describe("scoreSchema", () => {
     expect(issue).toBeDefined();
     expect(issue!.isWarning).toBe(true);
     expect(issue!.tables).toContain("posts");
+    // Names the referenced table, not "[object Object]".
+    expect(issue!.suggestion).toContain("(references `users`)");
+  });
+
+  it("does NOT flag a unique FK column, since a unique constraint is indexed", () => {
+    const profiles = makeTable(
+      "profiles",
+      [
+        makeCol("id", { primaryKey: true, type: "uuid" }),
+        makeCol("user_id", { type: "uuid", unique: true }),
+        makeCol("created_at", { type: "timestamp" }),
+        makeCol("updated_at", { type: "timestamp" }),
+      ],
+      {
+        foreignKeys: [
+          {
+            cardinality: "one-to-one",
+            columns: ["user_id"],
+            onDelete: "none",
+            onUpdate: "none",
+            refColumns: ["id"],
+            refTable: { schema: "public", table: "users" },
+          },
+        ],
+      }
+    );
+    const result = scoreSchema(makeSchema([wellFormedUserTable(), profiles]));
+    expect(
+      result.issues.find((i) => i.kind === "no_index_on_fk")
+    ).toBeUndefined();
   });
 
   it("does NOT flag FK column that has an index", () => {

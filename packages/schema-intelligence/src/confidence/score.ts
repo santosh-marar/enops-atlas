@@ -156,16 +156,24 @@ function checkFkIndexes(table: CanonicalTable): ConfidenceIssue[] {
 
   for (const fk of table.foreignKeys) {
     for (const fkCol of fk.columns) {
+      // A unique constraint is backed by an index, so it counts too.
       const hasIndex =
         table.indexes.some((idx) => idx.columns.includes(fkCol)) ||
+        table.uniqueConstraints.some((u) => u.columns.includes(fkCol)) ||
         (table.primaryKey?.columns.includes(fkCol) ?? false) ||
-        table.columns.some((c) => c.name === fkCol && c.primaryKey);
+        table.columns.some(
+          (c) => c.name === fkCol && (c.primaryKey || c.unique)
+        );
+      const target =
+        fk.refTable.schema === "public"
+          ? fk.refTable.table
+          : `${fk.refTable.schema}.${fk.refTable.table}`;
 
       if (!hasIndex) {
         issues.push({
           isWarning: true,
           kind: "no_index_on_fk",
-          suggestion: `Column \`${fkCol}\` on \`${table.name}\` is a foreign key (references \`${fk.refTable}\`) but has no index. Joins on this column will be slow at scale.`,
+          suggestion: `Column \`${fkCol}\` on \`${table.name}\` is a foreign key (references \`${target}\`) but has no index. Joins on this column will be slow at scale.`,
           tables: [table.name],
         });
       }

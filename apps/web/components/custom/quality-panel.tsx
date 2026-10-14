@@ -55,7 +55,7 @@ export function QualityBadge() {
               {report.issues.map((issue) => (
                 <li
                   className="rounded border p-2"
-                  key={`${issue.kind}-${issue.tables.join(",")}`}
+                  key={`${issue.kind}-${issue.suggestion}`}
                 >
                   <span
                     className={`mr-2 font-medium ${issue.isWarning ? "text-yellow-600" : "text-muted-foreground"}`}
