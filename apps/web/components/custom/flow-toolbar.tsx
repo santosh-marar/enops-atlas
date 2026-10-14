@@ -1,13 +1,39 @@
 "use client";
 
 import { Panel, useReactFlow, useStore } from "@xyflow/react";
-import { memo, useEffect } from "react";
+import { AlertTriangle, X } from "lucide-react";
+import { memo, useEffect, useState } from "react";
 import { useSchemaStore } from "@/store/use-schema-store";
+
+const WARNINGS_HIDDEN_KEY = "atlas-warnings-hidden";
+
+/** Whether the warnings panel is hidden, remembered in this browser. */
+function useWarningsHidden() {
+  const [hidden, setHidden] = useState(false);
+  // Read after mounting, so the server and first client render agree.
+  useEffect(() => {
+    try {
+      setHidden(localStorage.getItem(WARNINGS_HIDDEN_KEY) === "1");
+    } catch {
+      // Shown by default.
+    }
+  }, []);
+  const update = (next: boolean) => {
+    setHidden(next);
+    try {
+      localStorage.setItem(WARNINGS_HIDDEN_KEY, next ? "1" : "0");
+    } catch {
+      // The choice just isn't remembered.
+    }
+  };
+  return [hidden, update] as const;
+}
 
 export const FlowToolbar = memo(function FlowToolbar() {
   const { canUndo, canRedo, undo, redo, warnings, isLocked, toggleLock } =
     useSchemaStore();
 
+  const [warningsHidden, setWarningsHidden] = useWarningsHidden();
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const zoom = useStore((s) => s.transform[2]);
 
@@ -108,13 +134,35 @@ export const FlowToolbar = memo(function FlowToolbar() {
         </button>
       </Panel>
 
-      {warnings.length > 0 && (
+      {warnings.length > 0 && warningsHidden && (
+        <Panel position="bottom-left">
+          <button
+            className="flex items-center gap-1.5 rounded-lg border border-warning/60 bg-warning/10 px-2.5 py-1.5 font-medium text-warning text-xs shadow-lg backdrop-blur-sm hover:bg-warning/20"
+            onClick={() => setWarningsHidden(false)}
+            title="Show warnings"
+            type="button"
+          >
+            <AlertTriangle className="size-3.5" />
+            {warnings.length}
+          </button>
+        </Panel>
+      )}
+
+      {warnings.length > 0 && !warningsHidden && (
         <Panel
           className="max-w-md rounded-lg border border-warning/60 bg-warning/10 p-3 shadow-lg backdrop-blur-sm"
           position="bottom-left"
         >
           <div className="mb-2 flex items-center gap-2 font-semibold text-sm text-warning">
             Warnings ({warnings.length})
+            <button
+              className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-background/60 hover:text-foreground"
+              onClick={() => setWarningsHidden(true)}
+              title="Hide warnings"
+              type="button"
+            >
+              <X className="size-3.5" />
+            </button>
           </div>
           <div className="max-h-32 space-y-1 overflow-y-auto text-muted-foreground text-xs">
             {warnings.slice(0, 5).map((warning, idx) => (

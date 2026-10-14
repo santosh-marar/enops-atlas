@@ -134,6 +134,7 @@ export function assertSupported(
       const at = `${path}.${column.name}`;
       if (format === "dbml") continue;
       const { name, args } = nativeParts(column);
+      const written = column.nativeType?.name.trim() || name;
       if (
         column.type !== "enum" &&
         !postgresTypes.has(name) &&
@@ -141,7 +142,7 @@ export function assertSupported(
       )
         reject(
           at,
-          `Native type ${name} is not verified for this writer`,
+          `Native type ${written} is not verified for this writer`,
           "UNSUPPORTED_TYPE"
         );
       if (
@@ -150,7 +151,7 @@ export function assertSupported(
       )
         reject(
           at,
-          `Native type ${name} has no lossless ${format} mapping`,
+          `Native type ${written} has no lossless ${format} mapping`,
           "UNSUPPORTED_TYPE"
         );
       if (format === "prisma" && column.arrayDimensions) {
